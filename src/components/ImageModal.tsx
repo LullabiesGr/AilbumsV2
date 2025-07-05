@@ -3,6 +3,7 @@ import { X, Download, Wand2, Save, Sparkles, Eye, EyeOff, Zap, Bookmark, Trash2,
 import { Photo, EditProfile } from '../types';
 import StarRating from './StarRating';
 import { editPhoto, autofixPhoto, autocorrectPhoto, getFocusMap } from '../lib/api';
+import FaceOverlay from './FaceOverlay';
 import { loadProfiles, saveProfile, deleteProfile } from '../lib/editProfiles';
 import { usePhoto } from '../context/PhotoContext';
 import { useToast } from '../context/ToastContext';
@@ -50,6 +51,7 @@ const ImageModal: React.FC<ImageModalProps> = ({ photo, onClose }) => {
   const [profileName, setProfileName] = useState('');
   const [showAlbumSelector, setShowAlbumSelector] = useState(false);
   const { albums, addPhotosToAlbum, removePhotosFromAlbum } = usePhoto();
+  const [showFaceOverlay, setShowFaceOverlay] = useState(false);
 
   useEffect(() => {
     setProfiles(loadProfiles());
@@ -525,12 +527,36 @@ const ImageModal: React.FC<ImageModalProps> = ({ photo, onClose }) => {
         {/* Main Image Area */}
         <div className="flex-1 flex items-center justify-center p-6">
           <div className="relative max-w-full max-h-full">
-            <img 
-              src={editedImageUrl || photo.url}
-              ref={imgRef}
-              alt={photo.filename} 
-              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-            />
+            {/* Toggle for face overlay */}
+            {photo.faces && photo.faces.length > 0 && (
+              <button
+                onClick={() => setShowFaceOverlay(!showFaceOverlay)}
+                className="absolute top-4 left-4 z-10 px-3 py-1.5 bg-black/75 text-white text-sm 
+                         rounded-md hover:bg-black/90 transition-colors duration-200"
+              >
+                {showFaceOverlay ? 'Hide Faces' : `Show Faces (${photo.faces.length})`}
+              </button>
+            )}
+            
+            {showFaceOverlay && photo.faces && photo.faces.length > 0 ? (
+              <FaceOverlay
+                faces={photo.faces}
+                imageUrl={editedImageUrl || photo.url}
+                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                showTooltips={true}
+                onFaceClick={(face, index) => {
+                  console.log('Face clicked in modal:', face, index);
+                  // You can add custom logic here
+                }}
+              />
+            ) : (
+              <img 
+                src={editedImageUrl || photo.url}
+                ref={imgRef}
+                alt={photo.filename} 
+                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+              />
+            )}
             
             {showFocusMap && focusMapData && (
               <>
@@ -550,18 +576,6 @@ const ImageModal: React.FC<ImageModalProps> = ({ photo, onClose }) => {
               </>
             )}
 
-            {photo.faces?.map((face, index) => (
-              <div
-                key={index}
-                className="absolute border-2 border-red-500 pointer-events-none rounded"
-                style={{
-                  left: `${face.x * dimensions.width}px`,
-                  top: `${face.y * dimensions.height}px`,
-                  width: `${face.width * dimensions.width}px`,
-                  height: `${face.height * dimensions.height}px`
-                }}
-              />
-            ))}
           </div>
         </div>
 

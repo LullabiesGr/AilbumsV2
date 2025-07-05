@@ -6,6 +6,7 @@ import ImageModal from './ImageModal';
 import StarRating from './StarRating';
 import InpaintModal from './InpaintModal';
 import ColorLabelIndicator from './ColorLabelIndicator';
+import FaceOverlay from './FaceOverlay';
 import { Photo } from '../types';
 import { getPhotoTip } from '../lib/api';
 import { useToast } from '../context/ToastContext';
@@ -24,6 +25,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
   const [showTip, setShowTip] = useState(false);
   const [tip, setTip] = useState<string | null>(null);
   const [isLoadingTip, setIsLoadingTip] = useState(false);
+  const [showFaceOverlay, setShowFaceOverlay] = useState(false);
 
   const getTagIcon = (tag: string) => {
     switch (tag) {
@@ -92,33 +94,10 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
     }
   };
 
-  const renderFaceBoxes = () => (
-    photo.faces?.map((face, index) => (
-      <div
-        key={index}
-        className="absolute border-2 border-red-500 pointer-events-none group"
-        style={{
-          left: `${face.x * 100}%`,
-          top: `${face.y * 100}%`,
-          width: `${face.width * 100}%`,
-          height: `${face.height * 100}%`
-        }}
-      >
-        {/* Face attributes overlay */}
-        <div className="absolute -top-6 left-0 bg-black/75 text-white text-xs px-1 py-0.5 rounded 
-                      opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-          {face.age && `${Math.round(face.age)}y`}
-          {face.gender && ` ${face.gender}`}
-          {face.emotion && (
-            <span className="ml-1 inline-flex items-center">
-              {getEmotionIcon(face.emotion)}
-            </span>
-          )}
-          {face.face_quality && ` Q:${Math.round(face.face_quality * 100)}%`}
-        </div>
-      </div>
-    ))
-  );
+  const handleFaceClick = (face: Face, index: number) => {
+    console.log('Face clicked:', face, 'Index:', index);
+    // You can add custom logic here, like showing face details or filtering by person
+  };
 
   // Get face summary badges
   const getFaceSummaryBadges = () => {
@@ -170,13 +149,31 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             <Check className="h-4 w-4" />
           </button>
         </div>
-        <img
-          src={photo.url}
-          alt={photo.filename}
-          className="w-full h-full object-cover cursor-pointer"
+        
+        {/* Toggle between normal image and face overlay */}
+        <div 
+          className="w-full h-full cursor-pointer"
           onClick={() => setShowModal(true)}
-        />
-        {renderFaceBoxes()}
+          onMouseEnter={() => setShowFaceOverlay(true)}
+          onMouseLeave={() => setShowFaceOverlay(false)}
+        >
+          {showFaceOverlay && photo.faces && photo.faces.length > 0 ? (
+            <FaceOverlay
+              faces={photo.faces}
+              imageUrl={photo.url}
+              className="w-full h-full"
+              showTooltips={true}
+              onFaceClick={handleFaceClick}
+            />
+          ) : (
+            <img
+              src={photo.url}
+              alt={photo.filename}
+              className="w-full h-full object-cover"
+            />
+          )}
+        </div>
+        
         {isHovered && (
           <>
           {tip && showTip && (
@@ -362,13 +359,26 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
         </button>
       </div>
       <div className="w-24 h-24 flex-shrink-0 relative overflow-hidden">
-        <img
-          src={photo.url}
-          alt={photo.filename}
-          className="w-full h-full object-cover cursor-pointer"
+        <div 
+          className="w-full h-full cursor-pointer"
           onClick={() => setShowModal(true)}
-        />
-        {renderFaceBoxes()}
+        >
+          {photo.faces && photo.faces.length > 0 ? (
+            <FaceOverlay
+              faces={photo.faces}
+              imageUrl={photo.url}
+              className="w-full h-full"
+              showTooltips={false} // Disable tooltips in list view for space
+              onFaceClick={handleFaceClick}
+            />
+          ) : (
+            <img
+              src={photo.url}
+              alt={photo.filename}
+              className="w-full h-full object-cover"
+            />
+          )}
+        </div>
       </div>
       <div className="flex-1 p-3 flex flex-col justify-between">
         <div>
@@ -496,13 +506,26 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
         </button>
       </div>
       <div className="aspect-square relative overflow-hidden">
-        <img
-          src={photo.url}
-          alt={photo.filename}
-          className="w-full h-full object-cover cursor-pointer"
+        <div 
+          className="w-full h-full cursor-pointer"
           onClick={() => setShowModal(true)}
-        />
-        {renderFaceBoxes()}
+        >
+          {photo.faces && photo.faces.length > 0 ? (
+            <FaceOverlay
+              faces={photo.faces}
+              imageUrl={photo.url}
+              className="w-full h-full"
+              showTooltips={false} // Disable tooltips in compact view
+              onFaceClick={handleFaceClick}
+            />
+          ) : (
+            <img
+              src={photo.url}
+              alt={photo.filename}
+              className="w-full h-full object-cover"
+            />
+          )}
+        </div>
       </div>
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
         <div className="flex justify-between items-center">

@@ -30,13 +30,13 @@ export interface Photo {
 }
 
 export interface Face {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  box: [number, number, number, number]; // [x1, y1, x2, y2] absolute coordinates
+  confidence: number;
+  landmarks?: number[][];
   age?: number;
   gender?: 'male' | 'female';
   emotion?: string;
+  emotion_confidence?: number;
   headpose?: {
     yaw: number;
     pitch: number;
@@ -46,10 +46,11 @@ export interface Face {
   mask?: boolean;
   occlusion?: number;
   face_quality?: number;
-  landmarks?: number[][];
   embedding?: number[];
   same_person_group?: string;
   is_duplicate?: boolean;
+  eyes_closed?: boolean;
+  smile?: number;
 }
 
 export interface FaceSummary {

@@ -1,16 +1,19 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
-import { Photo, Filter, Album, ColorLabel, EventType, CullingMode, WorkflowStage } from '../types';
-import { analyzePhotosSingle, deepAnalyzePhotosSingle, cullPhotos } from '../lib/api';
+import { Photo, Filter, Album, ColorLabel, EventType, CullingMode, WorkflowStage, DuplicateCluster, PersonGroup } from '../types';
+import { analyzePhotosSingle, deepAnalyzePhotosSingle, cullPhotos, findDuplicatesAPI } from '../lib/api';
 import { useToast } from './ToastContext';
 
 interface PhotoContextType {
   photos: Photo[];
   filteredPhotos: Photo[];
+  duplicateClusters: DuplicateCluster[];
+  personGroups: PersonGroup[];
   albums: Album[];
   currentAlbum: Album | null;
   isLoading: boolean;
   isUploading: boolean;
   isAnalyzing: boolean;
+  isFindingDuplicates: boolean;
   analysisProgress: { processed: number; total: number; currentPhoto: string };
   showAnalysisOverlay: boolean;
   setShowAnalysisOverlay: (show: boolean) => void;
@@ -22,14 +25,18 @@ interface PhotoContextType {
   filterOption: Filter;
   captionFilter: string;
   starRatingFilter: { min: number | null; max: number | null };
+  selectedPersonGroup: string | null;
   setCaptionFilter: (filter: string) => void;
   setStarRatingFilter: (min: number | null, max: number | null) => void;
+  setSelectedPersonGroup: (groupId: string | null) => void;
   uploadPhotos: (files: File[]) => void;
   setEventType: (eventType: EventType) => void;
   setCullingMode: (mode: CullingMode) => void;
   startAnalysis: () => Promise<void>;
   resetWorkflow: () => void;
   startBackgroundAnalysis: () => void;
+  findDuplicates: () => Promise<void>;
+  groupPeopleByFaces: () => void;
   deletePhoto: (id: string) => void;
   cullPhoto: (id: string) => void;
   cullAllPhotos: () => void;
@@ -51,6 +58,8 @@ interface PhotoContextType {
   addPhotosToAlbum: (photoIds: string[], albumId: string) => void;
   removePhotosFromAlbum: (photoIds: string[], albumId: string) => void;
   saveAlbumAndTrainAI: (event: string) => Promise<void>;
+  markDuplicateAsKeep: (filename: string, duplicateGroup: string[]) => void;
+  deleteDuplicateGroup: (duplicateGroup: string[]) => void;
 }
 
 const PhotoContext = createContext<PhotoContextType | undefined>(undefined);
@@ -65,11 +74,14 @@ export const usePhoto = () => {
 
 export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [duplicateClusters, setDuplicateClusters] = useState<DuplicateCluster[]>([]);
+  const [personGroups, setPersonGroups] = useState<PersonGroup[]>([]);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [currentAlbum, setCurrentAlbum] = useState<Album | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isFindingDuplicates, setIsFindingDuplicates] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState({ processed: 0, total: 0, currentPhoto: '' });
   const [showAnalysisOverlay, setShowAnalysisOverlay] = useState(false);
   const [workflowStage, setWorkflowStage] = useState<WorkflowStage>('upload');
@@ -79,11 +91,14 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [filterOption, setFilterOption] = useState<Filter>('all');
   const [captionFilter, setCaptionFilter] = useState('');
   const [starRatingFilter, setStarRatingFilterState] = useState<{ min: number | null; max: number | null }>({ min: null, max: null });
+  const [selectedPersonGroup, setSelectedPersonGroup] = useState<string | null>(null);
 
   const { showToast } = useToast();
 
   const resetWorkflow = useCallback(() => {
     setPhotos([]);
+    setDuplicateClusters([]);
+    setPersonGroups([]);
     setShowAnalysisOverlay(false);
     setWorkflowStage('upload');
     setEventType(null);
@@ -91,8 +106,109 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setFilterOption('all');
     setCaptionFilter('');
     setStarRatingFilterState({ min: null, max: null });
+    setSelectedPersonGroup(null);
     setAnalysisProgress({ processed: 0, total: 0, currentPhoto: '' });
   }, []);
+
+  // Group people by face embeddings and same_person_group
+  const groupPeopleByFaces = useCallback(() => {
+    const groups: Record<string, PersonGroup> = {};
+    
+    photos.forEach(photo => {
+      if (photo.faces && photo.faces.length > 0) {
+        photo.faces.forEach(face => {
+          if (face.same_person_group) {
+            if (!groups[face.same_person_group]) {
+              groups[face.same_person_group] = {
+                group_id: face.same_person_group,
+                photos: [],
+                faces: [],
+                photo_count: 0
+              };
+            }
+            
+            // Add photo if not already in group
+            if (!groups[face.same_person_group].photos.find(p => p.id === photo.id)) {
+              groups[face.same_person_group].photos.push(photo);
+              groups[face.same_person_group].photo_count++;
+            }
+            
+            groups[face.same_person_group].faces.push(face);
+            
+            // Set representative face (highest quality)
+            if (!groups[face.same_person_group].representative_face || 
+                (face.face_quality && face.face_quality > (groups[face.same_person_group].representative_face?.face_quality || 0))) {
+              groups[face.same_person_group].representative_face = face;
+            }
+          }
+        });
+      }
+    });
+    
+    setPersonGroups(Object.values(groups));
+  }, [photos]);
+
+  // Find duplicates using the new backend API
+  const findDuplicates = useCallback(async () => {
+    const photosWithVectors = photos.filter(p => p.clip_vector && p.clip_vector.length > 0);
+    
+    if (photosWithVectors.length === 0) {
+      showToast('No analyzed photos with embeddings found', 'warning');
+      return;
+    }
+    
+    setIsFindingDuplicates(true);
+    
+    try {
+      const filenames = photosWithVectors.map(p => p.filename);
+      const clipEmbeddings = photosWithVectors.map(p => p.clip_vector!);
+      const phashes = photosWithVectors.map(p => p.phash || '');
+      
+      const clusters = await findDuplicatesAPI(filenames, clipEmbeddings, phashes);
+      setDuplicateClusters(clusters);
+      
+      // Update photos with duplicate information
+      setPhotos(prev => prev.map(photo => {
+        const cluster = clusters.find(c => 
+          c.filename === photo.filename || 
+          c.clip_duplicates.includes(photo.filename) || 
+          c.phash_duplicates.includes(photo.filename)
+        );
+        
+        if (cluster) {
+          const allDuplicates = [
+            cluster.filename,
+            ...cluster.clip_duplicates,
+            ...cluster.phash_duplicates
+          ].filter((filename, index, arr) => arr.indexOf(filename) === index);
+          
+          return {
+            ...photo,
+            duplicateGroup: allDuplicates,
+            isDuplicate: allDuplicates.length > 1,
+            tags: [
+              ...(photo.tags || []).filter(tag => tag !== 'duplicate'),
+              ...(allDuplicates.length > 1 ? ['duplicate'] : [])
+            ]
+          };
+        }
+        
+        return photo;
+      }));
+      
+      const duplicateCount = clusters.reduce((count, cluster) => {
+        const totalDuplicates = cluster.clip_duplicates.length + cluster.phash_duplicates.length;
+        return count + (totalDuplicates > 0 ? totalDuplicates + 1 : 0);
+      }, 0);
+      
+      showToast(`Found ${clusters.length} duplicate groups with ${duplicateCount} total duplicates`, 'success');
+    } catch (error: any) {
+      console.error('Failed to find duplicates:', error);
+      showToast(error.message || 'Failed to find duplicates', 'error');
+    } finally {
+      setIsFindingDuplicates(false);
+    }
+  }, [photos, showToast]);
 
   const uploadPhotos = useCallback(async (files: File[]) => {
     setIsUploading(true);
@@ -241,6 +357,11 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           setPhotos(analyzedPhotos);
         }
         
+        // After analysis, automatically group people by faces
+        setTimeout(() => {
+          groupPeopleByFaces();
+        }, 500);
+        
         showToast(
           cullingMode === 'deep' 
             ? 'Deep analysis completed successfully' 
@@ -261,7 +382,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     runAnalysis();
-  }, [photos, eventType, cullingMode, showToast]);
+  }, [photos, eventType, cullingMode, showToast, groupPeopleByFaces]);
 
   const startAnalysis = useCallback(async () => {
     if (!cullingMode || photos.length === 0) {
@@ -363,6 +484,11 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setPhotos(analyzedPhotos);
       }
       
+      // After analysis, automatically group people by faces
+      setTimeout(() => {
+        groupPeopleByFaces();
+      }, 500);
+      
       showToast(
         cullingMode === 'deep' 
           ? 'Deep analysis completed successfully' 
@@ -380,7 +506,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     } finally {
       setIsAnalyzing(false);
     }
-  }, [photos, eventType, cullingMode, showToast]);
+  }, [photos, eventType, cullingMode, showToast, groupPeopleByFaces]);
 
   // Re-analyze when event type changes
   const handleEventTypeChange = useCallback((newEventType: EventType) => {
@@ -400,6 +526,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           score: null,
           tags: photo.tags?.filter(tag => tag === 'raw') || [],
           faces: [],
+          face_summary: undefined,
           caption: undefined,
           event_type: undefined,
           blip_flags: [],
@@ -416,6 +543,30 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       }
     }
   }, [photos, cullingMode, startAnalysisFromReview]);
+
+  const markDuplicateAsKeep = useCallback((filename: string, duplicateGroup: string[]) => {
+    setPhotos(prev => prev.map(photo => {
+      if (photo.filename === filename) {
+        return {
+          ...photo,
+          color_label: 'green' as ColorLabel,
+          tags: (photo.tags || []).filter(tag => tag !== 'duplicate')
+        };
+      } else if (duplicateGroup.includes(photo.filename)) {
+        return {
+          ...photo,
+          color_label: 'red' as ColorLabel
+        };
+      }
+      return photo;
+    }));
+    showToast(`Marked ${filename} as keep, others as reject`, 'success');
+  }, [showToast]);
+
+  const deleteDuplicateGroup = useCallback((duplicateGroup: string[]) => {
+    setPhotos(prev => prev.filter(photo => !duplicateGroup.includes(photo.filename)));
+    showToast(`Deleted ${duplicateGroup.length} duplicate photos`, 'success');
+  }, [showToast]);
 
   const deletePhoto = useCallback((id: string) => {
     setPhotos((prev) => prev.filter((photo) => photo.id !== id));
@@ -578,6 +729,13 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       );
     }
     
+    // Apply person group filter
+    if (selectedPersonGroup) {
+      filtered = filtered.filter(photo => 
+        photo.faces?.some(face => face.same_person_group === selectedPersonGroup)
+      );
+    }
+    
     // Apply star rating filter
     if (starRatingFilter.min !== null || starRatingFilter.max !== null) {
       filtered = filtered.filter(photo => {
@@ -608,9 +766,25 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       case 'blurry':
         return filtered.filter(photo => photo.tags?.includes('blurry'));
       case 'eyes-closed':
-        return filtered.filter(photo => photo.tags?.includes('closed_eyes'));
+        return filtered.filter(photo => 
+          photo.tags?.includes('closed_eyes') || 
+          photo.face_summary?.issues?.closed_eyes && photo.face_summary.issues.closed_eyes > 0
+        );
       case 'duplicates':
-        return filtered.filter(photo => photo.tags?.includes('duplicate'));
+        return filtered.filter(photo => photo.isDuplicate);
+      case 'people':
+        return filtered.filter(photo => photo.faces && photo.faces.length > 0);
+      case 'emotions':
+        return filtered.filter(photo => 
+          photo.faces?.some(face => face.emotion && face.emotion !== 'neutral')
+        );
+      case 'quality-issues':
+        return filtered.filter(photo => 
+          photo.face_summary?.issues && 
+          (photo.face_summary.issues.closed_eyes > 0 || 
+           photo.face_summary.issues.occluded_faces > 0 || 
+           photo.face_summary.issues.low_quality > 0)
+        );
       case 'warnings':
         return filtered.filter(photo => photo.tags?.some(tag => 
           ['blurry', 'closed_eyes', 'duplicate'].includes(tag)
@@ -629,7 +803,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       default:
         return filtered;
     }
-  }, [currentAlbum, photos, captionFilter, starRatingFilter, filterOption]);
+  }, [currentAlbum, photos, captionFilter, selectedPersonGroup, starRatingFilter, filterOption]);
 
   const selectedPhotos = useMemo(() => {
     return photos.filter(photo => photo.selected);
@@ -638,11 +812,14 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const value: PhotoContextType = {
     photos,
     filteredPhotos,
+    duplicateClusters,
+    personGroups,
     albums,
     currentAlbum,
     isLoading,
     isUploading,
     isAnalyzing,
+    isFindingDuplicates,
     analysisProgress,
     showAnalysisOverlay,
     setShowAnalysisOverlay,
@@ -654,13 +831,17 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     filterOption,
     captionFilter,
     starRatingFilter,
+    selectedPersonGroup,
     setCaptionFilter,
     setStarRatingFilter,
+    setSelectedPersonGroup,
     uploadPhotos,
     setEventType: handleEventTypeChange,
     setCullingMode,
     startAnalysis,
     startBackgroundAnalysis,
+    findDuplicates,
+    groupPeopleByFaces,
     resetWorkflow,
     deletePhoto,
     cullPhoto,
@@ -682,7 +863,9 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setCurrentAlbum,
     addPhotosToAlbum,
     removePhotosFromAlbum,
-    saveAlbumAndTrainAI
+    saveAlbumAndTrainAI,
+    markDuplicateAsKeep,
+    deleteDuplicateGroup
   };
 
   return <PhotoContext.Provider value={value}>{children}</PhotoContext.Provider>;

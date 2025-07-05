@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, Scissors, Edit, Trash2, X, CheckCheck, Wand2, Check, Lightbulb, 
-         AlertCircle, Smile, EyeOff, Users, Sparkles, Flag } from 'lucide-react';
+         AlertCircle, Smile, EyeOff, Users, Sparkles, Flag, Heart, Frown, Meh } from 'lucide-react';
 import { usePhoto } from '../context/PhotoContext';
 import ImageModal from './ImageModal';
 import StarRating from './StarRating';
@@ -37,6 +37,24 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
         return <Users className="h-4 w-4 text-blue-500\" title="Multiple Faces" />;
       default:
         return null;
+    }
+  };
+
+  const getEmotionIcon = (emotion: string) => {
+    switch (emotion.toLowerCase()) {
+      case 'happy':
+      case 'joy':
+        return <Smile className="h-3 w-3 text-green-500" title="Happy" />;
+      case 'sad':
+        return <Frown className="h-3 w-3 text-blue-500" title="Sad" />;
+      case 'angry':
+        return <AlertCircle className="h-3 w-3 text-red-500" title="Angry" />;
+      case 'surprise':
+        return <Sparkles className="h-3 w-3 text-yellow-500" title="Surprised" />;
+      case 'neutral':
+        return <Meh className="h-3 w-3 text-gray-500" title="Neutral" />;
+      default:
+        return <Heart className="h-3 w-3 text-pink-500" title={emotion} />;
     }
   };
 
@@ -78,16 +96,64 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
     photo.faces?.map((face, index) => (
       <div
         key={index}
-        className="absolute border-2 border-red-500 pointer-events-none"
+        className="absolute border-2 border-red-500 pointer-events-none group"
         style={{
           left: `${face.x * 100}%`,
           top: `${face.y * 100}%`,
           width: `${face.width * 100}%`,
           height: `${face.height * 100}%`
         }}
-      />
+      >
+        {/* Face attributes overlay */}
+        <div className="absolute -top-6 left-0 bg-black/75 text-white text-xs px-1 py-0.5 rounded 
+                      opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+          {face.age && `${Math.round(face.age)}y`}
+          {face.gender && ` ${face.gender}`}
+          {face.emotion && (
+            <span className="ml-1 inline-flex items-center">
+              {getEmotionIcon(face.emotion)}
+            </span>
+          )}
+          {face.face_quality && ` Q:${Math.round(face.face_quality * 100)}%`}
+        </div>
+      </div>
     ))
   );
+
+  // Get face summary badges
+  const getFaceSummaryBadges = () => {
+    if (!photo.face_summary) return null;
+    
+    const badges = [];
+    
+    if (photo.face_summary.total_faces > 0) {
+      badges.push(
+        <span key="faces" className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded font-medium flex items-center gap-1">
+          <Users className="h-3 w-3" />
+          {photo.face_summary.total_faces}
+        </span>
+      );
+    }
+    
+    if (photo.face_summary.issues?.closed_eyes && photo.face_summary.issues.closed_eyes > 0) {
+      badges.push(
+        <span key="closed-eyes" className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 text-xs rounded font-medium flex items-center gap-1">
+          <EyeOff className="h-3 w-3" />
+          {photo.face_summary.issues.closed_eyes}
+        </span>
+      );
+    }
+    
+    if (photo.face_summary.quality_stats?.average_quality && photo.face_summary.quality_stats.average_quality < 0.5) {
+      badges.push(
+        <span key="low-quality" className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 text-xs rounded font-medium">
+          Low Quality
+        </span>
+      );
+    }
+    
+    return badges;
+  };
 
   const renderCardContent = () => (
     <>
@@ -164,6 +230,11 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
         )}
         <div className="absolute top-2 right-2">
           <div className="px-2 py-1 rounded-full bg-black/50 backdrop-blur-sm flex flex-col items-center gap-1">
+            {photo.isDuplicate && (
+              <div className="p-1 bg-orange-500 rounded-full" title="Duplicate detected">
+                <Copy className="h-3 w-3 text-white" />
+              </div>
+            )}
             {photo.blip_highlights && photo.blip_highlights.length > 0 && (
               <div className="p-1 bg-yellow-500 rounded-full\" title={`Event highlights: ${photo.blip_highlights.join(', ')}`}>
                 <Sparkles className="h-3 w-3 text-white" />
@@ -210,6 +281,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             photoId={photo.id}
             editable={true}
           />
+          {getFaceSummaryBadges()}
           {photo.blip_highlights && photo.blip_highlights.map((highlight, index) => (
             <span 
               key={`highlight-${index}`}
@@ -322,6 +394,12 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
                 readonly={false}
               />
             )}
+            {photo.isDuplicate && (
+              <div className="flex items-center gap-1">
+                <Copy className="h-3 w-3 text-orange-500" />
+                <span className="text-xs text-orange-600 dark:text-orange-400">Duplicate</span>
+              </div>
+            )}
             {photo.blip_highlights && photo.blip_highlights.length > 0 && (
               <div className="flex items-center gap-1">
                 <Sparkles className="h-3 w-3 text-yellow-500" />
@@ -336,6 +414,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             )}
           </div>
           <div className="mt-1 flex flex-wrap gap-1">
+            {getFaceSummaryBadges()}
             {photo.tags?.map((tag, index) => {
               const icon = getTagIcon(tag);
               return icon ? (
@@ -436,6 +515,11 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             )}
           </div>
           <div className="flex flex-col items-end gap-1">
+            {photo.isDuplicate && (
+              <div className="p-0.5 bg-orange-500 rounded-full" title="Duplicate">
+                <Copy className="h-2 w-2 text-white" />
+              </div>
+            )}
             <ColorLabelIndicator 
               colorLabel={photo.color_label} 
               size="sm" 
@@ -463,6 +547,12 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             </div>
           ) : null;
         })}
+        {photo.face_summary && photo.face_summary.total_faces > 0 && (
+          <div className="p-1 rounded-full bg-black/50 backdrop-blur-sm flex items-center">
+            <Users className="h-2 w-2 text-white" />
+            <span className="text-white text-[10px] ml-0.5">{photo.face_summary.total_faces}</span>
+          </div>
+        )}
       </div>
       {isHovered && (
         <div className="absolute top-1 right-1">

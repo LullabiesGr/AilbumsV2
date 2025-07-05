@@ -1,8 +1,96 @@
 import { Photo } from '../types';
 import { findDuplicates } from './similarity';
 import { promisePoolWithProgress } from './promisePool';
+import { DuplicateCluster } from '../types';
 
 const API_URL = 'https://de26-46-190-38-24.ngrok-free.app';
+
+// Utility function to compute perceptual hash on frontend (basic implementation)
+export const computePerceptualHash = async (imageUrl: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Resize to 8x8 for pHash
+        canvas.width = 8;
+        canvas.height = 8;
+        
+        ctx?.drawImage(img, 0, 0, 8, 8);
+        const imageData = ctx?.getImageData(0, 0, 8, 8);
+        
+        if (!imageData) {
+          reject(new Error('Failed to get image data'));
+          return;
+        }
+        
+        // Simple grayscale conversion and hash generation
+        const pixels = imageData.data;
+        const grayscale: number[] = [];
+        
+        for (let i = 0; i < pixels.length; i += 4) {
+          const gray = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
+          grayscale.push(gray);
+        }
+        
+        // Calculate average
+        const avg = grayscale.reduce((sum, val) => sum + val, 0) / grayscale.length;
+        
+        // Generate hash
+        let hash = '';
+        for (const pixel of grayscale) {
+          hash += pixel > avg ? '1' : '0';
+        }
+        
+        // Convert binary to hex
+        const hexHash = parseInt(hash, 2).toString(16).padStart(16, '0');
+        resolve(hexHash);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = imageUrl;
+  });
+};
+
+// Find duplicates using the new backend endpoint
+export const findDuplicatesAPI = async (
+  filenames: string[],
+  clipEmbeddings: number[][],
+  phashes: string[]
+): Promise<DuplicateCluster[]> => {
+  try {
+    const response = await fetch(`${API_URL}/find-duplicates`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        filenames,
+        clip_embeddings: clipEmbeddings,
+        phashes
+      }),
+      mode: 'cors',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Failed to find duplicates');
+    }
+
+    const clusters = await response.json();
+    return clusters;
+  } catch (error: any) {
+    console.error('Find duplicates error:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};
 
 export const convertRawFile = async (file: File): Promise<Blob> => {
   const formData = new FormData();
@@ -114,6 +202,17 @@ export const analyzeSinglePhoto = async (photo: Photo, userId: string, eventType
     const result = Array.isArray(results) ? results[0] : results;
     
     if (result) {
+      // Compute perceptual hash if not provided by backend
+      let phash = result.phash;
+      if (!phash) {
+        try {
+          phash = await computePerceptualHash(photo.url);
+        } catch (error) {
+          console.warn('Failed to compute perceptual hash:', error);
+          phash = '';
+        }
+      }
+      
       return {
         ...photo,
         score: result.ai_score || null,
@@ -125,7 +224,9 @@ export const analyzeSinglePhoto = async (photo: Photo, userId: string, eventType
         personalized_similarity: result.personalized_similarity,
         tags: result.tags || [],
         faces: result.faces || [],
+        face_summary: result.face_summary,
         clip_vector: result.clip_vector,
+        phash,
         caption: result.caption,
         event_type: result.event_type,
         color_label: result.color_label,
@@ -197,15 +298,7 @@ export const analyzePhotosSingle = async (
     return result;
   });
 
-  // Find duplicates and add tags
-  const duplicates = findDuplicates(analyzedPhotos);
-  return analyzedPhotos.map(photo => ({
-    ...photo,
-    tags: [
-      ...(photo.tags || []),
-      ...(duplicates.has(photo.id) ? ['duplicate'] : [])
-    ]
-  }));
+  return analyzedPhotos;
 };
 
 export const deepAnalyzePhotos = async (photos: Photo[], userId: string, eventType: EventType): Promise<Photo[]> => {
@@ -244,6 +337,17 @@ export const deepAnalyzeSinglePhoto = async (photo: Photo, userId: string, event
     const result = Array.isArray(results) ? results[0] : results;
     
     if (result) {
+      // Compute perceptual hash if not provided by backend
+      let phash = result.phash;
+      if (!phash) {
+        try {
+          phash = await computePerceptualHash(photo.url);
+        } catch (error) {
+          console.warn('Failed to compute perceptual hash:', error);
+          phash = '';
+        }
+      }
+      
       return {
         ...photo,
         score: result.ai_score || null,
@@ -255,7 +359,9 @@ export const deepAnalyzeSinglePhoto = async (photo: Photo, userId: string, event
         personalized_similarity: result.personalized_similarity,
         tags: result.tags || [],
         faces: result.faces || [],
+        face_summary: result.face_summary,
         clip_vector: result.clip_vector,
+        phash,
         caption: result.caption,
         event_type: result.event_type,
         color_label: result.color_label,
@@ -328,15 +434,7 @@ export const deepAnalyzePhotosSingle = async (
     return result;
   });
 
-  // Find duplicates and add tags
-  const duplicates = findDuplicates(analyzedPhotos);
-  return analyzedPhotos.map(photo => ({
-    ...photo,
-    tags: [
-      ...(photo.tags || []),
-      ...(duplicates.has(photo.id) ? ['duplicate'] : [])
-    ]
-  }));
+  return analyzedPhotos;
 };
 
 // Simulated culling (real logic is on the backend eventually)

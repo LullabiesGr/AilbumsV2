@@ -11,8 +11,10 @@ export interface Photo {
   blur_score?: number;
   personalized_similarity?: number;
   tags?: string[];
-  faces?: FaceBox[];
+  faces?: Face[];
+  face_summary?: FaceSummary;
   clip_vector?: number[];
+  phash?: string;
   caption?: string;
   event_type?: EventType;
   blip_flags?: string[];
@@ -23,6 +25,61 @@ export interface Photo {
   selected?: boolean;
   albumId?: string;
   color_label?: 'green' | 'red' | 'yellow' | 'blue' | 'purple';
+  duplicateGroup?: string[];
+  isDuplicate?: boolean;
+}
+
+export interface Face {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  age?: number;
+  gender?: 'male' | 'female';
+  emotion?: string;
+  headpose?: {
+    yaw: number;
+    pitch: number;
+    roll: number;
+  };
+  glasses?: boolean;
+  mask?: boolean;
+  occlusion?: number;
+  face_quality?: number;
+  landmarks?: number[][];
+  embedding?: number[];
+  same_person_group?: string;
+  is_duplicate?: boolean;
+}
+
+export interface FaceSummary {
+  total_faces: number;
+  emotions?: Record<string, number>;
+  age_groups?: Record<string, number>;
+  gender_distribution?: Record<string, number>;
+  quality_stats?: {
+    average_quality: number;
+    high_quality_faces: number;
+  };
+  issues?: {
+    closed_eyes: number;
+    occluded_faces: number;
+    low_quality: number;
+  };
+}
+
+export interface DuplicateCluster {
+  filename: string;
+  clip_duplicates: string[];
+  phash_duplicates: string[];
+}
+
+export interface PersonGroup {
+  group_id: string;
+  photos: Photo[];
+  faces: Face[];
+  representative_face?: Face;
+  photo_count: number;
 }
 
 export interface Album {
@@ -68,13 +125,6 @@ export interface EditProfile {
   };
 }
 
-export interface FaceBox {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
 export interface AnalysisResult {
   filename: string;
   basic_score?: number;
@@ -84,11 +134,13 @@ export interface AnalysisResult {
   blur_score?: number;
   personalized_similarity?: number;
   tags: string[];
-  faces: FaceBox[];
+  faces: Face[];
+  face_summary: FaceSummary;
   clip_vector: number[];
+  phash?: string;
 }
 
-export type Filter = 'all' | 'selected' | 'high-score' | 'blurry' | 'eyes-closed' | 'duplicates' | 'warnings' | 'highlights' | 'flagged' | 'green' | 'red' | 'yellow' | 'blue' | 'purple';
+export type Filter = 'all' | 'selected' | 'high-score' | 'blurry' | 'eyes-closed' | 'duplicates' | 'warnings' | 'highlights' | 'flagged' | 'green' | 'red' | 'yellow' | 'blue' | 'purple' | 'people' | 'emotions' | 'quality-issues';
 
 export type ColorLabel = 'green' | 'red' | 'yellow' | 'blue' | 'purple';
 

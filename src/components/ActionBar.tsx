@@ -3,7 +3,7 @@ import FilterDropdown from './FilterDropdown';
 import ColorLabelFilter from './ColorLabelFilter';
 import CaptionSearch from './CaptionSearch';
 import ViewToggle from './ViewToggle';
-import { Download, Sparkles, Zap, Save, Brain, Upload } from 'lucide-react';
+import { Download, Sparkles, Zap, Save, Brain, Upload, Users, Copy } from 'lucide-react';
 import { usePhoto } from '../context/PhotoContext';
 import { Trash2, CheckSquare, Square } from 'lucide-react';
 import { batchAutocorrect, batchAutofix } from '../lib/api';
@@ -19,7 +19,10 @@ const ActionBar: React.FC = () => {
     selectAllPhotos, 
     deselectAllPhotos, 
     selectedPhotos,
-    updatePhotoUrl 
+    updatePhotoUrl,
+    findDuplicates,
+    isFindingDuplicates,
+    groupPeopleByFaces
   } = usePhoto();
   const { showToast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -78,6 +81,19 @@ const ActionBar: React.FC = () => {
       setIsProcessing(false);
     }
   };
+
+  const handleFindDuplicates = async () => {
+    try {
+      await findDuplicates();
+    } catch (error: any) {
+      showToast(error.message || 'Failed to find duplicates', 'error');
+    }
+  };
+
+  const handleGroupPeople = () => {
+    groupPeopleByFaces();
+    showToast('People grouped by face similarity', 'success');
+  };
   
   return (
     <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
@@ -109,6 +125,29 @@ const ActionBar: React.FC = () => {
         <span className="text-sm font-medium py-2 px-3 bg-gray-200 dark:bg-gray-800 rounded-md">
           {selectedPhotos.length} selected
         </span>
+
+        {/* Advanced Features */}
+        <button
+          onClick={handleFindDuplicates}
+          disabled={isFindingDuplicates || photos.filter(p => p.clip_vector).length === 0}
+          className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 
+                   text-white font-medium rounded-md flex items-center space-x-2 
+                   transition-colors duration-200 disabled:cursor-not-allowed"
+        >
+          <Copy className="h-5 w-5" />
+          <span>{isFindingDuplicates ? 'Finding...' : 'Find Duplicates'}</span>
+        </button>
+
+        <button
+          onClick={handleGroupPeople}
+          disabled={photos.filter(p => p.faces && p.faces.length > 0).length === 0}
+          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 
+                   text-white font-medium rounded-md flex items-center space-x-2 
+                   transition-colors duration-200 disabled:cursor-not-allowed"
+        >
+          <Users className="h-5 w-5" />
+          <span>Group People</span>
+        </button>
 
         {showAIFeatures && (
           <>

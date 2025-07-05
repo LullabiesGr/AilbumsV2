@@ -9,15 +9,19 @@ import EventTypeSelector from '../components/EventTypeSelector';
 import CullingModeSelector from '../components/CullingModeSelector';
 import AnalysisProgress from '../components/AnalysisProgress';
 import ManualCullingControls from '../components/ManualCullingControls';
+import DuplicateManager from '../components/DuplicateManager';
+import PeopleGroupManager from '../components/PeopleGroupManager';
 import { usePhoto } from '../context/PhotoContext';
 import AlbumSelector from '../components/AlbumSelector';
 import AnalysisOverlay from '../components/AnalysisOverlay';
 import Sidebar from '../components/Sidebar';
-import { Play, RotateCcw, Brain } from 'lucide-react';
+import { Play, RotateCcw, Brain, Copy, Users, Grid, List } from 'lucide-react';
 
 const Home: React.FC = () => {
   const { 
     photos, 
+    duplicateClusters,
+    personGroups,
     isLoading, 
     isAnalyzing,
     analysisProgress,
@@ -33,6 +37,8 @@ const Home: React.FC = () => {
     startBackgroundAnalysis,
     resetWorkflow
   } = usePhoto();
+  
+  const [activeTab, setActiveTab] = React.useState<'gallery' | 'duplicates' | 'people'>('gallery');
 
   const getEventTypeLabel = (type: EventType | null) => {
     const eventLabels = {
@@ -218,12 +224,72 @@ const Home: React.FC = () => {
             
             <AlbumSelector />
             <ActionBar />
-            {cullingMode === 'manual' && (
-              <ManualCullingControls 
-                currentPhotoId={photos.find(p => !p.color_label || p.color_label === 'yellow')?.id}
-              />
-            )}
-            <Gallery />
+            
+            {/* Tab Navigation */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md">
+              <div className="border-b border-gray-200 dark:border-gray-700">
+                <nav className="flex space-x-8 px-6">
+                  <button
+                    onClick={() => setActiveTab('gallery')}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                      activeTab === 'gallery'
+                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Grid className="h-4 w-4" />
+                      <span>Gallery ({photos.length})</span>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => setActiveTab('duplicates')}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                      activeTab === 'duplicates'
+                        ? 'border-orange-500 text-orange-600 dark:text-orange-400'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Copy className="h-4 w-4" />
+                      <span>Duplicates ({duplicateClusters.length})</span>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => setActiveTab('people')}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                      activeTab === 'people'
+                        ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Users className="h-4 w-4" />
+                      <span>People ({personGroups.length})</span>
+                    </div>
+                  </button>
+                </nav>
+              </div>
+              
+              <div className="p-6">
+                {activeTab === 'gallery' && (
+                  <>
+                    {cullingMode === 'manual' && (
+                      <ManualCullingControls 
+                        currentPhotoId={photos.find(p => !p.color_label || p.color_label === 'yellow')?.id}
+                      />
+                    )}
+                    <Gallery />
+                  </>
+                )}
+                
+                {activeTab === 'duplicates' && <DuplicateManager />}
+                
+                {activeTab === 'people' && <PeopleGroupManager />}
+              </div>
+            </div>
           </div>
         );
 

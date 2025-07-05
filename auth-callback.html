@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication - Ailbums</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .container {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        h1 {
+            margin: 0 0 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+        
+        .error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="status-container">
+        <div class="spinner" id="spinner"></div>
+        <h1 id="status-title">Completing Authentication</h1>
+        <p id="status-message">Please wait while we complete your sign-in...</p>
+    </div>
+
+    <!-- Include Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script>
+        // Update UI status
+        function updateStatus(title, message, type = 'loading') {
+            const container = document.getElementById('status-container');
+            const spinner = document.getElementById('spinner');
+            const titleEl = document.getElementById('status-title');
+            const messageEl = document.getElementById('status-message');
+            
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+            
+            if (type === 'error') {
+                container.className = 'container error';
+                spinner.style.display = 'none';
+            } else if (type === 'success') {
+                container.className = 'container success';
+                spinner.style.display = 'none';
+            }
+        }
+
+        // Main authentication handler
+        (async function() {
+            try {
+                // Check if this is running in a popup window
+                const isPopup = window.opener && window.opener !== window;
+                const urlParams = new URLSearchParams(window.location.search);
+                const isDesktop = urlParams.get('desktop') === '1';
+                
+                console.log('Auth callback - isPopup:', isPopup, 'isDesktop:', isDesktop);
+                
+                if (isPopup && isDesktop) {
+                    updateStatus('Completing Authentication', 'Retrieving your session...');
+                    
+                    // Initialize Supabase client
+                    // IMPORTANT: Replace these with your actual Supabase credentials
+                    const supabaseClient = supabase.createClient(
+                        'YOUR_SUPABASE_URL', 
+                        'YOUR_SUPABASE_ANON_KEY'
+                    );
+                    
+                    // Wait a moment for the session to be established
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Get the current session
+                    const { data: { session }, error } = await supabaseClient.auth.getSession();
+                    
+                    if (error) {
+                        console.error('Error getting session:', error);
+                        updateStatus('Authentication Failed', error.message || 'Unable to retrieve session', 'error');
+                        
+                        // Send error to parent window
+                        window.opener.postMessage({
+                            error: error.message || 'Authentication failed'
+                        }, '*');
+                        
+                        setTimeout(() => window.close(), 2000);
+                        return;
+                    }
+                    
+                    if (session && session.access_token && session.user) {
+                        console.log('Session found:', session.user.email);
+                        updateStatus('Success!', 'Redirecting you back to the app...', 'success');
+                        
+                        // Prepare user data
+                        const userData = {
+                            id: session.user.id,
+                            email: session.user.email,
+                            name: session.user.user_metadata?.full_name || 
+                                  session.user.user_metadata?.name || 
+                                  session.user.email?.split('@')[0] || 
+                                  'User',
+                            picture: session.user.user_metadata?.avatar_url || 
+                                    session.user.user_metadata?.picture
+                        };
+                        
+                        // Send authentication data to parent window
+                        window.opener.postMessage({
+                            token: session.access_token,
+                            user: userData,
+                            refresh_token: session.refresh_token,
+                            expires_at: session.expires_at
+                        }, '*');
+                        
+                        console.log('Auth data sent to parent window');
+                        
+                        // Close the popup window after a short delay
+                        setTimeout(() => window.close(), 1000);
+                    } else {
+                        console.log('No session found');
+                        updateStatus('Authentication Failed', 'No session found. Please try again.', 'error');
+                        
+                        // Send error to parent window
+                        window.opener.postMessage({
+                            error: 'No authentication session found'
+                        }, '*');
+                        
+                        setTimeout(() => window.close(), 2000);
+                    }
+                } else {
+                    // Not a popup or not desktop - redirect to dashboard normally
+                    console.log('Not a popup window, redirecting to dashboard');
+                    updateStatus('Redirecting', 'Taking you to your dashboard...');
+                    
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
+                }
+            } catch (error) {
+                console.error('Auth callback error:', error);
+                updateStatus('Error', error.message || 'An unexpected error occurred', 'error');
+                
+                if (window.opener) {
+                    // Send error to parent window if it's a popup
+                    window.opener.postMessage({
+                        error: error.message || 'Authentication failed'
+                    }, '*');
+                    setTimeout(() => window.close(), 2000);
+                } else {
+                    // Redirect to error page or login page
+                    setTimeout(() => {
+                        window.location.href = '/login?error=auth_failed';
+                    }, 2000);
+                }
+            }
+        })();
+    </script>
+</body>
+</html>

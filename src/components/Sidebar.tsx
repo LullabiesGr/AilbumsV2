@@ -428,15 +428,15 @@ const FaceCrop: React.FC<{
         const faceWidth = x2 - x1;
         const faceHeight = y2 - y1;
 
-        // Add some padding around the face (20% on each side)
-        const padding = Math.min(faceWidth, faceHeight) * 0.2;
+        // Add generous padding around the face (40% on each side)
+        const padding = Math.min(faceWidth, faceHeight) * 0.4;
         const cropX = Math.max(0, x1 - padding);
         const cropY = Math.max(0, y1 - padding);
         const cropWidth = Math.min(img.naturalWidth - cropX, faceWidth + (padding * 2));
         const cropHeight = Math.min(img.naturalHeight - cropY, faceHeight + (padding * 2));
 
-        // Set canvas size to a square (use the larger dimension)
-        const size = Math.max(cropWidth, cropHeight);
+        // Set canvas size to a fixed square for consistency
+        const size = 120; // Fixed size for sidebar thumbnails
         canvas.width = size;
         canvas.height = size;
 
@@ -444,21 +444,30 @@ const FaceCrop: React.FC<{
         ctx.fillStyle = '#374151'; // gray-700
         ctx.fillRect(0, 0, size, size);
 
-        // Calculate position to center the crop in the square canvas
-        const offsetX = (size - cropWidth) / 2;
-        const offsetY = (size - cropHeight) / 2;
+        // Scale the crop to fit the canvas while maintaining aspect ratio
+        const scale = Math.min(size / cropWidth, size / cropHeight);
+        const scaledWidth = cropWidth * scale;
+        const scaledHeight = cropHeight * scale;
+        
+        // Center the scaled image in the canvas
+        const offsetX = (size - scaledWidth) / 2;
+        const offsetY = (size - scaledHeight) / 2;
 
         // Draw the cropped face region
         ctx.drawImage(
           img,
           cropX, cropY, cropWidth, cropHeight,  // Source rectangle
-          offsetX, offsetY, cropWidth, cropHeight  // Destination rectangle
+          offsetX, offsetY, scaledWidth, scaledHeight  // Destination rectangle (scaled)
         );
 
         // Convert canvas to blob URL
         canvas.toBlob((blob) => {
           if (blob) {
             const url = URL.createObjectURL(blob);
+            // Clean up previous URL
+            if (croppedImageUrl && croppedImageUrl.startsWith('blob:')) {
+              URL.revokeObjectURL(croppedImageUrl);
+            }
             setCroppedImageUrl(url);
           }
           setIsLoading(false);
@@ -485,7 +494,7 @@ const FaceCrop: React.FC<{
         URL.revokeObjectURL(croppedImageUrl);
       }
     };
-  }, [imageUrl, faceBox]);
+  }, [imageUrl, faceBox, croppedImageUrl]);
 
   if (isLoading) {
     return (
@@ -503,6 +512,10 @@ const FaceCrop: React.FC<{
           src={croppedImageUrl}
           alt="Face crop"
           className={`${className} object-cover`}
+          onError={() => {
+            console.error('Error displaying cropped face image');
+            setCroppedImageUrl(imageUrl); // Fallback to original
+          }}
         />
       )}
     </>

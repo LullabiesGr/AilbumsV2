@@ -201,10 +201,13 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
 
   // Calculate face position using THIS instance's dimensions with proper object-fit: cover handling
   const calculateFacePosition = useCallback((face: Face, faceIndex: number) => {
-    console.log(`[${instanceId.current}] Calculating position for face ${faceIndex}:`);
-    console.log(`  - Face box from backend:`, face.box);
-    console.log(`  - Original dimensions:`, originalDimensions);
-    console.log(`  - Rendered dimensions:`, imageDimensions);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[${instanceId.current}] Calculating position for face ${faceIndex}:`, {
+        faceBox: face.box,
+        original: originalDimensions,
+        rendered: imageDimensions
+      });
+    }
     
     // Validate we have all required data for THIS instance
     if (
@@ -212,85 +215,53 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
       imageDimensions.width === 0 || imageDimensions.height === 0 ||
       !face.box || face.box.length !== 4
     ) {
-      console.log(`  - Invalid data, returning zero position`);
       return { left: 0, top: 0, width: 0, height: 0 };
     }
 
     // Use backend coordinates directly - [x1, y1, x2, y2] in original image pixels
     const [x1, y1, x2, y2] = face.box;
-    console.log(`  - Face coordinates: x1=${x1}, y1=${y1}, x2=${x2}, y2=${y2}`);
 
     // Calculate how the original image is displayed with object-fit: cover
     const containerAspect = imageDimensions.width / imageDimensions.height;
     const imageAspect = originalDimensions.width / originalDimensions.height;
-    
-    console.log(`  - Container aspect: ${containerAspect.toFixed(3)}`);
-    console.log(`  - Image aspect: ${imageAspect.toFixed(3)}`);
 
     let scale: number;
-    let cropOffsetX = 0;
-    let cropOffsetY = 0;
+    let offsetX = 0;
+    let offsetY = 0;
 
-    if (Math.abs(containerAspect - imageAspect) < 0.01) {
-      // Aspects are nearly identical - no cropping needed
-      scale = imageDimensions.width / originalDimensions.width;
-      console.log(`  - No cropping needed: scale=${scale.toFixed(3)}`);
-    } else if (containerAspect > imageAspect) {
+    if (containerAspect > imageAspect) {
       // Container is wider than image - image fills container width, height is cropped
       scale = imageDimensions.width / originalDimensions.width;
-      
-      // Calculate how much of the original image is cropped from top/bottom
-      const totalScaledHeight = originalDimensions.height * scale;
-      const croppedHeight = totalScaledHeight - imageDimensions.height;
-      cropOffsetY = croppedHeight / 2; // Equal crop from top and bottom
-      
-      console.log(`  - Width-constrained: scale=${scale.toFixed(3)}, cropOffsetY=${cropOffsetY.toFixed(1)}`);
+      const scaledImageHeight = originalDimensions.height * scale;
+      offsetY = (scaledImageHeight - imageDimensions.height) / 2;
     } else {
       // Container is taller than image - image fills container height, width is cropped
       scale = imageDimensions.height / originalDimensions.height;
-      
-      // Calculate how much of the original image is cropped from left/right
-      const totalScaledWidth = originalDimensions.width * scale;
-      const croppedWidth = totalScaledWidth - imageDimensions.width;
-      cropOffsetX = croppedWidth / 2; // Equal crop from left and right
-      
-      console.log(`  - Height-constrained: scale=${scale.toFixed(3)}, cropOffsetX=${cropOffsetX.toFixed(1)}`);
+      const scaledImageWidth = originalDimensions.width * scale;
+      offsetX = (scaledImageWidth - imageDimensions.width) / 2;
     }
 
-    // Transform face coordinates from original image space to visible container space
-    // First scale the coordinates
-    const scaledX1 = x1 * scale;
-    const scaledY1 = y1 * scale;
-    const scaledX2 = x2 * scale;
-    const scaledY2 = y2 * scale;
-    
-    // Then adjust for cropping - subtract the crop offset to get position in visible area
-    const visibleX1 = scaledX1 - cropOffsetX;
-    const visibleY1 = scaledY1 - cropOffsetY;
-    const visibleX2 = scaledX2 - cropOffsetX;
-    const visibleY2 = scaledY2 - cropOffsetY;
-    
-    console.log(`  - Scaled coordinates: (${scaledX1.toFixed(1)}, ${scaledY1.toFixed(1)}) to (${scaledX2.toFixed(1)}, ${scaledY2.toFixed(1)})`);
-    console.log(`  - Visible coordinates: (${visibleX1.toFixed(1)}, ${visibleY1.toFixed(1)}) to (${visibleX2.toFixed(1)}, ${visibleY2.toFixed(1)})`);
 
-    // Calculate final position and size, ensuring they're within bounds
-    const left = Math.round(Math.max(0, Math.min(visibleX1, imageDimensions.width)));
-    const top = Math.round(Math.max(0, Math.min(visibleY1, imageDimensions.height)));
-    const right = Math.round(Math.max(0, Math.min(visibleX2, imageDimensions.width)));
-    const bottom = Math.round(Math.max(0, Math.min(visibleY2, imageDimensions.height)));
-    
-    const width = Math.max(0, right - left);
-    const height = Math.max(0, bottom - top);
+    // Transform coordinates: scale then subtract crop offset
+    const left = Math.round((x1 * scale) - offsetX);
+    const top = Math.round((y1 * scale) - offsetY);
+    const width = Math.round((x2 - x1) * scale);
+    const height = Math.round((y2 - y1) * scale);
 
-    const finalPosition = { left, top, width, height };
-    console.log(`  - Final position:`, finalPosition);
+    // Clamp to visible area
+    const clampedLeft = Math.max(0, left);
+    const clampedTop = Math.max(0, top);
+    const clampedWidth = Math.max(0, Math.min(width, imageDimensions.width - clampedLeft));
+    const clampedHeight = Math.max(0, Math.min(height, imageDimensions.height - clampedTop));
+    const finalPosition = { 
+      left: clampedLeft, 
+      top: clampedTop, 
+      width: clampedWidth, 
+      height: clampedHeight 
+    };
 
-    // Check if face is actually visible (not completely cropped out)
-    const isVisible = width > 2 && height > 2 && 
-                     left < imageDimensions.width && top < imageDimensions.height &&
-                     right > 0 && bottom > 0;
-    
-    console.log(`  - Face visible:`, isVisible);
+    // Check if face is actually visible
+    const isVisible = clampedWidth > 2 && clampedHeight > 2;
 
     return isVisible ? finalPosition : { left: 0, top: 0, width: 0, height: 0 };
   }, [originalDimensions, imageDimensions]);

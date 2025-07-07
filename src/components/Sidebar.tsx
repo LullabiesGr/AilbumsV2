@@ -60,11 +60,15 @@ const Sidebar = () => {
   // Filter and sort faces, then take the best ones
   const bestFaces = faces
     .filter(faceData => {
-      // Show faces that have either crop data OR valid box coordinates
+      // Prioritize faces with crop data, but also show faces with valid coordinates as fallback
       return faceData.face.face_crop_b64 || (faceData.face.box && faceData.face.box.length === 4);
     })
     .sort((a, b) => {
-      // Sort by quality first, then confidence
+      // Prioritize faces with crops, then by quality, then confidence
+      const aCrop = a.face.face_crop_b64 ? 1 : 0;
+      const bCrop = b.face.face_crop_b64 ? 1 : 0;
+      if (aCrop !== bCrop) return bCrop - aCrop;
+      
       const qualityDiff = (b.quality || 0) - (a.quality || 0);
       if (Math.abs(qualityDiff) > 0.1) return qualityDiff;
       return (b.confidence || 0) - (a.confidence || 0);
@@ -77,7 +81,19 @@ const Sidebar = () => {
     totalFaces: faces.length,
     facesWithCrops: faces.filter(f => f.face.face_crop_b64).length,
     bestFacesCount: bestFaces.length,
-    sampleFace: faces[0]?.face
+    sampleFace: faces[0]?.face,
+    sampleFaceCrop: faces[0]?.face?.face_crop_b64 ? 'Present' : 'Missing',
+    bestFacesWithCrops: bestFaces.filter(f => f.face.face_crop_b64).length,
+    // Detailed face crop analysis
+    faceDetails: faces.slice(0, 3).map(f => ({
+      filename: f.filename,
+      hasCrop: !!f.face.face_crop_b64,
+      cropLength: f.face.face_crop_b64?.length || 0,
+      hasBox: !!f.face.box,
+      boxValid: f.face.box && f.face.box.length === 4,
+      confidence: f.face.confidence,
+      quality: f.face.face_quality
+    }))
   });
 
   // Get duplicate sets
@@ -361,16 +377,24 @@ const Sidebar = () => {
                   title={`Face from ${face.filename}`}
                 >
                   {face.face.face_crop_b64 ? (
+                    // Use the backend-provided face crop
                     <img
                       src={`data:image/png;base64,${face.face.face_crop_b64}`}
                       alt={`Face from ${face.filename}`}
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                       onError={(e) => {
-                        // Fallback if face crop fails to load
+                        console.error('Failed to load face crop for:', face.filename);
+                        // Hide the broken image
                         e.currentTarget.style.display = 'none';
+                        // Show error state
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) {
+                          parent.innerHTML = '<div class="w-full h-full bg-gray-700 flex items-center justify-center text-gray-400 text-xs">Failed to load</div>';
+                        }
                       }}
                     />
                   ) : (
+                    // Fallback to manual cropping if no face_crop_b64
                     <FaceCrop 
                       imageUrl={face.photoUrl}
                       faceBox={face.face.box}
@@ -404,6 +428,12 @@ const Sidebar = () => {
                       {face.face.gender && face.face.gender.charAt(0).toUpperCase()}
                     </div>
                   )}
+                  
+                  {/* Crop source indicator */}
+                  <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className={`w-2 h-2 rounded-full ${face.face.face_crop_b64 ? 'bg-green-400' : 'bg-yellow-400'}`} 
+                         title={face.face.face_crop_b64 ? 'Backend crop' : 'Frontend crop'} />
+                  </div>
                 </div>
               ))}
             </div>
@@ -420,7 +450,7 @@ const Sidebar = () => {
             {process.env.NODE_ENV === 'development' && (
               <div className="mt-2 text-center">
                 <span className="text-xs text-gray-400">
-                  Debug: {faces.length} total, {faces.filter(f => f.face.face_crop_b64).length} with crops
+                  Debug: {faces.length} total, {faces.filter(f => f.face.face_crop_b64).length} with crops, {bestFaces.filter(f => f.face.face_crop_b64).length}/{bestFaces.length} shown with crops
                 </span>
               </div>
             )}

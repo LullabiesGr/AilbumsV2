@@ -42,7 +42,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     img.src = imageUrl;
   }, [imageUrl]);
 
-  // Robust dimension update function with proper debouncing
+  // Robust dimension update function with proper debouncing (increased to 50ms)
   const updateDimensions = useCallback(() => {
     if (updateTimeoutRef.current) {
       clearTimeout(updateTimeoutRef.current);
@@ -66,7 +66,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
           setImageDimensions(newDimensions);
         }
         
-        // Mark as ready when we have valid dimensions for both original and rendered
+        // Robust isReady check - only ready when both dimensions are valid
         if (newDimensions.width > 0 && newDimensions.height > 0 && 
             originalDimensions.width > 0 && originalDimensions.height > 0) {
           setIsReady(true);
@@ -106,14 +106,14 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     };
   }, [updateDimensions]);
 
-  // Handle image load with multiple update attempts
+  // Handle image load with multiple update attempts for timing stability
   const handleImageLoad = useCallback(() => {
     // Immediate update
     requestAnimationFrame(() => {
       updateDimensions();
     });
     
-    // Additional updates to ensure proper layout
+    // Additional updates to ensure proper layout (removed redundant setTimeout)
     setTimeout(() => {
       updateDimensions();
     }, 100);

@@ -112,6 +112,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
   const handleSaveRetouchedPhoto = (retouchedImageUrl: string) => {
     // Update the photo URL with the retouched version
     updatePhotoUrl(photo.id, retouchedImageUrl);
+    showToast('Face enhanced photo saved to dashboard!', 'success');
   };
 
   // Get face summary badges

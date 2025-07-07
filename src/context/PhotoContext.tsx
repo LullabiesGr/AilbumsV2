@@ -602,7 +602,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setPhotos(prev => prev.map(photo => 
       photo.id === id ? { ...photo, url: newUrl } : photo
     ));
-    showToast('Photo updated successfully', 'success');
   }, [showToast]);
 
   const togglePhotoSelection = useCallback((id: string) => {

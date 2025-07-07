@@ -196,7 +196,6 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
   const handleSave = () => {
     if (retouchedImageUrl && onSave) {
       onSave(retouchedImageUrl);
-      showToast('CodeFormer enhanced photo saved!', 'success');
       onClose();
     }
   };

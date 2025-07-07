@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Sparkles, Eye, EyeOff, Download, Save, RotateCcw, Settings } from 'lucide-react';
 import { Photo, Face } from '../types';
 import FaceOverlay from './FaceOverlay';

@@ -21,7 +21,6 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
   const [originalDimensions, setOriginalDimensions] = useState({ width: 0, height: 0 });
   const [hoveredFace, setHoveredFace] = useState<number | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-  const [imageLoaded, setImageLoaded] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -43,7 +42,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     img.src = imageUrl;
   }, [imageUrl]);
 
-  // Debounced dimension update function
+  // Robust dimension update function with proper debouncing
   const updateDimensions = useCallback(() => {
     if (updateTimeoutRef.current) {
       clearTimeout(updateTimeoutRef.current);
@@ -60,19 +59,22 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
           height: imageRect.height
         };
         
-        // Only update if dimensions actually changed significantly (avoid micro-updates)
-        if (Math.abs(newDimensions.width - imageDimensions.width) > 0.5 || 
-            Math.abs(newDimensions.height - imageDimensions.height) > 0.5) {
+        // Only update if dimensions are valid and changed significantly
+        if (newDimensions.width > 0 && newDimensions.height > 0 &&
+            (Math.abs(newDimensions.width - imageDimensions.width) > 1 || 
+             Math.abs(newDimensions.height - imageDimensions.height) > 1)) {
           setImageDimensions(newDimensions);
         }
         
-        // Mark as ready when we have valid dimensions
+        // Mark as ready when we have valid dimensions for both original and rendered
         if (newDimensions.width > 0 && newDimensions.height > 0 && 
             originalDimensions.width > 0 && originalDimensions.height > 0) {
           setIsReady(true);
+        } else {
+          setIsReady(false);
         }
       }
-    }, 10); // Small debounce delay
+    }, 50); // Increased debounce delay for better stability
   }, [imageDimensions.width, imageDimensions.height, originalDimensions.width, originalDimensions.height]);
 
   // Set up resize observer for this specific image container
@@ -84,7 +86,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
       }
 
       // Create new observer for this container
-      resizeObserverRef.current = new ResizeObserver((entries) => {
+      resizeObserverRef.current = new ResizeObserver(() => {
         // Use requestAnimationFrame to ensure DOM is fully updated
         requestAnimationFrame(() => {
           updateDimensions();
@@ -102,26 +104,27 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
         clearTimeout(updateTimeoutRef.current);
       }
     };
-  }, [imageLoaded, updateDimensions]);
+  }, [updateDimensions]);
 
-  // Handle image load
+  // Handle image load with multiple update attempts
   const handleImageLoad = useCallback(() => {
-    setImageLoaded(true);
-    
-    // Update dimensions immediately when image loads
+    // Immediate update
     requestAnimationFrame(() => {
       updateDimensions();
     });
     
-    // Additional update after a short delay to ensure everything is rendered
+    // Additional updates to ensure proper layout
     setTimeout(() => {
       updateDimensions();
-    }, 50);
+    }, 100);
+    
+    setTimeout(() => {
+      updateDimensions();
+    }, 250);
   }, [updateDimensions]);
 
   // Reset state when image URL changes
   useEffect(() => {
-    setImageLoaded(false);
     setIsReady(false);
     setImageDimensions({ width: 0, height: 0 });
     setHoveredFace(null);
@@ -179,29 +182,31 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     // Use backend coordinates directly - [x1, y1, x2, y2] in original image pixels
     const [x1, y1, x2, y2] = face.box;
 
-    // Calculate scale and offset for object-fit: cover
-    const widthScale = imageDimensions.width / originalDimensions.width;
-    const heightScale = imageDimensions.height / originalDimensions.height;
-
-    let scale: number, dx = 0, dy = 0;
+    // Calculate how the image is scaled and positioned within the container (object-fit: cover)
     const containerAspect = imageDimensions.width / imageDimensions.height;
     const imageAspect = originalDimensions.width / originalDimensions.height;
 
+    let scale: number;
+    let offsetX = 0;
+    let offsetY = 0;
+
     if (containerAspect > imageAspect) {
-      // Container is wider than image aspect, image fills height, width cropped
-      scale = heightScale;
-      const usedImageWidth = originalDimensions.width * scale;
-      dx = (imageDimensions.width - usedImageWidth) / 2;
+      // Container is wider than image aspect ratio
+      // Image fills the width, height is cropped
+      scale = imageDimensions.width / originalDimensions.width;
+      const scaledImageHeight = originalDimensions.height * scale;
+      offsetY = (imageDimensions.height - scaledImageHeight) / 2;
     } else {
-      // Container is taller than image aspect, image fills width, height cropped
-      scale = widthScale;
-      const usedImageHeight = originalDimensions.height * scale;
-      dy = (imageDimensions.height - usedImageHeight) / 2;
+      // Container is taller than image aspect ratio  
+      // Image fills the height, width is cropped
+      scale = imageDimensions.height / originalDimensions.height;
+      const scaledImageWidth = originalDimensions.width * scale;
+      offsetX = (imageDimensions.width - scaledImageWidth) / 2;
     }
 
-    // Map backend coordinates to displayed coordinates
-    const left = Math.round(x1 * scale + dx);
-    const top = Math.round(y1 * scale + dy);
+    // Transform backend coordinates to displayed coordinates
+    const left = Math.round(x1 * scale + offsetX);
+    const top = Math.round(y1 * scale + offsetY);
     const width = Math.round((x2 - x1) * scale);
     const height = Math.round((y2 - y1) * scale);
 
@@ -255,7 +260,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
           <div className="flex items-center justify-between">
             <span className="text-gray-300">Confidence:</span>
             <span className={`font-medium ${getConfidenceColor(face.confidence)}`}>
-              {((face.confidence ?? 0) * 100).toFixed(1)}%
+              {(face.confidence * 100).toFixed(1)}%
             </span>
           </div>
 
@@ -288,9 +293,9 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
                 <span className="font-medium text-white capitalize">
                   {face.emotion}
                 </span>
-                {face.emotion_confidence != null && (
+                {face.emotion_confidence && (
                   <span className="text-gray-400 text-xs">
-                    ({((face.emotion_confidence ?? 0) * 100).toFixed(0)}%)
+                    ({(face.emotion_confidence * 100).toFixed(0)}%)
                   </span>
                 )}
               </div>
@@ -424,12 +429,12 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
         const position = calculateFacePosition(face);
         
         // Only render if we have valid position with minimum size
-        if (position.width <= 1 || position.height <= 1) {
+        if (position.width <= 2 || position.height <= 2) {
           return null;
         }
         
         return (
-          <div key={`${imageUrl}-face-${index}-${imageDimensions.width}-${imageDimensions.height}`}>
+          <div key={`face-${index}-${imageDimensions.width}x${imageDimensions.height}`}>
             {/* Face bounding box */}
             <div 
               className="absolute border-2 border-red-500 bg-red-500/10 cursor-pointer
@@ -478,29 +483,28 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
                 <>
                   {face.landmarks.map((landmark, landmarkIndex) => {
                     // Backend provides landmarks in original image coordinates
-                    // Calculate their position using the same scaling as face boxes
                     const [landmarkX, landmarkY] = landmark;
                     
                     // Apply same transformation as face box
-                    const widthScale = imageDimensions.width / originalDimensions.width;
-                    const heightScale = imageDimensions.height / originalDimensions.height;
-                    
-                    let scale: number, dx = 0, dy = 0;
                     const containerAspect = imageDimensions.width / imageDimensions.height;
                     const imageAspect = originalDimensions.width / originalDimensions.height;
 
+                    let scale: number;
+                    let offsetX = 0;
+                    let offsetY = 0;
+
                     if (containerAspect > imageAspect) {
-                      scale = heightScale;
-                      const usedImageWidth = originalDimensions.width * scale;
-                      dx = (imageDimensions.width - usedImageWidth) / 2;
+                      scale = imageDimensions.width / originalDimensions.width;
+                      const scaledImageHeight = originalDimensions.height * scale;
+                      offsetY = (imageDimensions.height - scaledImageHeight) / 2;
                     } else {
-                      scale = widthScale;
-                      const usedImageHeight = originalDimensions.height * scale;
-                      dy = (imageDimensions.height - usedImageHeight) / 2;
+                      scale = imageDimensions.height / originalDimensions.height;
+                      const scaledImageWidth = originalDimensions.width * scale;
+                      offsetX = (imageDimensions.width - scaledImageWidth) / 2;
                     }
                     
-                    const scaledX = landmarkX * scale + dx;
-                    const scaledY = landmarkY * scale + dy;
+                    const scaledX = landmarkX * scale + offsetX;
+                    const scaledY = landmarkY * scale + offsetY;
                     
                     return (
                       <div

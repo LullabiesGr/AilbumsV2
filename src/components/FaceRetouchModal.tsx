@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Sparkles, Eye, EyeOff, Download, Save, RotateCcw, Settings } from 'lucide-react';
 import { Photo, Face } from '../types';
-import FaceOverlay from './FaceOverlay';
 import { useToast } from '../context/ToastContext';
 
 interface FaceRetouchModalProps {
@@ -56,40 +55,79 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
 
     setIsProcessing(true);
     try {
-      // Get selected face coordinates
-      const selectedFaceBoxes = Array.from(selectedFaces).map(index => {
+      // Get selected face coordinates and additional data
+      const selectedFaceData = Array.from(selectedFaces).map(index => {
         const face = photo.faces![index];
-        return face.box;
+        return {
+          box: face.box, // [x1, y1, x2, y2] coordinates
+          confidence: face.confidence,
+          face_quality: face.face_quality || 0,
+          age: face.age,
+          gender: face.gender,
+          emotion: face.emotion,
+          face_crop_b64: face.face_crop_b64 // Include face crop if available
+        };
       });
 
-      // Prepare form data for the backend
+      // Prepare comprehensive form data for CodeFormer enhancement
       const formData = new FormData();
       formData.append('file', photo.file);
-      formData.append('face_boxes', JSON.stringify(selectedFaceBoxes));
+      
+      // Face selection data
+      formData.append('selected_faces', JSON.stringify(selectedFaceData));
+      formData.append('face_count', selectedFaces.size.toString());
+      
+      // CodeFormer settings
       formData.append('fidelity', settings.fidelity.toString());
-      formData.append('keep_original_resolution', settings.keepOriginalResolution.toString());
+      formData.append('upscale', settings.keepOriginalResolution ? '1' : '2'); // 1 = keep original, 2 = upscale
+      formData.append('bg_upsampler', 'realesrgan'); // Background upsampler
+      formData.append('face_upsample', 'true'); // Enable face upsampling
+      
+      // Additional metadata
+      formData.append('original_width', photo.file.size.toString());
+      formData.append('original_height', photo.file.size.toString());
+      formData.append('filename', photo.filename);
 
-      // Call the backend API
+      console.log('Sending face retouch request:', {
+        selectedFaces: selectedFaces.size,
+        fidelity: settings.fidelity,
+        keepOriginalResolution: settings.keepOriginalResolution,
+        faceData: selectedFaceData
+      });
+
+      // Call the updated /enhance endpoint
       const response = await fetch('https://ddc6-5-54-157-17.ngrok-free.app/enhance', {
         method: 'POST',
         body: formData,
         mode: 'cors',
+        headers: {
+          'ngrok-skip-browser-warning': 'true'
+        }
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || 'Failed to retouch faces');
+        console.error('Enhancement API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
+        throw new Error(errorText || `Enhancement failed: ${response.status}`);
       }
 
       const blob = await response.blob();
+      if (!blob || blob.size === 0) {
+        throw new Error('Received empty response from server');
+      }
+
       const retouchedUrl = URL.createObjectURL(blob);
       setRetouchedImageUrl(retouchedUrl);
       setSettings(prev => ({ ...prev, showPreview: true }));
       
-      showToast(`Successfully retouched ${selectedFaces.size} face(s)!`, 'success');
+      showToast(`Successfully enhanced ${selectedFaces.size} face(s)!`, 'success');
     } catch (error: any) {
-      console.error('Face retouch error:', error);
-      showToast(error.message || 'Failed to retouch faces', 'error');
+      console.error('Face enhancement error:', error);
+      showToast(error.message || 'Failed to enhance faces', 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -98,7 +136,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
   const handleSave = () => {
     if (retouchedImageUrl && onSave) {
       onSave(retouchedImageUrl);
-      showToast('Retouched photo saved!', 'success');
+      showToast('Enhanced photo saved!', 'success');
       onClose();
     }
   };
@@ -113,7 +151,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
       
       const a = document.createElement('a');
       a.href = url;
-      a.download = `retouched_${photo.filename}`;
+      a.download = `enhanced_${photo.filename}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -146,10 +184,6 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
   }, [retouchedImageUrl]);
 
   const currentImageUrl = settings.showPreview && retouchedImageUrl ? retouchedImageUrl : originalImageUrl;
-  const facesWithSelection = photo.faces?.map((face, index) => ({
-    ...face,
-    isSelected: selectedFaces.has(index)
-  })) || [];
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" onClick={onClose}>
@@ -159,7 +193,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
           <div className="relative max-w-full max-h-full">
             <div className="relative">
               <FaceRetouchOverlay
-                faces={facesWithSelection}
+                faces={photo.faces || []}
                 imageUrl={currentImageUrl}
                 onFaceClick={handleFaceClick}
                 selectedFaces={selectedFaces}
@@ -174,7 +208,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                            rounded-md hover:bg-black/90 transition-colors duration-200 flex items-center space-x-2"
                 >
                   {settings.showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  <span>{settings.showPreview ? 'Show Original' : 'Show Retouched'}</span>
+                  <span>{settings.showPreview ? 'Show Original' : 'Show Enhanced'}</span>
                 </button>
               )}
             </div>
@@ -189,7 +223,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center space-x-2">
                 <Sparkles className="h-5 w-5 text-purple-500" />
-                <span>Face Retouch</span>
+                <span>Face Enhancement</span>
               </h2>
               <button 
                 className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 
@@ -211,17 +245,16 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
           </div>
 
           {/* Info Banner */}
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-b border-gray-200 dark:border-gray-700">
+          <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-start space-x-3">
-              <Sparkles className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+              <Sparkles className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
               <div className="text-sm">
-                <p className="text-blue-800 dark:text-blue-200 font-medium mb-1">
-                  AI Face Enhancement
+                <p className="text-purple-800 dark:text-purple-200 font-medium mb-1">
+                  CodeFormer AI Enhancement
                 </p>
-                <p className="text-blue-700 dark:text-blue-300">
-                  Select the faces you want to retouch. Adjust the retouch fidelity if needed. 
-                  When ready, click 'Magic Retouch' to enhance only the selected faces using AI, 
-                  while keeping the rest of the photo untouched and at full resolution.
+                <p className="text-purple-700 dark:text-purple-300">
+                  Select faces by clicking on them in the image. Adjust fidelity for natural vs enhanced results. 
+                  Only selected faces will be enhanced while preserving the rest of the photo.
                 </p>
               </div>
             </div>
@@ -244,14 +277,14 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
             </div>
             
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Click on faces in the image to select/deselect them for retouching.
+              Click on the highlighted face boxes in the image to select/deselect them for enhancement.
             </p>
             
             {selectedFaces.size > 0 && (
               <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 
                             rounded-lg p-3">
                 <p className="text-sm text-green-700 dark:text-green-300">
-                  {selectedFaces.size} face(s) selected for enhancement
+                  {selectedFaces.size} face(s) selected for CodeFormer enhancement
                 </p>
               </div>
             )}
@@ -261,7 +294,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center space-x-2">
               <Settings className="h-4 w-4" />
-              <span>Retouch Settings</span>
+              <span>Enhancement Settings</span>
             </h4>
             
             <div className="space-y-4">
@@ -269,7 +302,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Retouch Fidelity
+                    Enhancement Fidelity
                   </label>
                   <span className="text-sm text-gray-500 dark:text-gray-400 font-mono">
                     {settings.fidelity.toFixed(1)}
@@ -282,14 +315,16 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                   step="0.1"
                   value={settings.fidelity}
                   onChange={(e) => setSettings(prev => ({ ...prev, fidelity: parseFloat(e.target.value) }))}
-                  className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                  className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer
+                           slider-thumb:appearance-none slider-thumb:w-4 slider-thumb:h-4 
+                           slider-thumb:bg-purple-600 slider-thumb:rounded-full slider-thumb:cursor-pointer"
                 />
                 <div className="flex justify-between text-xs text-gray-400 mt-1">
-                  <span>More Natural (0.0)</span>
-                  <span>More Enhanced (1.0)</span>
+                  <span>Natural (0.0)</span>
+                  <span>Enhanced (1.0)</span>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  Lower values preserve more original features, higher values apply stronger enhancement.
+                  Lower values preserve original features, higher values apply stronger CodeFormer enhancement.
                 </p>
               </div>
 
@@ -300,14 +335,14 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                     Keep Original Resolution
                   </label>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Maintain the original image size and quality
+                    Maintain original image size and quality
                   </p>
                 </div>
                 <input
                   type="checkbox"
                   checked={settings.keepOriginalResolution}
                   onChange={(e) => setSettings(prev => ({ ...prev, keepOriginalResolution: e.target.checked }))}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                 />
               </div>
             </div>
@@ -326,7 +361,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                          font-medium text-lg"
               >
                 <Sparkles className="h-5 w-5" />
-                <span>{isProcessing ? 'Processing...' : 'Magic Retouch'}</span>
+                <span>{isProcessing ? 'Enhancing...' : 'Magic Enhancement'}</span>
               </button>
 
               {retouchedImageUrl && (
@@ -367,9 +402,9 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
   );
 };
 
-// Custom Face Overlay for Retouch Mode
+// Enhanced Face Overlay for Better Selection
 interface FaceRetouchOverlayProps {
-  faces: (Face & { isSelected?: boolean })[];
+  faces: Face[];
   imageUrl: string;
   onFaceClick: (face: Face, index: number) => void;
   selectedFaces: Set<number>;
@@ -386,9 +421,11 @@ const FaceRetouchOverlay: React.FC<FaceRetouchOverlayProps> = ({
   const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
   const [originalDimensions, setOriginalDimensions] = useState({ width: 0, height: 0 });
   const [isReady, setIsReady] = useState(false);
+  const [hoveredFace, setHoveredFace] = useState<number | null>(null);
   
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   // Load original image dimensions
   useEffect(() => {
@@ -398,6 +435,9 @@ const FaceRetouchOverlay: React.FC<FaceRetouchOverlayProps> = ({
         width: img.naturalWidth,
         height: img.naturalHeight
       });
+    };
+    img.onerror = () => {
+      console.error('Failed to load image for face overlay');
     };
     img.src = imageUrl;
   }, [imageUrl]);
@@ -422,24 +462,33 @@ const FaceRetouchOverlay: React.FC<FaceRetouchOverlayProps> = ({
   }, [originalDimensions]);
 
   useEffect(() => {
-    const resizeObserver = new ResizeObserver(() => {
-      requestAnimationFrame(updateDimensions);
-    });
-
     if (containerRef.current) {
-      resizeObserver.observe(containerRef.current);
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+      }
+
+      resizeObserverRef.current = new ResizeObserver(() => {
+        requestAnimationFrame(updateDimensions);
+      });
+
+      resizeObserverRef.current.observe(containerRef.current);
     }
 
-    return () => resizeObserver.disconnect();
+    return () => {
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+      }
+    };
   }, [updateDimensions]);
 
   const handleImageLoad = useCallback(() => {
     requestAnimationFrame(updateDimensions);
     setTimeout(updateDimensions, 50);
+    setTimeout(updateDimensions, 150);
   }, [updateDimensions]);
 
   // Calculate face position with object-fit: contain
-  const calculateFacePosition = useCallback((face: Face, faceIndex: number) => {
+  const calculateFacePosition = useCallback((face: Face) => {
     if (!isReady || !face.box || face.box.length !== 4) {
       return { left: 0, top: 0, width: 0, height: 0 };
     }
@@ -462,7 +511,18 @@ const FaceRetouchOverlay: React.FC<FaceRetouchOverlayProps> = ({
     const width = Math.round((x2 - x1) * scale);
     const height = Math.round((y2 - y1) * scale);
 
-    return { left, top, width, height };
+    // Clamp to visible area
+    const clampedLeft = Math.max(0, Math.min(left, containerDimensions.width));
+    const clampedTop = Math.max(0, Math.min(top, containerDimensions.height));
+    const clampedWidth = Math.max(0, Math.min(width, containerDimensions.width - clampedLeft));
+    const clampedHeight = Math.max(0, Math.min(height, containerDimensions.height - clampedTop));
+
+    return { 
+      left: clampedLeft, 
+      top: clampedTop, 
+      width: clampedWidth, 
+      height: clampedHeight 
+    };
   }, [isReady, containerDimensions, originalDimensions]);
 
   return (
@@ -479,53 +539,87 @@ const FaceRetouchOverlay: React.FC<FaceRetouchOverlayProps> = ({
       <img
         ref={imageRef}
         src={imageUrl}
-        alt="Face retouch"
+        alt="Face enhancement"
         className="w-full h-full object-contain"
         onLoad={handleImageLoad}
+        style={{
+          display: 'block',
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain'
+        }}
       />
       
       {/* Face selection overlays */}
       {isReady && faces.map((face, index) => {
-        const position = calculateFacePosition(face, index);
+        const position = calculateFacePosition(face);
         const isSelected = selectedFaces.has(index);
+        const isHovered = hoveredFace === index;
         
-        if (position.width <= 2 || position.height <= 2) return null;
+        if (position.width <= 4 || position.height <= 4) return null;
         
         return (
           <div
-            key={index}
+            key={`face-${index}`}
             className={`absolute border-2 cursor-pointer transition-all duration-200 group ${
               isSelected 
-                ? 'border-green-500 bg-green-500/20' 
-                : 'border-blue-500 bg-blue-500/10 hover:border-blue-400 hover:bg-blue-400/20'
+                ? 'border-green-500 bg-green-500/20 shadow-lg' 
+                : isHovered
+                ? 'border-purple-400 bg-purple-400/20 shadow-md'
+                : 'border-blue-500 bg-blue-500/10 hover:border-purple-400 hover:bg-purple-400/20'
             }`}
             style={{
               left: `${position.left}px`,
               top: `${position.top}px`,
               width: `${position.width}px`,
               height: `${position.height}px`,
-              zIndex: 10
+              zIndex: 10,
+              boxSizing: 'border-box'
             }}
-            onClick={() => onFaceClick(face, index)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onFaceClick(face, index);
+            }}
+            onMouseEnter={() => setHoveredFace(index)}
+            onMouseLeave={() => setHoveredFace(null)}
           >
             {/* Selection indicator */}
-            <div className={`absolute -top-6 left-0 px-2 py-1 rounded-full text-xs font-medium ${
+            <div className={`absolute -top-8 left-0 px-2 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
               isSelected 
-                ? 'bg-green-500 text-white' 
-                : 'bg-blue-500 text-white opacity-0 group-hover:opacity-100'
-            } transition-opacity`}>
+                ? 'bg-green-500 text-white opacity-100' 
+                : 'bg-purple-500 text-white opacity-0 group-hover:opacity-100'
+            }`}>
               {isSelected ? '✓ Selected' : 'Click to select'}
             </div>
             
             {/* Face number */}
-            <div className={`absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-              isSelected ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'
+            <div className={`absolute -top-3 -right-3 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 ${
+              isSelected 
+                ? 'bg-green-500 text-white scale-110' 
+                : 'bg-blue-500 text-white group-hover:bg-purple-500 group-hover:scale-110'
             }`}>
               {index + 1}
             </div>
+
+            {/* Face quality indicator for larger faces */}
+            {position.width > 40 && position.height > 40 && face.face_quality && (
+              <div className={`absolute bottom-0 left-0 right-0 bg-black/75 text-white text-xs p-1 text-center transition-opacity duration-200 ${
+                isSelected || isHovered ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+              }`}>
+                Quality: {Math.round(face.face_quality * 100)}%
+              </div>
+            )}
           </div>
         );
       })}
+
+      {/* Instructions overlay */}
+      {faces.length > 0 && selectedFaces.size === 0 && (
+        <div className="absolute top-4 right-4 bg-black/75 text-white text-sm p-3 rounded-lg max-w-xs">
+          <p className="font-medium mb-1">Face Selection</p>
+          <p>Click on the blue face boxes to select faces for enhancement.</p>
+        </div>
+      )}
     </div>
   );
 };

@@ -527,9 +527,17 @@ const FaceCrop: React.FC<{
         if (!ctx) return;
 
         // Backend returns [x1, y1, x2, y2] in original image coordinates
+        // Backend returns [x1, y1, x2, y2] in original image coordinates
         const [x1, y1, x2, y2] = faceBox;
         const faceWidth = Math.abs(x2 - x1);
         const faceHeight = Math.abs(y2 - y1);
+        
+        // Ensure we have valid face dimensions
+        if (faceWidth <= 0 || faceHeight <= 0) {
+          setHasError(true);
+          setIsLoading(false);
+          return;
+        }
         
         // Ensure we have valid face dimensions
         if (faceWidth <= 0 || faceHeight <= 0) {
@@ -544,6 +552,13 @@ const FaceCrop: React.FC<{
         const cropY = Math.max(0, Math.min(y1, y2) - padding);
         const cropWidth = Math.min(img.naturalWidth - cropX, faceWidth + (padding * 2));
         const cropHeight = Math.min(img.naturalHeight - cropY, faceHeight + (padding * 2));
+        
+        // Ensure crop dimensions are valid
+        if (cropWidth <= 0 || cropHeight <= 0) {
+          setHasError(true);
+          setIsLoading(false);
+          return;
+        }
         
         // Ensure crop dimensions are valid
         if (cropWidth <= 0 || cropHeight <= 0) {
@@ -581,11 +596,19 @@ const FaceCrop: React.FC<{
         ctx.strokeStyle = 'rgba(59, 130, 246, 0.3)'; // blue-500 with opacity
         ctx.lineWidth = 1;
         ctx.strokeRect(0, 0, size, size);
+        // Add a subtle border to make the face stand out
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.3)'; // blue-500 with opacity
+        ctx.lineWidth = 1;
+        ctx.strokeRect(0, 0, size, size);
 
         // Convert canvas to blob URL
         canvas.toBlob((blob) => {
           if (blob) {
             const url = URL.createObjectURL(blob);
+            // Clean up previous URL
+            if (croppedImageUrl) {
+              URL.revokeObjectURL(croppedImageUrl);
+            }
             // Clean up previous URL
             if (croppedImageUrl) {
               URL.revokeObjectURL(croppedImageUrl);
@@ -617,7 +640,7 @@ const FaceCrop: React.FC<{
     };
   }, [imageUrl, faceBox]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount to prevent memory leaks
   React.useEffect(() => {
     return () => {
       if (croppedImageUrl) {
@@ -647,11 +670,11 @@ const FaceCrop: React.FC<{
   return (
     <>
       <canvas ref={canvasRef} style={{ display: 'none' }} />
-      <img
-        src={croppedImageUrl}
+      <div className={`${className} bg-gray-800 flex items-center justify-center rounded`}>
+        <div className="text-gray-500 text-xs text-center p-1">
         alt="Cropped face"
         className={`${className} object-cover rounded`}
-      />
+      </div>
     </>
   );
 };

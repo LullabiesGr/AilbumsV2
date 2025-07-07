@@ -57,14 +57,10 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
 
     updateTimeoutRef.current = setTimeout(() => {
       if (containerRef.current) {
-        // Get the container dimensions (this is what we need for letterbox calculations)
-        const containerRect = containerRef.current.getBoundingClientRect();
-        
         const newDimensions = {
           width: Math.round(containerRect.width),
           height: Math.round(containerRect.height)
         };
-        
         console.log(`[${instanceId.current}] Container dimension update:`, {
           containerRect: { width: containerRect.width, height: containerRect.height },
           newDimensions
@@ -121,11 +117,6 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
       });
 
       resizeObserverRef.current.observe(containerRef.current);
-    }
-
-    return () => {
-      if (resizeObserverRef.current) {
-        resizeObserverRef.current.disconnect();
       }
       if (updateTimeoutRef.current) {
         clearTimeout(updateTimeoutRef.current);
@@ -152,7 +143,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
   }, [imageUrl]);
 
   const getEmotionIcon = (emotion: string, confidence?: number) => {
-    const iconProps = { className: "h-3 w-3" };
+    setContainerDimensions({ width: 0, height: 0 });
     
     switch (emotion?.toLowerCase()) {
       case 'happy':
@@ -319,7 +310,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
           {face.age && (
             <div className="flex items-center justify-between">
               <span className="text-gray-300">Age:</span>
-              <span className="font-medium text-white">
+  // Calculate face position with proper object-fit: contain handling and letterbox offsets
                 {Math.round(face.age)} years
               </span>
             </div>
@@ -430,41 +421,36 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
             </div>
           )}
 
-          {/* Person Group */}
+    // Backend coordinates: [x1, y1, x2, y2] in original image pixels
           {face.same_person_group && (
             <div className="pt-2 border-t border-gray-600">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-300">Person ID:</span>
-                <span className="font-mono text-xs text-blue-400">
-                  {String(face.same_person_group).slice(-8)}
-                </span>
-              </div>
-              {face.is_duplicate && (
-                <div className="text-orange-400 text-xs mt-1">
-                  ⚠ Duplicate face detected
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+    // Calculate how the image fits with object-fit: contain
+    // The image will be scaled to fit entirely within the container while preserving aspect ratio
+    const scale = Math.min(
+      containerDimensions.width / originalDimensions.width,
+      containerDimensions.height / originalDimensions.height
     );
-  };
-
-  // Debug log when faces prop changes
+                  {String(face.same_person_group).slice(-8)}
+    // Calculate the actual displayed image dimensions
+    const imageDisplayWidth = originalDimensions.width * scale;
+    const imageDisplayHeight = originalDimensions.height * scale;
+                <div className="text-orange-400 text-xs mt-1">
+    // Calculate letterbox offsets (margins) due to aspect ratio differences
+    const offsetX = (containerDimensions.width - imageDisplayWidth) / 2;
+    const offsetY = (containerDimensions.height - imageDisplayHeight) / 2;
   useEffect(() => {
-    console.log(`[${instanceId.current}] Faces data received:`, faces?.length || 0, 'faces');
-    if (faces && faces.length > 0) {
-      faces.forEach((face, index) => {
-        console.log(`  Face ${index}:`, face.box);
+    // Apply scaling and offset to face coordinates
+    const left = Math.round(x1 * scale + offsetX);
+    const top = Math.round(y1 * scale + offsetY);
       });
     }
   }, [faces]);
+    // Clamp to visible area within the container
+    const clampedLeft = Math.max(0, Math.min(left, containerDimensions.width));
+    const clampedTop = Math.max(0, Math.min(top, containerDimensions.height));
+    const clampedWidth = Math.max(0, Math.min(width, containerDimensions.width - clampedLeft));
+    const clampedHeight = Math.max(0, Math.min(height, containerDimensions.height - clampedTop));
 
-  // If no faces, just render the image
-  if (!faces || faces.length === 0) {
-    return (
-      <div 
         ref={containerRef} 
         className={`relative ${className}`}
         style={{ 
@@ -472,11 +458,23 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
           width: '100%',
           height: '100%',
           overflow: 'hidden'
-        }}
+    // Check if face is actually visible (has reasonable size)
       >
         <img
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[${instanceId.current}] Face ${faceIndex} position calculation:`, {
+        originalBox: [x1, y1, x2, y2],
+        scale,
+        imageDisplay: { width: imageDisplayWidth, height: imageDisplayHeight },
+        offsets: { offsetX, offsetY },
+        scaledPosition: { left, top, width, height },
+        finalPosition,
+        isVisible
+      });
+    }
+
           ref={imageRef}
-          src={imageUrl}
+  }, [originalDimensions, containerDimensions]);
           alt="No faces detected"
           className="w-full h-full object-contain"
           onLoad={handleImageLoad}
@@ -591,3 +589,5 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
 };
 
 export default FaceOverlay;
+          className="w-full h-full object-contain"
+            objectFit: 'contain'

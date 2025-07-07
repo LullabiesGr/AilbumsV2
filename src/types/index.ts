@@ -33,6 +33,7 @@ export interface Face {
   box: [number, number, number, number]; // [x1, y1, x2, y2] absolute coordinates
   confidence: number;
   face_crop_b64?: string; // Base64-encoded cropped face image
+  face_crop_b64?: string; // Base64-encoded cropped face image
   landmarks?: number[][];
   age?: number;
   gender?: 'male' | 'female';

@@ -235,6 +235,7 @@ export const analyzeSinglePhoto = async (photo: Photo, userId: string, eventType
         faces: result.faces?.map((face: any) => ({
           // Use backend coordinates directly - no transformation
           box: face.box,
+          face_crop_b64: face.face_crop_b64,
           confidence: face.confidence || 0,
           landmarks: face.landmarks,
           age: face.age,
@@ -398,6 +399,7 @@ export const deepAnalyzeSinglePhoto = async (photo: Photo, userId: string, event
         faces: result.faces?.map((face: any) => ({
           // Use backend coordinates directly - no transformation
           box: face.box,
+          face_crop_b64: face.face_crop_b64,
           confidence: face.confidence || 0,
           landmarks: face.landmarks,
           age: face.age,

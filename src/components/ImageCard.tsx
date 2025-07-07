@@ -134,125 +134,6 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
     return badges;
   };
 
-  // DEBUG MODE: Render at original size
-  const renderDebugCard = () => (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-visible p-4 mb-8">
-      <div className="mb-4">
-        <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-2">
-          {photo.filename}
-        </h3>
-        <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-          <div>Faces detected: {photo.faces?.length || 0}</div>
-          {photo.ai_score > 0 && (
-            <div>AI Score: {(photo.ai_score / 2).toFixed(1)}/5 stars</div>
-          )}
-          {photo.caption && (
-            <div className="italic">"{photo.caption}"</div>
-          )}
-        </div>
-      </div>
-      
-      <div className="relative overflow-visible">
-        <div className="absolute top-2 left-2 z-10">
-          <button
-            className={`p-1.5 rounded-full transition-colors ${
-              photo.selected
-                ? 'bg-blue-600 text-white'
-                : 'bg-black/50 text-white hover:bg-black/75'
-            }`}
-            onClick={handleSelect}
-          >
-            <Check className="h-4 w-4" />
-          </button>
-        </div>
-        
-        {/* Original size image with face overlay */}
-        <div 
-          className="cursor-pointer overflow-visible"
-          onClick={() => setShowModal(true)}
-        >
-          {photo.faces && photo.faces.length > 0 ? (
-            <FaceOverlay
-              faces={photo.faces}
-              imageUrl={photo.url}
-              className="overflow-visible"
-              showTooltips={isHovered}
-              onFaceClick={handleFaceClick}
-              debugMode={true}
-            />
-          ) : (
-            <img
-              src={photo.url}
-              alt={photo.filename}
-              className="block"
-              style={{ maxWidth: '100%', height: 'auto' }}
-            />
-          )}
-        </div>
-        
-        <div className="absolute top-2 right-2">
-          <div className="px-2 py-1 rounded-full bg-black/50 backdrop-blur-sm flex flex-col items-center gap-1">
-            <ColorLabelIndicator 
-              colorLabel={photo.color_label} 
-              size="md" 
-              photoId={photo.id}
-              editable={true}
-              position="left"
-            />
-          </div>
-        </div>
-      </div>
-      
-      <div className="mt-4 space-y-2">
-        {photo.tags && photo.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {photo.tags.map((tag, index) => (
-              <span 
-                key={index}
-                className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-xs rounded"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-        
-        <div className="flex items-center justify-between">
-          <div className="flex space-x-2">
-            <button 
-              className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
-              onClick={() => setShowModal(true)}
-            >
-              <Eye className="h-4 w-4" />
-            </button>
-            <button 
-              className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-md"
-              onClick={handleCull}
-            >
-              <Scissors className="h-4 w-4" />
-            </button>
-            <button 
-              className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-md"
-              onClick={handleDelete}
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
-          
-          {photo.ai_score > 0 && (
-            <StarRating 
-              score={photo.ai_score} 
-              size="sm" 
-              photoId={photo.id}
-              readonly={false}
-              showLabel={false}
-            />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-
   const renderCardContent = () => (
     <>
       <div className="relative aspect-square overflow-hidden">
@@ -749,12 +630,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
     case 'list': return renderListCard();
     case 'compact': return renderCompactCard();
     case 'grid':
-    default: 
-      // DEBUG MODE: Always use debug card
-      return renderDebugCard();
-      
-      /* Normal card (disabled for debug)
-      return (
+    default: return (
       <div
         className="relative bg-white dark:bg-gray-800 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg"
         onMouseEnter={() => setIsHovered(true)}
@@ -764,8 +640,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
         {showModal && <ImageModal photo={photo} onClose={() => setShowModal(false)} />}
         {showInpaintModal && <InpaintModal photo={photo} onClose={() => setShowInpaintModal(false)} />}
       </div>
-      );
-      */
+    );
   }
 };
 

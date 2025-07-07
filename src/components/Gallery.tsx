@@ -16,26 +16,24 @@ const Gallery: React.FC = () => {
     );
   }
   
-  // DEBUG MODE: Show images at original size in a simple vertical layout
   const getGalleryClassName = () => {
-    return 'flex flex-col gap-8 items-start'; // Simple vertical layout for debug
+    switch (viewMode) {
+      case 'grid':
+        return 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4';
+      case 'list':
+        return 'flex flex-col gap-3';
+      case 'compact':
+        return 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2';
+      default:
+        return 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4';
+    }
   };
   
   return (
-    <div className="space-y-8">
-      <div className="bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg p-4">
-        <h3 className="text-red-800 dark:text-red-200 font-semibold mb-2">🐛 DEBUG MODE ACTIVE</h3>
-        <p className="text-red-700 dark:text-red-300 text-sm">
-          Images are displayed at their original size with face boxes using direct backend coordinates.
-          This will help us verify if face detection coordinates are correct before implementing scaling.
-        </p>
-      </div>
-      
-      <div className={getGalleryClassName()}>
+    <div className={getGalleryClassName()}>
       {filteredPhotos.map((photo) => (
         <ImageCard key={photo.id} photo={photo} viewMode={viewMode} />
       ))}
-      </div>
     </div>
   );
 };

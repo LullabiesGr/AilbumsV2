@@ -24,11 +24,9 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <PhotoProvider>
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-        <Home />
-      </div>
-    </PhotoProvider>
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+      <Home />
+    </div>
   );
 };
 
@@ -36,7 +34,9 @@ function App() {
   return (
     <ToastProvider>
       <AuthProvider>
-        <AppContent />
+        <PhotoProvider>
+          <AppContent />
+        </PhotoProvider>
       </AuthProvider>
     </ToastProvider>
   );

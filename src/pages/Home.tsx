@@ -16,7 +16,8 @@ import { usePhoto } from '../context/PhotoContext';
 import AlbumSelector from '../components/AlbumSelector';
 import AnalysisOverlay from '../components/AnalysisOverlay';
 import Sidebar from '../components/Sidebar';
-import { Play, RotateCcw, Brain, Copy, Users, Grid, List } from 'lucide-react';
+import FaceRetouchModal from '../components/FaceRetouchModal';
+import { Play, RotateCcw, Brain, Copy, Users, Grid, List, Sparkles, ArrowLeft } from 'lucide-react';
 
 const Home: React.FC = () => {
   const { 
@@ -40,6 +41,8 @@ const Home: React.FC = () => {
   } = usePhoto();
   
   const [activeTab, setActiveTab] = React.useState<'gallery' | 'duplicates' | 'people'>('gallery');
+
+  const [showFaceRetouchStep, setShowFaceRetouchStep] = React.useState(false);
 
   const getEventTypeLabel = (type: EventType | null) => {
     const eventLabels = {
@@ -168,6 +171,95 @@ const Home: React.FC = () => {
           </div>
         );
 
+      case 'face-retouch':
+        return (
+          <div className="space-y-6">
+            {/* Visual Separation */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-100 via-pink-100 to-purple-100 
+                            dark:from-purple-900/20 dark:via-pink-900/20 dark:to-purple-900/20 rounded-lg" />
+              <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg border-2 
+                            border-purple-200 dark:border-purple-800 p-6">
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full 
+                                flex items-center justify-center mx-auto mb-4">
+                    <Sparkles className="h-8 w-8 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-pink-600 
+                               bg-clip-text text-transparent">
+                    Face Retouch Studio
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                    Enhance faces in your photos with AI-powered retouching. Select individual faces 
+                    for precise enhancement while keeping the rest of your photo untouched.
+                  </p>
+                </div>
+
+                {/* Navigation */}
+                <div className="flex items-center justify-between mb-6">
+                  <button
+                    onClick={() => setWorkflowStage('review')}
+                    className="flex items-center space-x-2 px-4 py-2 bg-gray-500 hover:bg-gray-600 
+                             text-white rounded-lg transition-colors duration-200"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Back to Review</span>
+                  </button>
+                  
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    {photos.filter(p => p.faces && p.faces.length > 0).length} photos with faces available
+                  </div>
+                </div>
+
+                {/* Instructions */}
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/30 
+                              dark:to-pink-900/30 border border-purple-200 dark:border-purple-700 
+                              rounded-lg p-4 mb-6">
+                  <h3 className="font-semibold text-purple-800 dark:text-purple-200 mb-2">
+                    How Face Retouch Works:
+                  </h3>
+                  <ul className="text-sm text-purple-700 dark:text-purple-300 space-y-1">
+                    <li>• Click "Retouch Faces" on any photo with detected faces</li>
+                    <li>• Select which faces you want to enhance by clicking on them</li>
+                    <li>• Adjust the retouch fidelity (0.0 = natural, 1.0 = enhanced)</li>
+                    <li>• Click "Magic Retouch" to apply AI enhancement to selected faces only</li>
+                    <li>• Preview before/after and save your enhanced photo</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <AlbumSelector />
+            <ActionBar />
+            
+            {/* Enhanced Gallery for Face Retouch */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Photos with Faces ({photos.filter(p => p.faces && p.faces.length > 0).length})
+                </h3>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Click "Retouch Faces" button on photos to enhance faces
+                </div>
+              </div>
+              
+              {photos.filter(p => p.faces && p.faces.length > 0).length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    No Photos with Faces
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Analyze your photos first to detect faces for retouching.
+                  </p>
+                </div>
+              ) : (
+                <Gallery />
+              )}
+            </div>
+          </div>
+        );
+
       case 'review':
         return (
           <div className="space-y-6">
@@ -225,6 +317,37 @@ const Home: React.FC = () => {
             
             <AlbumSelector />
             <ActionBar />
+            
+            {/* Face Retouch Step Button */}
+            {photos.filter(p => p.faces && p.faces.length > 0).length > 0 && (
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 
+                            dark:to-pink-900/20 border-2 border-dashed border-purple-300 
+                            dark:border-purple-700 rounded-lg p-6 text-center">
+                <div className="flex items-center justify-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full 
+                                flex items-center justify-center">
+                    <Sparkles className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                      Ready for Face Retouching
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {photos.filter(p => p.faces && p.faces.length > 0).length} photos with faces detected
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setWorkflowStage('face-retouch')}
+                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 
+                             hover:from-purple-700 hover:to-pink-700 text-white rounded-lg 
+                             flex items-center space-x-2 transition-all duration-200 font-medium"
+                  >
+                    <Sparkles className="h-5 w-5" />
+                    <span>Enter Face Retouch Mode</span>
+                  </button>
+                </div>
+              </div>
+            )}
             
             {/* Tab Navigation */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md">

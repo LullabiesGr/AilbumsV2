@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Users, Eye, Filter, User } from 'lucide-react';
 import { usePhoto } from '../context/PhotoContext';
 import { PersonGroup } from '../types';
+import FaceOverlay from './FaceOverlay';
 
 const PeopleGroupManager: React.FC = () => {
   const { 

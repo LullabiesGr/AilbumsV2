@@ -395,32 +395,112 @@ const Sidebar = () => {
   );
 };
 
-// Simplified component to show face region using CSS transforms
+// Simplified face crop component using canvas for reliable cropping
 const FaceCrop: React.FC<{ 
   imageUrl: string; 
   faceBox?: [number, number, number, number]; 
   className?: string;
 }> = ({ imageUrl, faceBox, className = '' }) => {
-  const [imageLoaded, setImageLoaded] = React.useState(false);
-  const [imageDimensions, setImageDimensions] = React.useState({ width: 0, height: 0 });
+  const [croppedImageUrl, setCroppedImageUrl] = React.useState<string | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
   const [hasError, setHasError] = React.useState(false);
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
-  // Load image to get natural dimensions
   React.useEffect(() => {
+    if (!faceBox || faceBox.length !== 4) {
+      setIsLoading(false);
+      setHasError(true);
+      return;
+    }
+
     const img = new Image();
+    img.crossOrigin = 'anonymous';
+    
     img.onload = () => {
-      setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
-      setImageLoaded(true);
-      setHasError(false);
+      try {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const [x1, y1, x2, y2] = faceBox;
+        const faceWidth = x2 - x1;
+        const faceHeight = y2 - y1;
+        
+        // Add 30% padding around the face
+        const padding = Math.min(faceWidth, faceHeight) * 0.3;
+        const cropX = Math.max(0, x1 - padding);
+        const cropY = Math.max(0, y1 - padding);
+        const cropWidth = Math.min(img.naturalWidth - cropX, faceWidth + (padding * 2));
+        const cropHeight = Math.min(img.naturalHeight - cropY, faceHeight + (padding * 2));
+
+        // Set canvas size to a fixed square
+        const size = 120;
+        canvas.width = size;
+        canvas.height = size;
+
+        // Clear canvas
+        ctx.fillStyle = '#374151'; // gray-700
+        ctx.fillRect(0, 0, size, size);
+
+        // Calculate scale to fit the crop in the canvas
+        const scale = Math.min(size / cropWidth, size / cropHeight);
+        const scaledWidth = cropWidth * scale;
+        const scaledHeight = cropHeight * scale;
+        
+        // Center the image in the canvas
+        const offsetX = (size - scaledWidth) / 2;
+        const offsetY = (size - scaledHeight) / 2;
+
+        // Draw the cropped and scaled image
+        ctx.drawImage(
+          img,
+          cropX, cropY, cropWidth, cropHeight, // Source rectangle
+          offsetX, offsetY, scaledWidth, scaledHeight // Destination rectangle
+        );
+
+        // Convert canvas to blob URL
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            setCroppedImageUrl(url);
+          }
+          setIsLoading(false);
+        }, 'image/png', 0.9);
+        
+      } catch (error) {
+        console.error('Face crop error:', error);
+        setHasError(true);
+        setIsLoading(false);
+      }
     };
+
     img.onerror = () => {
       setHasError(true);
-      setImageLoaded(true);
+      setIsLoading(false);
     };
-    img.src = imageUrl;
-  }, [imageUrl]);
 
-  if (!imageLoaded) {
+    img.src = imageUrl;
+
+    // Cleanup function
+    return () => {
+      if (croppedImageUrl) {
+        URL.revokeObjectURL(croppedImageUrl);
+      }
+    };
+  }, [imageUrl, faceBox]);
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      if (croppedImageUrl) {
+        URL.revokeObjectURL(croppedImageUrl);
+      }
+    };
+  }, [croppedImageUrl]);
+
+  if (isLoading) {
     return (
       <div className={`${className} bg-gray-700 flex items-center justify-center`}>
         <div className="w-4 h-4 border-2 border-gray-500 border-t-white rounded-full animate-spin" />
@@ -428,51 +508,25 @@ const FaceCrop: React.FC<{
     );
   }
 
-  if (hasError || !faceBox || faceBox.length !== 4 || imageDimensions.width === 0) {
+  if (hasError || !croppedImageUrl) {
     return (
       <img
         src={imageUrl}
         alt="Face"
         className={`${className} object-cover`}
-        onError={() => setHasError(true)}
       />
     );
   }
 
-  const [x1, y1, x2, y2] = faceBox;
-  const faceWidth = x2 - x1;
-  const faceHeight = y2 - y1;
-  
-  // Add padding around the face
-  const padding = Math.min(faceWidth, faceHeight) * 0.3;
-  const cropX = Math.max(0, x1 - padding);
-  const cropY = Math.max(0, y1 - padding);
-  const cropWidth = Math.min(imageDimensions.width - cropX, faceWidth + (padding * 2));
-  const cropHeight = Math.min(imageDimensions.height - cropY, faceHeight + (padding * 2));
-
-  // Calculate the scale and position to show just the face region
-  const scaleX = 120 / cropWidth; // 120px is our target size
-  const scaleY = 120 / cropHeight;
-  const scale = Math.max(scaleX, scaleY); // Use max to ensure we fill the container
-  
-  const translateX = -cropX * scale;
-  const translateY = -cropY * scale;
-
   return (
-    <div className={`${className} overflow-hidden bg-gray-700`}>
+    <>
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
       <img
-        src={imageUrl}
+        src={croppedImageUrl}
         alt="Face crop"
-        className="object-cover"
-        style={{
-          width: `${imageDimensions.width * scale}px`,
-          height: `${imageDimensions.height * scale}px`,
-          transform: `translate(${translateX}px, ${translateY}px)`,
-          transformOrigin: 'top left'
-        }}
-        onError={() => setHasError(true)}
+        className={`${className} object-cover`}
       />
-    </div>
+    </>
   );
 };
 

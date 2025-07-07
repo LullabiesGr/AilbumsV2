@@ -81,7 +81,7 @@ const PeopleGroupManager: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Users className="h-5 w-5 text-blue-500" />
             <span className="font-medium text-gray-900 dark:text-gray-100">
-              Person {group.group_id.slice(-4)}
+              Person {String(group.group_id || '').slice(-4)}
             </span>
           </div>
           <div className="flex space-x-1">
@@ -189,7 +189,7 @@ const PeopleGroupManager: React.FC = () => {
                 <User className="h-6 w-6 text-blue-500" />
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    Person {selectedGroup.group_id.slice(-4)} - {selectedGroup.photo_count} Photos
+                    Person {String(selectedGroup.group_id || '').slice(-4)} - {selectedGroup.photo_count} Photos
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     {selectedGroup.faces.length} face instances detected

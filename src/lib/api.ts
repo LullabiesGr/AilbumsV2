@@ -224,7 +224,8 @@ export const analyzeSinglePhoto = async (photo: Photo, userId: string, eventType
         personalized_similarity: result.personalized_similarity,
         tags: result.tags || [],
         faces: result.faces?.map((face: any) => ({
-          box: face.box || [face.x || 0, face.y || 0, (face.x || 0) + (face.width || 0), (face.y || 0) + (face.height || 0)],
+          // Use backend coordinates directly - no transformation
+          box: face.box,
           confidence: face.confidence || 0,
           landmarks: face.landmarks,
           age: face.age,
@@ -377,7 +378,8 @@ export const deepAnalyzeSinglePhoto = async (photo: Photo, userId: string, event
         personalized_similarity: result.personalized_similarity,
         tags: result.tags || [],
         faces: result.faces?.map((face: any) => ({
-          box: face.box || [face.x || 0, face.y || 0, (face.x || 0) + (face.width || 0), (face.y || 0) + (face.height || 0)],
+          // Use backend coordinates directly - no transformation
+          box: face.box,
           confidence: face.confidence || 0,
           landmarks: face.landmarks,
           age: face.age,

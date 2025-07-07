@@ -51,11 +51,6 @@ export interface Face {
   is_duplicate?: boolean;
   eyes_closed?: boolean;
   smile?: number;
-  // Coordinate system info
-  x?: number; // Legacy support - will be converted to box format
-  y?: number;
-  width?: number;
-  height?: number;
 }
 
 export interface FaceSummary {

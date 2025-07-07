@@ -57,21 +57,31 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
 
     updateTimeoutRef.current = setTimeout(() => {
       if (imageRef.current && containerRef.current) {
-        // Get the ACTUAL rendered size of THIS specific image element
+        // CRITICAL: Get the EXACT rendered size of the image element itself
+        // Use getBoundingClientRect for the most accurate dimensions
         const imageRect = imageRef.current.getBoundingClientRect();
+        const containerRect = containerRef.current.getBoundingClientRect();
         
+        // Ensure we're measuring the actual image, not the container
         const newDimensions = {
           width: Math.round(imageRect.width),
           height: Math.round(imageRect.height)
         };
         
-        console.log(`[${instanceId.current}] Rendered dimensions updated:`, newDimensions);
+        console.log(`[${instanceId.current}] Dimension update:`, {
+          imageRect: { width: imageRect.width, height: imageRect.height },
+          containerRect: { width: containerRect.width, height: containerRect.height },
+          newDimensions
+        });
         
-        // Only update if we have valid dimensions and they changed
+        // Only update if we have valid dimensions and they changed significantly
         if (newDimensions.width > 0 && newDimensions.height > 0) {
           setImageDimensions(prev => {
-            if (Math.abs(prev.width - newDimensions.width) > 1 || 
-                Math.abs(prev.height - newDimensions.height) > 1) {
+            const widthDiff = Math.abs(prev.width - newDimensions.width);
+            const heightDiff = Math.abs(prev.height - newDimensions.height);
+            
+            if (widthDiff > 1 || heightDiff > 1) {
+              console.log(`[${instanceId.current}] Dimensions changed:`, prev, '->', newDimensions);
               return newDimensions;
             }
             return prev;
@@ -82,15 +92,16 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
         const ready = newDimensions.width > 0 && newDimensions.height > 0 && 
                      originalDimensions.width > 0 && originalDimensions.height > 0;
         
-        console.log(`[${instanceId.current}] Ready state:`, ready, {
-          rendered: newDimensions,
-          original: originalDimensions
-        });
-        
-        setIsReady(ready);
+        if (ready !== isReady) {
+          console.log(`[${instanceId.current}] Ready state changed:`, ready, {
+            rendered: newDimensions,
+            original: originalDimensions
+          });
+          setIsReady(ready);
+        }
       }
-    }, 50);
-  }, [originalDimensions.width, originalDimensions.height]);
+    }, 16); // Use 16ms for smooth 60fps updates
+  }, [originalDimensions.width, originalDimensions.height, isReady]);
 
   // Set up ResizeObserver for THIS specific container only
   useEffect(() => {
@@ -114,6 +125,11 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
       });
 
       resizeObserverRef.current.observe(containerRef.current);
+      
+      // Also observe the image element directly
+      if (imageRef.current) {
+        resizeObserverRef.current.observe(imageRef.current);
+      }
     }
 
     return () => {
@@ -131,8 +147,9 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     console.log(`[${instanceId.current}] Image loaded, updating dimensions`);
     // Multiple update attempts to ensure we catch the final layout
     requestAnimationFrame(() => updateDimensions());
-    setTimeout(() => updateDimensions(), 100);
-    setTimeout(() => updateDimensions(), 250);
+    setTimeout(() => updateDimensions(), 50);
+    setTimeout(() => updateDimensions(), 150);
+    setTimeout(() => updateDimensions(), 300);
   }, [updateDimensions]);
 
   // Reset when image changes
@@ -211,16 +228,16 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     console.log(`  - Image aspect: ${imageAspect.toFixed(3)}`);
 
     let scale: number;
-    let visibleImageWidth: number;
-    let visibleImageHeight: number;
     let cropOffsetX = 0;
     let cropOffsetY = 0;
 
-    if (containerAspect > imageAspect) {
+    if (Math.abs(containerAspect - imageAspect) < 0.01) {
+      // Aspects are nearly identical - no cropping needed
+      scale = imageDimensions.width / originalDimensions.width;
+      console.log(`  - No cropping needed: scale=${scale.toFixed(3)}`);
+    } else if (containerAspect > imageAspect) {
       // Container is wider than image - image fills container width, height is cropped
       scale = imageDimensions.width / originalDimensions.width;
-      visibleImageWidth = imageDimensions.width;
-      visibleImageHeight = originalDimensions.height * scale;
       
       // Calculate how much of the original image is cropped from top/bottom
       const totalScaledHeight = originalDimensions.height * scale;
@@ -231,8 +248,6 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     } else {
       // Container is taller than image - image fills container height, width is cropped
       scale = imageDimensions.height / originalDimensions.height;
-      visibleImageWidth = originalDimensions.width * scale;
-      visibleImageHeight = imageDimensions.height;
       
       // Calculate how much of the original image is cropped from left/right
       const totalScaledWidth = originalDimensions.width * scale;
@@ -258,11 +273,11 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     console.log(`  - Scaled coordinates: (${scaledX1.toFixed(1)}, ${scaledY1.toFixed(1)}) to (${scaledX2.toFixed(1)}, ${scaledY2.toFixed(1)})`);
     console.log(`  - Visible coordinates: (${visibleX1.toFixed(1)}, ${visibleY1.toFixed(1)}) to (${visibleX2.toFixed(1)}, ${visibleY2.toFixed(1)})`);
 
-    // Calculate final position and size
-    const left = Math.round(Math.max(0, visibleX1));
-    const top = Math.round(Math.max(0, visibleY1));
-    const right = Math.round(Math.min(imageDimensions.width, visibleX2));
-    const bottom = Math.round(Math.min(imageDimensions.height, visibleY2));
+    // Calculate final position and size, ensuring they're within bounds
+    const left = Math.round(Math.max(0, Math.min(visibleX1, imageDimensions.width)));
+    const top = Math.round(Math.max(0, Math.min(visibleY1, imageDimensions.height)));
+    const right = Math.round(Math.max(0, Math.min(visibleX2, imageDimensions.width)));
+    const bottom = Math.round(Math.max(0, Math.min(visibleY2, imageDimensions.height)));
     
     const width = Math.max(0, right - left);
     const height = Math.max(0, bottom - top);
@@ -480,26 +495,56 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
   // If no faces, just render the image
   if (!faces || faces.length === 0) {
     return (
-      <div ref={containerRef} className={`relative ${className}`}>
+      <div 
+        ref={containerRef} 
+        className={`relative ${className}`}
+        style={{ 
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          overflow: 'hidden'
+        }}
+      >
         <img
           ref={imageRef}
           src={imageUrl}
           alt="No faces detected"
           className="w-full h-full object-cover"
           onLoad={handleImageLoad}
+          style={{
+            display: 'block',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover'
+          }}
         />
       </div>
     );
   }
 
   return (
-    <div ref={containerRef} className={`relative ${className}`}>
+    <div 
+      ref={containerRef} 
+      className={`relative ${className}`}
+      style={{ 
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden'
+      }}
+    >
       <img
         ref={imageRef}
         src={imageUrl}
         alt="Face detection"
         className="w-full h-full object-cover"
         onLoad={handleImageLoad}
+        style={{
+          display: 'block',
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover'
+        }}
       />
       
       {/* Face bounding boxes - only render when THIS instance is ready */}
@@ -521,12 +566,15 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
             <div 
               className="absolute border-2 border-red-500 bg-red-500/10 cursor-pointer
                          hover:border-red-400 hover:bg-red-400/20 transition-all duration-200
-                         group"
+                         group pointer-events-auto"
               style={{
+                position: 'absolute',
                 left: `${position.left}px`,
                 top: `${position.top}px`,
                 width: `${position.width}px`,
-                height: `${position.height}px`
+                height: `${position.height}px`,
+                zIndex: 10,
+                boxSizing: 'border-box'
               }}
               onMouseEnter={(e) => handleFaceHover(index, e)}
               onMouseMove={(e) => handleFaceHover(index, e)}
@@ -536,7 +584,9 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
               {/* Face index indicator - only show if box is large enough */}
               {position.width > 20 && position.height > 20 && (
                 <div className="absolute -top-6 left-0 bg-red-500 text-white text-xs px-1.5 py-0.5
-                              rounded-full font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                              rounded-full font-medium opacity-0 group-hover:opacity-100 transition-opacity
+                              pointer-events-none"
+                     style={{ zIndex: 11 }}>
                   {index + 1}
                 </div>
               )}
@@ -544,7 +594,8 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
               {/* Quick info overlay - only show if box is large enough */}
               {position.width > 30 && position.height > 30 && (
                 <div className="absolute bottom-0 left-0 right-0 bg-black/75 text-white text-xs p-1
-                              opacity-0 group-hover:opacity-100 transition-opacity">
+                              opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                     style={{ zIndex: 11 }}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-1">
                       {face.emotion && getEmotionIcon(face.emotion)}

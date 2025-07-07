@@ -17,17 +17,21 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
   showTooltips = true,
   onFaceClick
 }) => {
+  // Each instance has its own state - completely independent
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const [originalDimensions, setOriginalDimensions] = useState({ width: 0, height: 0 });
   const [hoveredFace, setHoveredFace] = useState<number | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [isReady, setIsReady] = useState(false);
+  
+  // Each instance has its own refs - no sharing
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const instanceId = useRef(Math.random().toString(36).substr(2, 9));
 
-  // Load original image dimensions
+  // Load original image dimensions for THIS instance
   useEffect(() => {
     const img = new Image();
     img.onload = () => {
@@ -37,12 +41,12 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
       });
     };
     img.onerror = () => {
-      console.warn('Failed to load image for face overlay:', imageUrl);
+      console.warn(`[${instanceId.current}] Failed to load image:`, imageUrl);
     };
     img.src = imageUrl;
   }, [imageUrl]);
 
-  // Robust dimension update function with proper debouncing (increased to 50ms)
+  // Update dimensions for THIS specific image instance
   const updateDimensions = useCallback(() => {
     if (updateTimeoutRef.current) {
       clearTimeout(updateTimeoutRef.current);
@@ -50,47 +54,52 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
 
     updateTimeoutRef.current = setTimeout(() => {
       if (imageRef.current && containerRef.current) {
-        // Get the actual rendered size of the image element
+        // Get the ACTUAL rendered size of THIS specific image element
         const imageRect = imageRef.current.getBoundingClientRect();
         
-        // Use the actual rendered image size (this is what we see on screen)
         const newDimensions = {
-          width: imageRect.width,
-          height: imageRect.height
+          width: Math.round(imageRect.width),
+          height: Math.round(imageRect.height)
         };
         
-        // Only update if dimensions are valid and changed significantly
-        if (newDimensions.width > 0 && newDimensions.height > 0 &&
-            (Math.abs(newDimensions.width - imageDimensions.width) > 1 || 
-             Math.abs(newDimensions.height - imageDimensions.height) > 1)) {
-          setImageDimensions(newDimensions);
+        // Only update if we have valid dimensions and they changed
+        if (newDimensions.width > 0 && newDimensions.height > 0) {
+          setImageDimensions(prev => {
+            if (Math.abs(prev.width - newDimensions.width) > 1 || 
+                Math.abs(prev.height - newDimensions.height) > 1) {
+              return newDimensions;
+            }
+            return prev;
+          });
         }
         
-        // Robust isReady check - only ready when both dimensions are valid
-        if (newDimensions.width > 0 && newDimensions.height > 0 && 
-            originalDimensions.width > 0 && originalDimensions.height > 0) {
-          setIsReady(true);
-        } else {
-          setIsReady(false);
-        }
+        // Set ready state when both dimensions are valid
+        const ready = newDimensions.width > 0 && newDimensions.height > 0 && 
+                     originalDimensions.width > 0 && originalDimensions.height > 0;
+        setIsReady(ready);
       }
-    }, 50); // Increased debounce delay for better stability
-  }, [imageDimensions.width, imageDimensions.height, originalDimensions.width, originalDimensions.height]);
+    }, 50);
+  }, [originalDimensions.width, originalDimensions.height]);
 
-  // Set up resize observer for this specific image container
+  // Set up ResizeObserver for THIS specific container only
   useEffect(() => {
     if (containerRef.current) {
-      // Clean up previous observer
+      // Clean up any existing observer
       if (resizeObserverRef.current) {
         resizeObserverRef.current.disconnect();
       }
 
-      // Create new observer for this container
-      resizeObserverRef.current = new ResizeObserver(() => {
-        // Use requestAnimationFrame to ensure DOM is fully updated
-        requestAnimationFrame(() => {
-          updateDimensions();
-        });
+      // Create observer specifically for THIS container
+      resizeObserverRef.current = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          if (entry.target === containerRef.current) {
+            // Only update if this is OUR container
+            requestAnimationFrame(() => {
+              updateDimensions();
+            });
+            break;
+          }
+        }
       });
 
       resizeObserverRef.current.observe(containerRef.current);
@@ -106,24 +115,15 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     };
   }, [updateDimensions]);
 
-  // Handle image load with multiple update attempts for timing stability
+  // Handle image load for THIS specific image
   const handleImageLoad = useCallback(() => {
-    // Immediate update
-    requestAnimationFrame(() => {
-      updateDimensions();
-    });
-    
-    // Additional updates to ensure proper layout (removed redundant setTimeout)
-    setTimeout(() => {
-      updateDimensions();
-    }, 100);
-    
-    setTimeout(() => {
-      updateDimensions();
-    }, 250);
+    // Multiple update attempts to ensure we catch the final layout
+    requestAnimationFrame(() => updateDimensions());
+    setTimeout(() => updateDimensions(), 100);
+    setTimeout(() => updateDimensions(), 250);
   }, [updateDimensions]);
 
-  // Reset state when image URL changes
+  // Reset when image changes
   useEffect(() => {
     setIsReady(false);
     setImageDimensions({ width: 0, height: 0 });
@@ -169,8 +169,9 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     return 'text-red-500';
   };
 
-  // Calculate face position using backend coordinates directly with proper object-fit: cover handling
+  // Calculate face position using THIS instance's dimensions
   const calculateFacePosition = useCallback((face: Face) => {
+    // Validate we have all required data for THIS instance
     if (
       originalDimensions.width === 0 || originalDimensions.height === 0 ||
       imageDimensions.width === 0 || imageDimensions.height === 0 ||
@@ -182,7 +183,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     // Use backend coordinates directly - [x1, y1, x2, y2] in original image pixels
     const [x1, y1, x2, y2] = face.box;
 
-    // Calculate how the image is scaled and positioned within the container (object-fit: cover)
+    // Calculate how THIS image is scaled and positioned (object-fit: cover)
     const containerAspect = imageDimensions.width / imageDimensions.height;
     const imageAspect = originalDimensions.width / originalDimensions.height;
 
@@ -191,20 +192,18 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     let offsetY = 0;
 
     if (containerAspect > imageAspect) {
-      // Container is wider than image aspect ratio
-      // Image fills the width, height is cropped
+      // Container is wider - image fills width, height is cropped
       scale = imageDimensions.width / originalDimensions.width;
       const scaledImageHeight = originalDimensions.height * scale;
       offsetY = (imageDimensions.height - scaledImageHeight) / 2;
     } else {
-      // Container is taller than image aspect ratio  
-      // Image fills the height, width is cropped
+      // Container is taller - image fills height, width is cropped
       scale = imageDimensions.height / originalDimensions.height;
       const scaledImageWidth = originalDimensions.width * scale;
       offsetX = (imageDimensions.width - scaledImageWidth) / 2;
     }
 
-    // Transform backend coordinates to displayed coordinates
+    // Transform coordinates for THIS specific image instance
     const left = Math.round(x1 * scale + offsetX);
     const top = Math.round(y1 * scale + offsetY);
     const width = Math.round((x2 - x1) * scale);
@@ -400,6 +399,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     );
   };
 
+  // If no faces, just render the image
   if (!faces || faces.length === 0) {
     return (
       <div ref={containerRef} className={`relative ${className}`}>
@@ -424,7 +424,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
         onLoad={handleImageLoad}
       />
       
-      {/* Face bounding boxes - only render when everything is ready */}
+      {/* Face bounding boxes - only render when THIS instance is ready */}
       {isReady && faces.map((face, index) => {
         const position = calculateFacePosition(face);
         
@@ -433,8 +433,11 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
           return null;
         }
         
+        // Use unique key that includes instance dimensions to force re-render when size changes
+        const uniqueKey = `${instanceId.current}-face-${index}-${imageDimensions.width}x${imageDimensions.height}`;
+        
         return (
-          <div key={`face-${index}-${imageDimensions.width}x${imageDimensions.height}`}>
+          <div key={uniqueKey}>
             {/* Face bounding box */}
             <div 
               className="absolute border-2 border-red-500 bg-red-500/10 cursor-pointer
@@ -485,7 +488,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
                     // Backend provides landmarks in original image coordinates
                     const [landmarkX, landmarkY] = landmark;
                     
-                    // Apply same transformation as face box
+                    // Apply same transformation as face box for THIS instance
                     const containerAspect = imageDimensions.width / imageDimensions.height;
                     const imageAspect = originalDimensions.width / originalDimensions.height;
 

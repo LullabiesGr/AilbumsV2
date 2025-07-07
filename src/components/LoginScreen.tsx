@@ -116,6 +116,33 @@ const LoginScreen: React.FC = () => {
                   </span>
                 </button>
 
+                <div className="mt-4 text-center">
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                        or
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleGuestLogin}
+                  className="w-full mt-4 flex items-center justify-center space-x-3 px-6 py-3 
+                           bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 
+                           rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 
+                           transition-all duration-200 
+                           focus:outline-none focus:ring-4 focus:ring-gray-500/20"
+                >
+                  <User className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                  <span className="text-base font-medium text-gray-700 dark:text-gray-200">
+                    Continue as Guest
+                  </span>
+                </button>
+
                 <div className="mt-6 text-center">
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     By signing in, you agree to our{' '}

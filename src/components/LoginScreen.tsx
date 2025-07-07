@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { LogIn, Camera, Sparkles, Zap, Brain, Shield, Users } from 'lucide-react';
+import { LogIn, Camera, Sparkles, Zap, Brain, Shield, Users, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 const LoginScreen: React.FC = () => {
-  const { login } = useAuth();
+  const { login, loginAsGuest } = useAuth();
   const { showToast } = useToast();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
@@ -18,6 +18,26 @@ const LoginScreen: React.FC = () => {
       showToast(error.message || 'Login failed. Please try again.', 'error');
     } finally {
       setIsLoggingIn(false);
+    }
+  };
+
+  const handleGuestLogin = () => {
+    try {
+      loginAsGuest();
+      showToast('Welcome! You are now using the app as a guest.', 'success');
+    } catch (error: any) {
+      console.error('Guest login failed:', error);
+      showToast('Failed to login as guest. Please try again.', 'error');
+    }
+  };
+
+  const handleGuestLogin = () => {
+    try {
+      loginAsGuest();
+      showToast('Logged in as guest!', 'success');
+    } catch (error: any) {
+      console.error('Guest login failed:', error);
+      showToast('Guest login failed. Please try again.', 'error');
     }
   };
 
@@ -117,6 +137,11 @@ const LoginScreen: React.FC = () => {
                       Privacy Policy
                     </a>
                   </p>
+                  <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      <strong>Guest Mode:</strong> Try the app without signing up! Guest sessions are temporary and data won't be saved permanently.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

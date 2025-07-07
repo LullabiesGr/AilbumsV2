@@ -13,6 +13,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: () => Promise<void>;
+  loginAsGuest: () => void;
   logout: () => void;
 }
 
@@ -118,9 +119,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   };
 
+  const loginAsGuest = () => {
+    const guestUser: User = {
+      id: 'guest-user-' + Date.now(),
+      email: 'guest@ailbums.pro',
+      name: 'Guest User',
+      picture: undefined
+    };
+    
+    const guestToken = 'guest-token-' + Date.now();
+    
+    // Store guest credentials (they'll be cleared on logout)
+    localStorage.setItem('access_token', guestToken);
+    localStorage.setItem('user', JSON.stringify(guestUser));
+    localStorage.setItem('is_guest', 'true');
+    
+    setAccessToken(guestToken);
+    setUser(guestUser);
+  };
+
   const logout = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
+    localStorage.removeItem('is_guest');
     setAccessToken(null);
     setUser(null);
   };
@@ -131,6 +152,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     isAuthenticated: !!accessToken && !!user,
     isLoading,
     login,
+    loginAsGuest,
     logout
   };
 

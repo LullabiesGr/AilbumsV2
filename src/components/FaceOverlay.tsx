@@ -502,7 +502,6 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
               onMouseMove={(e) => handleFaceHover(index, e)}
               onMouseLeave={handleFaceLeave}
               onClick={(e) => handleFaceClick(face, index, e)}
-              style={{
             >
               {/* Face index indicator - only show if box is large enough */}
               {position.width > 20 && position.height > 20 && (

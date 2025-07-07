@@ -46,7 +46,7 @@ const Sidebar = () => {
   }));
 
   // Get unique faces from all photos
-  const allFaces = photos.flatMap(photo => 
+  const faces = photos.flatMap(photo => 
     photo.faces?.map(face => ({
       photoId: photo.id,
       photoUrl: photo.url,
@@ -57,8 +57,8 @@ const Sidebar = () => {
     })) || []
   );
   
-  // Sort faces by quality and confidence, then take the best ones
-  const faces = allFaces
+  // Filter and sort faces, then take the best ones
+  const bestFaces = faces
     .filter(faceData => faceData.face.face_crop_b64) // Only show faces with crop data
     .sort((a, b) => {
       // Sort by quality first, then confidence
@@ -332,16 +332,16 @@ const Sidebar = () => {
           </div>
         </div>
 
-        {faces.length > 0 && (
+        {bestFaces.length > 0 && (
           <div className="p-4 border-b border-gray-700">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold text-white">Key Faces</h2>
               <span className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded-full">
-                {faces.length}
+                {bestFaces.length}
               </span>
             </div>
             <div className="grid grid-cols-3 gap-2">
-              {faces.map((face, index) => (
+              {bestFaces.map((face, index) => (
                 <div
                   key={index}
                   className="aspect-square rounded-lg overflow-hidden relative cursor-pointer bg-gray-800
@@ -388,10 +388,10 @@ const Sidebar = () => {
               ))}
             </div>
             
-            {allFaces.length > faces.length && (
+            {faces.length > bestFaces.length && (
               <div className="mt-2 text-center">
                 <span className="text-xs text-gray-500">
-                  Showing {faces.length} of {allFaces.length} detected faces
+                  Showing {bestFaces.length} of {faces.length} detected faces
                 </span>
               </div>
             )}

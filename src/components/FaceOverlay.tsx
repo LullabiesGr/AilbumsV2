@@ -418,15 +418,15 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <div>
                   <span className="text-gray-400">Yaw:</span>
-                  <span className="text-white ml-1">{face.headpose.yaw.toFixed(1)}°</span>
+                  <span className="text-white ml-1">{(face.headpose.yaw || 0).toFixed(1)}°</span>
                 </div>
                 <div>
                   <span className="text-gray-400">Pitch:</span>
-                  <span className="text-white ml-1">{face.headpose.pitch.toFixed(1)}°</span>
+                  <span className="text-white ml-1">{(face.headpose.pitch || 0).toFixed(1)}°</span>
                 </div>
                 <div>
                   <span className="text-gray-400">Roll:</span>
-                  <span className="text-white ml-1">{face.headpose.roll.toFixed(1)}°</span>
+                  <span className="text-white ml-1">{(face.headpose.roll || 0).toFixed(1)}°</span>
                 </div>
               </div>
             </div>

@@ -438,7 +438,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-gray-300">Person ID:</span>
                 <span className="font-mono text-xs text-blue-400">
-                  {face.same_person_group.slice(-8)}
+                  {String(face.same_person_group).slice(-8)}
                 </span>
               </div>
               {face.is_duplicate && (

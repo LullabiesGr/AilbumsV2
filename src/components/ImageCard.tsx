@@ -162,6 +162,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
               className="w-full h-full"
               showTooltips={isHovered}
               onFaceClick={handleFaceClick}
+              debugMode={true}
             />
           ) : (
             <img
@@ -368,6 +369,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
               className="w-full h-full"
               showTooltips={false}
               onFaceClick={handleFaceClick}
+              debugMode={true}
             />
           ) : (
             <img
@@ -515,6 +517,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
               className="w-full h-full"
               showTooltips={false}
               onFaceClick={handleFaceClick}
+              debugMode={true}
             />
           ) : (
             <img

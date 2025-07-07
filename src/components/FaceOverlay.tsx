@@ -139,31 +139,32 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
       return { left: 0, top: 0, width: 0, height: 0 };
     }
     
-    // Calculate scale factors
-    const scaleX = imageDimensions.width / originalDimensions.width;
-    const scaleY = imageDimensions.height / originalDimensions.height;
+    // Calculate scale factors - handle object-cover scaling
+    // The image might be cropped to fit the container while maintaining aspect ratio
+    const imageAspectRatio = originalDimensions.width / originalDimensions.height;
+    const containerAspectRatio = imageDimensions.width / imageDimensions.height;
     
-    // Ensure coordinates are within bounds of original image
-    const boundedX1 = Math.max(0, Math.min(x1, originalDimensions.width));
-    const boundedY1 = Math.max(0, Math.min(y1, originalDimensions.height));
-    const boundedX2 = Math.max(boundedX1, Math.min(x2, originalDimensions.width));
-    const boundedY2 = Math.max(boundedY1, Math.min(y2, originalDimensions.height));
+    let scaleX, scaleY, offsetX = 0, offsetY = 0;
     
-    // Convert bounded coordinates to scaled coordinates
-    const left = boundedX1 * scaleX;
-    const top = boundedY1 * scaleY;
-    const width = (boundedX2 - boundedX1) * scaleX;
-    const height = (boundedY2 - boundedY1) * scaleY;
+    if (imageAspectRatio > containerAspectRatio) {
+      // Image is wider than container - height fills container, width is cropped
+      scaleY = imageDimensions.height / originalDimensions.height;
+      scaleX = scaleY;
+      const scaledWidth = originalDimensions.width * scaleX;
+      offsetX = (imageDimensions.width - scaledWidth) / 2;
+    } else {
+      // Image is taller than container - width fills container, height is cropped
+      scaleX = imageDimensions.width / originalDimensions.width;
+      scaleY = scaleX;
+      const scaledHeight = originalDimensions.height * scaleY;
+      offsetY = (imageDimensions.height - scaledHeight) / 2;
+    }
     
-    /* Original calculation for reference
-    const left = x1 * scaleX;
-    const top = y1 * scaleY;
+    // Apply scaling and offset
+    const left = x1 * scaleX + offsetX;
+    const top = y1 * scaleY + offsetY;
     const width = (x2 - x1) * scaleX;
     const height = (y2 - y1) * scaleY;
-
-    return { left, top, width, height };
-  };
-    */
 
     return { 
       left: Math.round(left), 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, Settings, Brain, Eye, Check } from 'lucide-react';
+import { Upload, Settings, Brain, Eye, Check, Sparkles } from 'lucide-react';
 import { WorkflowStage } from '../types';
 
 interface WorkflowStepsProps {
@@ -11,7 +11,8 @@ const WorkflowSteps: React.FC<WorkflowStepsProps> = ({ currentStage }) => {
     { id: 'upload', label: 'Upload Photos', icon: Upload },
     { id: 'configure', label: 'Configure', icon: Settings },
     { id: 'analyzing', label: 'AI Analysis', icon: Brain },
-    { id: 'review', label: 'Review & Cull', icon: Eye }
+    { id: 'review', label: 'Review & Cull', icon: Eye },
+    { id: 'face-retouch', label: 'Face Retouch', icon: Sparkles, separated: true }
   ];
 
   const getStepStatus = (stepId: string) => {
@@ -62,13 +63,38 @@ const WorkflowSteps: React.FC<WorkflowStepsProps> = ({ currentStage }) => {
               </div>
               
               {index < steps.length - 1 && (
-                <div className={`
-                  w-16 h-0.5 transition-colors duration-300
-                  ${getStepStatus(steps[index + 1].id) === 'completed' || getStepStatus(steps[index + 1].id) === 'current'
-                    ? 'bg-blue-500'
-                    : 'bg-gray-300 dark:bg-gray-600'
-                  }
-                `} />
+                <>
+                  {steps[index + 1].separated ? (
+                    // Visual separation for Face Retouch step
+                    <div className="flex items-center space-x-2">
+                      <div className={`
+                        w-6 h-0.5 transition-colors duration-300
+                        ${getStepStatus(steps[index + 1].id) === 'completed' || getStepStatus(steps[index + 1].id) === 'current'
+                          ? 'bg-blue-500'
+                          : 'bg-gray-300 dark:bg-gray-600'
+                        }
+                      `} />
+                      <div className="w-2 h-2 bg-gray-400 rounded-full" />
+                      <div className="w-2 h-2 bg-gray-400 rounded-full" />
+                      <div className="w-2 h-2 bg-gray-400 rounded-full" />
+                      <div className={`
+                        w-6 h-0.5 transition-colors duration-300
+                        ${getStepStatus(steps[index + 1].id) === 'completed' || getStepStatus(steps[index + 1].id) === 'current'
+                          ? 'bg-blue-500'
+                          : 'bg-gray-300 dark:bg-gray-600'
+                        }
+                      `} />
+                    </div>
+                  ) : (
+                    <div className={`
+                      w-16 h-0.5 transition-colors duration-300
+                      ${getStepStatus(steps[index + 1].id) === 'completed' || getStepStatus(steps[index + 1].id) === 'current'
+                        ? 'bg-blue-500'
+                        : 'bg-gray-300 dark:bg-gray-600'
+                      }
+                    `} />
+                  )}
+                </>
               )}
             </React.Fragment>
           );

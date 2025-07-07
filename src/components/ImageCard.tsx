@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Eye, Scissors, Edit, Trash2, X, CheckCheck, Wand2, Check, Lightbulb, Copy,
+import { Eye, Scissors, Edit, Trash2, X, CheckCheck, Wand2, Check, Lightbulb, Copy, Sparkles as SparklesIcon,
          AlertCircle, Smile, EyeOff, Users, Sparkles, Flag, Heart, Frown, Meh } from 'lucide-react';
 import { usePhoto } from '../context/PhotoContext';
 import ImageModal from './ImageModal';
 import StarRating from './StarRating';
 import InpaintModal from './InpaintModal';
+import FaceRetouchModal from './FaceRetouchModal';
 import ColorLabelIndicator from './ColorLabelIndicator';
 import FaceOverlay from './FaceOverlay';
 import { Photo } from '../types';
@@ -20,6 +21,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showInpaintModal, setShowInpaintModal] = useState(false);
+  const [showFaceRetouchModal, setShowFaceRetouchModal] = useState(false);
   const { deletePhoto, cullPhoto, togglePhotoSelection, updatePhotoScore } = usePhoto();
   const { showToast } = useToast();
   const [showTip, setShowTip] = useState(false);
@@ -96,7 +98,20 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
 
   const handleFaceClick = (face: Face, index: number) => {
     console.log('Face clicked:', face, 'Index:', index);
-    // You can add custom logic here, like showing face details or filtering by person
+  };
+
+  const handleFaceRetouch = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (photo.faces && photo.faces.length > 0) {
+      setShowFaceRetouchModal(true);
+    } else {
+      showToast('No faces detected in this photo', 'warning');
+    }
+  };
+
+  const handleSaveRetouchedPhoto = (retouchedImageUrl: string) => {
+    // Update the photo URL with the retouched version
+    updatePhotoUrl(photo.id, retouchedImageUrl);
   };
 
   // Get face summary badges
@@ -207,6 +222,16 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
               <button className="p-1.5 bg-blue-600 rounded-full text-white hover:bg-blue-700 transition-colors" onClick={handleCull}>
                 <Scissors className="h-5 w-5" />
               </button>
+              {photo.faces && photo.faces.length > 0 && (
+                <button 
+                  className="p-1.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white 
+                           hover:from-purple-700 hover:to-pink-700 transition-all duration-200"
+                  onClick={handleFaceRetouch}
+                  title="Retouch Faces"
+                >
+                  <SparklesIcon className="h-5 w-5" />
+                </button>
+              )}
               <button 
                 className="p-1.5 bg-purple-600 rounded-full text-white hover:bg-purple-700 transition-colors"
                 onClick={(e) => {
@@ -466,6 +491,15 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             {tip ? 'Show AI Tip' : 'Get AI Tip'}
           </div>
         </button>
+        {photo.faces && photo.faces.length > 0 && (
+          <button 
+            className="p-1.5 text-purple-500 hover:text-purple-700" 
+            onClick={handleFaceRetouch}
+            title="Retouch Faces"
+          >
+            <SparklesIcon className="h-4 w-4" />
+          </button>
+        )}
         <button 
           className="p-1.5 text-purple-500 hover:text-purple-700" 
           onClick={(e) => {
@@ -607,6 +641,16 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
               {tip ? 'Show AI Tip' : 'Get AI Tip'}
             </div>
           </button>
+          {photo.faces && photo.faces.length > 0 && (
+            <button 
+              className="p-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded text-white text-xs 
+                       hover:from-purple-700 hover:to-pink-700 transition-all duration-200 ml-1" 
+              onClick={handleFaceRetouch}
+              title="Retouch Faces"
+            >
+              <SparklesIcon className="h-3 w-3" />
+            </button>
+          )}
           <button 
             className="p-1 bg-purple-600 rounded text-white text-xs hover:bg-purple-700 transition-colors ml-1" 
             onClick={(e) => {
@@ -620,6 +664,13 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
       )}
       {showModal && <ImageModal photo={photo} onClose={() => setShowModal(false)} />}
       {showInpaintModal && <InpaintModal photo={photo} onClose={() => setShowInpaintModal(false)} />}
+      {showFaceRetouchModal && (
+        <FaceRetouchModal 
+          photo={photo} 
+          onClose={() => setShowFaceRetouchModal(false)}
+          onSave={handleSaveRetouchedPhoto}
+        />
+      )}
     </div>
   );
 
@@ -636,6 +687,13 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
         {renderCardContent()}
         {showModal && <ImageModal photo={photo} onClose={() => setShowModal(false)} />}
         {showInpaintModal && <InpaintModal photo={photo} onClose={() => setShowInpaintModal(false)} />}
+        {showFaceRetouchModal && (
+          <FaceRetouchModal 
+            photo={photo} 
+            onClose={() => setShowFaceRetouchModal(false)}
+            onSave={handleSaveRetouchedPhoto}
+          />
+        )}
       </div>
     );
   }

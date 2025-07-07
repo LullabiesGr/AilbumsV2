@@ -326,29 +326,26 @@ const Sidebar = () => {
               {faces.map((face, index) => (
                 <div
                   key={index}
-                  className="aspect-square rounded-lg overflow-hidden relative cursor-pointer
-                           hover:ring-2 ring-blue-500 transition-all duration-200"
+                  className="aspect-square rounded-lg overflow-hidden relative cursor-pointer bg-gray-700
+                           hover:ring-2 ring-blue-500 transition-all duration-200 group"
                   title={`Face from ${face.filename}`}
                 >
-                  <img
-                    src={face.photoUrl}
-                    alt={`Face from ${face.filename}`}
-                    className="w-full h-full object-cover"
-                    style={{
-                      objectPosition: face.face.box ? 
-                        `${((face.face.box[0] + face.face.box[2]) / 2) / 1000 * 100}% ${((face.face.box[1] + face.face.box[3]) / 2) / 1000 * 100}%` :
-                        'center center'
-                    }}
+                  <FaceCrop 
+                    imageUrl={face.photoUrl}
+                    faceBox={face.face.box}
+                    className="w-full h-full"
                   />
                   {/* Face quality indicator */}
                   {face.face.face_quality && (
-                    <div className="absolute top-1 right-1 bg-black/75 text-white text-xs px-1 py-0.5 rounded">
+                    <div className="absolute top-1 right-1 bg-black/75 text-white text-xs px-1 py-0.5 rounded
+                                  opacity-0 group-hover:opacity-100 transition-opacity">
                       {Math.round(face.face.face_quality * 100)}%
                     </div>
                   )}
                   {/* Emotion indicator */}
                   {face.face.emotion && (
-                    <div className="absolute bottom-1 left-1 bg-black/75 text-white text-xs px-1 py-0.5 rounded capitalize">
+                    <div className="absolute bottom-1 left-1 bg-black/75 text-white text-xs px-1 py-0.5 rounded capitalize
+                                  opacity-0 group-hover:opacity-100 transition-opacity">
                       {face.face.emotion}
                     </div>
                   )}
@@ -395,6 +392,120 @@ const Sidebar = () => {
         </button>
       </div>
     </div>
+  );
+};
+
+// Component to crop and display just the face region
+const FaceCrop: React.FC<{ 
+  imageUrl: string; 
+  faceBox?: [number, number, number, number]; 
+  className?: string;
+}> = ({ imageUrl, faceBox, className = '' }) => {
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const [croppedImageUrl, setCroppedImageUrl] = React.useState<string | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!faceBox || faceBox.length !== 4) {
+      // If no face box, show the full image
+      setCroppedImageUrl(imageUrl);
+      setIsLoading(false);
+      return;
+    }
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    
+    img.onload = () => {
+      try {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const [x1, y1, x2, y2] = faceBox;
+        const faceWidth = x2 - x1;
+        const faceHeight = y2 - y1;
+
+        // Add some padding around the face (20% on each side)
+        const padding = Math.min(faceWidth, faceHeight) * 0.2;
+        const cropX = Math.max(0, x1 - padding);
+        const cropY = Math.max(0, y1 - padding);
+        const cropWidth = Math.min(img.naturalWidth - cropX, faceWidth + (padding * 2));
+        const cropHeight = Math.min(img.naturalHeight - cropY, faceHeight + (padding * 2));
+
+        // Set canvas size to a square (use the larger dimension)
+        const size = Math.max(cropWidth, cropHeight);
+        canvas.width = size;
+        canvas.height = size;
+
+        // Fill with a neutral background
+        ctx.fillStyle = '#374151'; // gray-700
+        ctx.fillRect(0, 0, size, size);
+
+        // Calculate position to center the crop in the square canvas
+        const offsetX = (size - cropWidth) / 2;
+        const offsetY = (size - cropHeight) / 2;
+
+        // Draw the cropped face region
+        ctx.drawImage(
+          img,
+          cropX, cropY, cropWidth, cropHeight,  // Source rectangle
+          offsetX, offsetY, cropWidth, cropHeight  // Destination rectangle
+        );
+
+        // Convert canvas to blob URL
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            setCroppedImageUrl(url);
+          }
+          setIsLoading(false);
+        }, 'image/jpeg', 0.8);
+
+      } catch (error) {
+        console.error('Error cropping face:', error);
+        setCroppedImageUrl(imageUrl); // Fallback to original image
+        setIsLoading(false);
+      }
+    };
+
+    img.onerror = () => {
+      console.error('Error loading image for face crop');
+      setCroppedImageUrl(imageUrl); // Fallback to original image
+      setIsLoading(false);
+    };
+
+    img.src = imageUrl;
+
+    // Cleanup function to revoke blob URL
+    return () => {
+      if (croppedImageUrl && croppedImageUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(croppedImageUrl);
+      }
+    };
+  }, [imageUrl, faceBox]);
+
+  if (isLoading) {
+    return (
+      <div className={`${className} bg-gray-700 flex items-center justify-center`}>
+        <div className="w-4 h-4 border-2 border-gray-500 border-t-white rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <canvas ref={canvasRef} className="hidden" />
+      {croppedImageUrl && (
+        <img
+          src={croppedImageUrl}
+          alt="Face crop"
+          className={`${className} object-cover`}
+        />
+      )}
+    </>
   );
 };
 

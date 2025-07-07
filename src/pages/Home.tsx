@@ -17,6 +17,8 @@ import AlbumSelector from '../components/AlbumSelector';
 import AnalysisOverlay from '../components/AnalysisOverlay';
 import Sidebar from '../components/Sidebar';
 import { Play, RotateCcw, Brain, Copy, Users, Grid, List } from 'lucide-react';
+import { EventType } from '../types';
+import { EventType } from '../types';
 
 const Home: React.FC = () => {
   const { 
@@ -24,6 +26,7 @@ const Home: React.FC = () => {
     duplicateClusters,
     personGroups,
     selectedPersonGroup,
+    setSelectedPersonGroup,
     isLoading, 
     isAnalyzing,
     analysisProgress,

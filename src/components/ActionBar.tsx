@@ -14,8 +14,6 @@ const ActionBar: React.FC = () => {
   const { 
     photos, 
     cullingMode,
-    selectedPersonGroup,
-    setSelectedPersonGroup,
     cullAllPhotos, 
     saveAlbumAndTrainAI,
     selectAllPhotos, 
@@ -121,33 +119,11 @@ const ActionBar: React.FC = () => {
         <ViewToggle />
         <div className="h-8 w-px bg-gray-300 dark:bg-gray-700 mx-1"></div>
         <UploadButton variant="secondary" />
-        
-        {/* Person Group Filter Indicator */}
-        {selectedPersonGroup && (
-          <div className="flex items-center space-x-2 px-3 py-2 bg-indigo-100 dark:bg-indigo-900/30 
-                        border border-indigo-300 dark:border-indigo-700 rounded-md">
-            <Users className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-            <span className="text-sm font-medium text-indigo-800 dark:text-indigo-200">
-              Person Filter Active
-            </span>
-            <button
-              onClick={() => setSelectedPersonGroup(null)}
-              className="p-1 hover:bg-indigo-200 dark:hover:bg-indigo-800 rounded-full transition-colors"
-            >
-              <X className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
-            </button>
-          </div>
-        )}
       </div>
       
       <div className="flex gap-3">
         <span className="text-sm font-medium py-2 px-3 bg-gray-200 dark:bg-gray-800 rounded-md">
           {selectedPhotos.length} selected
-          {selectedPersonGroup && (
-            <span className="ml-2 text-indigo-600 dark:text-indigo-400">
-              (filtered)
-            </span>
-          )}
         </span>
 
         {/* Advanced Features */}
@@ -209,10 +185,7 @@ const ActionBar: React.FC = () => {
         )}
 
         <span className="text-sm font-medium py-2 px-3 bg-gray-200 dark:bg-gray-800 rounded-md">
-          {selectedPersonGroup 
-            ? `${photos.filter(p => p.faces?.some(f => f.same_person_group === selectedPersonGroup)).length} of ${photos.length}`
-            : photos.length
-          } photo{photos.length !== 1 ? 's' : ''}
+          {photos.length} photo{photos.length !== 1 ? 's' : ''}
         </span>
         
         {showAIFeatures && (

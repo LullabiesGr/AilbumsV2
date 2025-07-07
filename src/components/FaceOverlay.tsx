@@ -8,7 +8,6 @@ interface FaceOverlayProps {
   className?: string;
   showTooltips?: boolean;
   onFaceClick?: (face: Face, index: number) => void;
-  highlightPersonGroup?: string | null;
 }
 
 const FaceOverlay: React.FC<FaceOverlayProps> = ({ 
@@ -16,8 +15,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
   imageUrl, 
   className = '',
   showTooltips = true,
-  onFaceClick,
-  highlightPersonGroup
+  onFaceClick
 }) => {
   // Each instance has its own state - completely independent
   const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
@@ -487,22 +485,10 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
         return (
           <div key={uniqueKey}>
             {/* Face bounding box */}
-            {(() => {
-              // Determine if this face should be highlighted
-              const isHighlighted = highlightPersonGroup && 
-                                  face.same_person_group === highlightPersonGroup;
-              
-              const borderColor = isHighlighted ? 'border-blue-500' : 'border-red-500';
-              const bgColor = isHighlighted ? 'bg-blue-500/20' : 'bg-red-500/10';
-              const hoverBorderColor = isHighlighted ? 'hover:border-blue-400' : 'hover:border-red-400';
-              const hoverBgColor = isHighlighted ? 'hover:bg-blue-400/30' : 'hover:bg-red-400/20';
-              
-              return (
             <div 
-                  className={`absolute border-2 ${borderColor} ${bgColor} cursor-pointer
-                         ${hoverBorderColor} ${hoverBgColor} transition-all duration-200
+              className="absolute border-2 border-red-500 bg-red-500/10 cursor-pointer
+                         hover:border-red-400 hover:bg-red-400/20 transition-all duration-200
                          group pointer-events-auto"
-                  ${isHighlighted ? 'ring-2 ring-blue-300 ring-opacity-50' : ''}`}
               style={{
                 position: 'absolute',
                 left: `${position.left}px`,
@@ -519,12 +505,11 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
             >
               {/* Face index indicator - only show if box is large enough */}
               {position.width > 20 && position.height > 20 && (
-                    <div className={`absolute -top-6 left-0 ${isHighlighted ? 'bg-blue-500' : 'bg-red-500'} text-white text-xs px-1.5 py-0.5
+                <div className="absolute -top-6 left-0 bg-red-500 text-white text-xs px-1.5 py-0.5
                               rounded-full font-medium opacity-0 group-hover:opacity-100 transition-opacity
-                              pointer-events-none`}
+                              pointer-events-none"
                      style={{ zIndex: 11 }}>
                   {index + 1}
-                      {isHighlighted && <span className="ml-1">★</span>}
                 </div>
               )}
 
@@ -548,8 +533,6 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
                 </div>
               )}
             </div>
-              );
-            })()}
 
             {/* Tooltip - only show for larger boxes to avoid clutter */}
             {position.width > 25 && position.height > 25 && renderTooltip(face, index)}

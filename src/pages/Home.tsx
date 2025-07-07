@@ -23,7 +23,6 @@ const Home: React.FC = () => {
     photos, 
     duplicateClusters,
     personGroups,
-    selectedPersonGroup,
     isLoading, 
     isAnalyzing,
     analysisProgress,
@@ -219,35 +218,6 @@ const Home: React.FC = () => {
                   </div>
                   <div className="text-sm text-blue-600 dark:text-blue-400">
                     AI analysis optimized for {getEventTypeLabel(eventType)?.toLowerCase()} photography
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Person Group Filter Status */}
-            {selectedPersonGroup && (
-              <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Users className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                    <span className="text-sm font-medium text-indigo-800 dark:text-indigo-200">
-                      Filtered by Person:
-                    </span>
-                    <span className="px-3 py-1 bg-indigo-600 text-white text-sm rounded-full font-medium">
-                      ID: {String(selectedPersonGroup).slice(-8)}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-indigo-600 dark:text-indigo-400">
-                      {photos.filter(p => p.faces?.some(f => f.same_person_group === selectedPersonGroup)).length} photos shown
-                    </span>
-                    <button
-                      onClick={() => setSelectedPersonGroup(null)}
-                      className="px-3 py-1 bg-indigo-100 dark:bg-indigo-800 text-indigo-700 dark:text-indigo-200 
-                               text-sm rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-700 transition-colors"
-                    >
-                      Clear Filter
-                    </button>
                   </div>
                 </div>
               </div>

@@ -59,7 +59,7 @@ const Sidebar = () => {
   
   // Sort faces by quality and confidence, then take the best ones
   const faces = allFaces
-    .filter(faceData => faceData.face.box && faceData.face.box.length === 4)
+    .filter(faceData => faceData.face.face_crop_b64) // Only show faces with crop data
     .sort((a, b) => {
       // Sort by quality first, then confidence
       const qualityDiff = (b.quality || 0) - (a.quality || 0);
@@ -348,10 +348,14 @@ const Sidebar = () => {
                            hover:ring-2 ring-blue-400 transition-all duration-200 group border border-gray-600"
                   title={`Face from ${face.filename}`}
                 >
-                  <FaceCrop 
-                    imageUrl={face.photoUrl}
-                    faceBox={face.face.box}
-                    className="w-full h-full hover:scale-105 transition-transform duration-200"
+                  <img
+                    src={`data:image/png;base64,${face.face.face_crop_b64}`}
+                    alt={`Face from ${face.filename}`}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                    onError={(e) => {
+                      // Fallback if face crop fails to load
+                      e.currentTarget.style.display = 'none';
+                    }}
                   />
                   
                   {/* Quality and confidence indicators */}

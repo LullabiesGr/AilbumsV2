@@ -11,6 +11,7 @@ import AnalysisProgress from '../components/AnalysisProgress';
 import ManualCullingControls from '../components/ManualCullingControls';
 import DuplicateManager from '../components/DuplicateManager';
 import PeopleGroupManager from '../components/PeopleGroupManager';
+import FacesGrid from '../components/FacesGrid';
 import { usePhoto } from '../context/PhotoContext';
 import AlbumSelector from '../components/AlbumSelector';
 import AnalysisOverlay from '../components/AnalysisOverlay';
@@ -287,7 +288,12 @@ const Home: React.FC = () => {
                 
                 {activeTab === 'duplicates' && <DuplicateManager />}
                 
-                {activeTab === 'people' && <PeopleGroupManager />}
+                {activeTab === 'people' && (
+                  <div className="space-y-8">
+                    <PeopleGroupManager />
+                    <FacesGrid />
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -59,7 +59,10 @@ const Sidebar = () => {
   
   // Filter and sort faces, then take the best ones
   const bestFaces = faces
-    .filter(faceData => faceData.face.face_crop_b64) // Only show faces with crop data
+    .filter(faceData => {
+      // Show faces that have either crop data OR valid box coordinates
+      return faceData.face.face_crop_b64 || (faceData.face.box && faceData.face.box.length === 4);
+    })
     .sort((a, b) => {
       // Sort by quality first, then confidence
       const qualityDiff = (b.quality || 0) - (a.quality || 0);
@@ -67,6 +70,15 @@ const Sidebar = () => {
       return (b.confidence || 0) - (a.confidence || 0);
     })
     .slice(0, 9); // Show up to 9 faces in a 3x3 grid
+
+  console.log('Sidebar faces debug:', {
+    totalPhotos: photos.length,
+    photosWithFaces: photos.filter(p => p.faces && p.faces.length > 0).length,
+    totalFaces: faces.length,
+    facesWithCrops: faces.filter(f => f.face.face_crop_b64).length,
+    bestFacesCount: bestFaces.length,
+    sampleFace: faces[0]?.face
+  });
 
   // Get duplicate sets
   const duplicates = photos
@@ -348,15 +360,23 @@ const Sidebar = () => {
                            hover:ring-2 ring-blue-400 transition-all duration-200 group border border-gray-600"
                   title={`Face from ${face.filename}`}
                 >
-                  <img
-                    src={`data:image/png;base64,${face.face.face_crop_b64}`}
-                    alt={`Face from ${face.filename}`}
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-                    onError={(e) => {
-                      // Fallback if face crop fails to load
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
+                  {face.face.face_crop_b64 ? (
+                    <img
+                      src={`data:image/png;base64,${face.face.face_crop_b64}`}
+                      alt={`Face from ${face.filename}`}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                      onError={(e) => {
+                        // Fallback if face crop fails to load
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <FaceCrop 
+                      imageUrl={face.photoUrl}
+                      faceBox={face.face.box}
+                      className="w-full h-full"
+                    />
+                  )}
                   
                   {/* Quality and confidence indicators */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent 
@@ -392,6 +412,15 @@ const Sidebar = () => {
               <div className="mt-2 text-center">
                 <span className="text-xs text-gray-500">
                   Showing {bestFaces.length} of {faces.length} detected faces
+                </span>
+              </div>
+            )}
+            
+            {/* Debug info - remove this later */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mt-2 text-center">
+                <span className="text-xs text-gray-400">
+                  Debug: {faces.length} total, {faces.filter(f => f.face.face_crop_b64).length} with crops
                 </span>
               </div>
             )}

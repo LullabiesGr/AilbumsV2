@@ -167,7 +167,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             <img
               src={photo.url}
               alt={photo.filename}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover"
             />
           )}
         </div>
@@ -373,7 +373,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             <img
               src={photo.url}
               alt={photo.filename}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover"
             />
           )}
         </div>
@@ -520,7 +520,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             <img
               src={photo.url}
               alt={photo.filename}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover"
             />
           )}
         </div>

@@ -70,7 +70,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
       formData.append('keep_original_resolution', settings.keepOriginalResolution.toString());
 
       // Call the backend API
-      const response = await fetch('https://ddc6-5-54-157-17.ngrok-free.app/enhance_face_in_image', {
+      const response = await fetch('https://ddc6-5-54-157-17.ngrok-free.app/enhance', {
         method: 'POST',
         body: formData,
         mode: 'cors',

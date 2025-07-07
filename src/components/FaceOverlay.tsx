@@ -21,45 +21,63 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
   const [originalDimensions, setOriginalDimensions] = useState({ width: 0, height: 0 });
   const [hoveredFace, setHoveredFace] = useState<number | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [imageLoaded, setImageLoaded] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Load original image dimensions
   useEffect(() => {
-    const updateDimensions = () => {
-      if (imageRef.current && containerRef.current) {
-        const rect = imageRef.current.getBoundingClientRect();
-        setImageDimensions({
-          width: rect.width,
-          height: rect.height
-        });
-      }
-    };
-
-    // Load original image to get natural dimensions
     const img = new Image();
     img.onload = () => {
       setOriginalDimensions({
         width: img.naturalWidth,
         height: img.naturalHeight
       });
-      updateDimensions();
     };
     img.src = imageUrl;
+  }, [imageUrl]);
 
-    // Update dimensions on resize
-    const resizeObserver = new ResizeObserver(updateDimensions);
+  // Update displayed image dimensions
+  const updateDimensions = () => {
+    if (imageRef.current) {
+      const rect = imageRef.current.getBoundingClientRect();
+      const newDimensions = {
+        width: rect.width,
+        height: rect.height
+      };
+      
+      // Only update if dimensions actually changed
+      if (newDimensions.width !== imageDimensions.width || 
+          newDimensions.height !== imageDimensions.height) {
+        setImageDimensions(newDimensions);
+      }
+    }
+  };
+
+  // Set up resize observer and window resize listener
+  useEffect(() => {
+    const resizeObserver = new ResizeObserver(() => {
+      updateDimensions();
+    });
+
     if (imageRef.current) {
       resizeObserver.observe(imageRef.current);
     }
 
-    // Also listen for window resize
     window.addEventListener('resize', updateDimensions);
 
     return () => {
       resizeObserver.disconnect();
       window.removeEventListener('resize', updateDimensions);
     };
-  }, [imageUrl]);
+  }, [imageLoaded]);
+
+  // Handle image load
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+    // Small delay to ensure the image is fully rendered
+    setTimeout(updateDimensions, 50);
+  };
 
   const getEmotionIcon = (emotion: string, confidence?: number) => {
     const iconProps = { className: "h-3 w-3" };
@@ -101,6 +119,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
   };
 
   const calculateFacePosition = (face: Face) => {
+    // Ensure we have valid dimensions
     if (originalDimensions.width === 0 || originalDimensions.height === 0 || 
         imageDimensions.width === 0 || imageDimensions.height === 0) {
       return { left: 0, top: 0, width: 0, height: 0 };
@@ -307,7 +326,9 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
           {/* Debug Info */}
           <div className="pt-2 border-t border-gray-600 text-xs text-gray-400">
             <div>Box: [{face.box.map(coord => Math.round(coord)).join(', ')}]</div>
-            <div>Scale: {(imageDimensions.width / originalDimensions.width).toFixed(2)}x</div>
+            <div>Original: {originalDimensions.width}×{originalDimensions.height}</div>
+            <div>Display: {Math.round(imageDimensions.width)}×{Math.round(imageDimensions.height)}</div>
+            <div>Scale: {originalDimensions.width > 0 ? (imageDimensions.width / originalDimensions.width).toFixed(3) : 'N/A'}x</div>
           </div>
         </div>
       </div>
@@ -322,18 +343,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
           src={imageUrl}
           alt="No faces detected"
           className="w-full h-full object-cover"
-          onLoad={() => {
-            // Trigger dimension update after image loads
-            setTimeout(() => {
-              if (imageRef.current) {
-                const rect = imageRef.current.getBoundingClientRect();
-                setImageDimensions({
-                  width: rect.width,
-                  height: rect.height
-                });
-              }
-            }, 100);
-          }}
+          onLoad={handleImageLoad}
         />
       </div>
     );
@@ -346,26 +356,15 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
         src={imageUrl}
         alt="Face detection"
         className="w-full h-full object-cover"
-        onLoad={() => {
-          // Trigger dimension update after image loads
-          setTimeout(() => {
-            if (imageRef.current) {
-              const rect = imageRef.current.getBoundingClientRect();
-              setImageDimensions({
-                width: rect.width,
-                height: rect.height
-              });
-            }
-          }, 100);
-        }}
+        onLoad={handleImageLoad}
       />
       
-      {/* Face bounding boxes */}
-      {faces.map((face, index) => {
+      {/* Face bounding boxes - only render when image is loaded and we have dimensions */}
+      {imageLoaded && originalDimensions.width > 0 && imageDimensions.width > 0 && faces.map((face, index) => {
         const position = calculateFacePosition(face);
         
-        // Only render if we have valid dimensions and position
-        if (position.width === 0 || position.height === 0) {
+        // Only render if we have valid position
+        if (position.width <= 0 || position.height <= 0) {
           return null;
         }
         
@@ -377,10 +376,10 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
                          hover:border-red-400 hover:bg-red-400/20 transition-all duration-200
                          group"
               style={{
-                left: position.left,
-                top: position.top,
-                width: position.width,
-                height: position.height
+                left: `${position.left}px`,
+                top: `${position.top}px`,
+                width: `${position.width}px`,
+                height: `${position.height}px`
               }}
               onMouseEnter={(e) => handleFaceHover(index, e)}
               onMouseMove={(e) => handleFaceHover(index, e)}
@@ -413,17 +412,23 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
               {/* Landmarks (optional) */}
               {face.landmarks && face.landmarks.length > 0 && hoveredFace === index && (
                 <>
-                  {face.landmarks.map((landmark, landmarkIndex) => (
-                    <div
-                      key={landmarkIndex}
-                      className="absolute w-1 h-1 bg-yellow-400 rounded-full"
-                      style={{
-                        left: ((landmark[0] - face.box[0]) / (face.box[2] - face.box[0])) * 100 + '%',
-                        top: ((landmark[1] - face.box[1]) / (face.box[3] - face.box[1])) * 100 + '%',
-                        transform: 'translate(-50%, -50%)'
-                      }}
-                    />
-                  ))}
+                  {face.landmarks.map((landmark, landmarkIndex) => {
+                    // Calculate landmark position relative to the face box
+                    const landmarkX = ((landmark[0] - face.box[0]) / (face.box[2] - face.box[0])) * position.width;
+                    const landmarkY = ((landmark[1] - face.box[1]) / (face.box[3] - face.box[1])) * position.height;
+                    
+                    return (
+                      <div
+                        key={landmarkIndex}
+                        className="absolute w-1 h-1 bg-yellow-400 rounded-full"
+                        style={{
+                          left: `${landmarkX}px`,
+                          top: `${landmarkY}px`,
+                          transform: 'translate(-50%, -50%)'
+                        }}
+                      />
+                    );
+                  })}
                 </>
               )}
             </div>

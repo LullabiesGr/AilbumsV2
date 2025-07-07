@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Sparkles, Eye, EyeOff, Download, Save, RotateCcw, Settings, Users, Check } from 'lucide-react';
+import { X, Sparkles, Eye, EyeOff, Download, Save, RotateCcw, Settings, Users, Check, Minimize2, Maximize2 } from 'lucide-react';
 import { Photo, Face } from '../types';
 import { useToast } from '../context/ToastContext';
 
@@ -26,6 +26,8 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
   const [retouchedImageUrl, setRetouchedImageUrl] = useState<string | null>(null);
   const [originalImageUrl] = useState(photo.url);
   const [processingProgress, setProcessingProgress] = useState<string>('');
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [isCompactMode, setIsCompactMode] = useState(true);
   const { showToast } = useToast();
 
   const handleFaceClick = (face: Face, index: number) => {
@@ -246,6 +248,295 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
 
   const currentImageUrl = settings.showPreview && retouchedImageUrl ? retouchedImageUrl : originalImageUrl;
 
+  // Minimized view
+  if (isMinimized) {
+    return (
+      <div className="fixed bottom-4 right-4 z-50">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-4 max-w-sm">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-2">
+              <Sparkles className="h-4 w-4 text-purple-500" />
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                CodeFormer Enhancement
+              </span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={() => setIsMinimized(false)}
+                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </button>
+              <button
+                onClick={onClose}
+                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+          
+          <div className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+            {photo.filename} • {photo.faces?.length || 0} faces
+          </div>
+          
+          {isProcessing && (
+            <div className="flex items-center space-x-2 text-sm text-purple-600 dark:text-purple-400">
+              <div className="w-3 h-3 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+              <span>Processing...</span>
+            </div>
+          )}
+          
+          {!isProcessing && selectedFaceIndices.length > 0 && (
+            <div className="flex space-x-2">
+              <button
+                onClick={handleCodeFormerEnhancement}
+                className="flex-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-md"
+              >
+                Enhance {selectedFaceIndices.length} Face(s)
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Compact mode - smaller modal
+  if (isCompactMode) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+          {/* Compact Header */}
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Sparkles className="h-5 w-5 text-purple-500" />
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    CodeFormer Face Enhancement
+                  </h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {photo.filename} • {photo.faces?.length || 0} faces detected
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setIsCompactMode(false)}
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg"
+                  title="Expand to full view"
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setIsMinimized(true)}
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg"
+                  title="Minimize"
+                >
+                  <Minimize2 className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={onClose}
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex">
+            {/* Image Area - Compact */}
+            <div className="flex-1 p-4">
+              <div className="relative bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden" style={{ height: '400px' }}>
+                <FaceRetouchOverlay
+                  faces={photo.faces || []}
+                  imageUrl={currentImageUrl}
+                  onFaceClick={handleFaceClick}
+                  selectedFaceIndices={selectedFaceIndices}
+                  className="w-full h-full"
+                />
+                
+                {/* Preview Toggle */}
+                {retouchedImageUrl && (
+                  <button
+                    onClick={() => setSettings(prev => ({ ...prev, showPreview: !prev.showPreview }))}
+                    className="absolute top-2 left-2 px-2 py-1 bg-black/75 text-white text-xs 
+                             rounded hover:bg-black/90 transition-colors duration-200 flex items-center space-x-1"
+                  >
+                    {settings.showPreview ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                    <span>{settings.showPreview ? 'Original' : 'Enhanced'}</span>
+                  </button>
+                )}
+                
+                {/* Processing Progress */}
+                {isProcessing && processingProgress && (
+                  <div className="absolute bottom-2 left-2 right-2 bg-purple-600/90 text-white text-xs p-2 rounded">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>{processingProgress}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Controls Sidebar - Compact */}
+            <div className="w-80 border-l border-gray-200 dark:border-gray-700 flex flex-col">
+              {/* Face Selection - Compact */}
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                    Face Selection
+                  </h4>
+                  <div className="flex items-center space-x-2">
+                    {selectedFaceIndices.length > 0 && (
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 
+                                     text-xs rounded-full font-medium">
+                        {selectedFaceIndices.length} selected
+                      </span>
+                    )}
+                    {photo.faces && photo.faces.length > 1 && (
+                      <button
+                        onClick={handleSelectAllFaces}
+                        className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded 
+                                 flex items-center space-x-1 transition-colors duration-200"
+                      >
+                        <Users className="h-3 w-3" />
+                        <span>
+                          {selectedFaceIndices.length === photo.faces.length ? 'Deselect All' : 'All'}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+                
+                <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+                  Click face boxes to select for CodeFormer enhancement
+                </p>
+                
+                {selectedFaceIndices.length > 0 && (
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 
+                                rounded p-2">
+                    <p className="text-xs text-green-700 dark:text-green-300 font-medium mb-1">
+                      {selectedFaceIndices.length} face(s) selected:
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {selectedFaceIndices.map((index) => (
+                        <span key={index} className="px-1.5 py-0.5 bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 
+                                                    text-xs rounded font-medium">
+                          Face {index + 1}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Settings - Compact */}
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3 text-sm flex items-center space-x-2">
+                  <Settings className="h-4 w-4" />
+                  <span>CodeFormer Settings</span>
+                </h4>
+                
+                <div className="space-y-3">
+                  {/* Fidelity Slider */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                        Fidelity (w)
+                      </label>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                        {settings.fidelity.toFixed(1)}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.0"
+                      max="1.0"
+                      step="0.1"
+                      value={settings.fidelity}
+                      onChange={(e) => setSettings(prev => ({ ...prev, fidelity: parseFloat(e.target.value) }))}
+                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="flex justify-between text-xs text-gray-400 mt-1">
+                      <span>Natural</span>
+                      <span>Enhanced</span>
+                    </div>
+                  </div>
+
+                  {/* Process Info */}
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded p-2">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      Full image → <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">./inputs/whole_imgs/</code> → CodeFormer w={settings.fidelity}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions - Compact */}
+              <div className="flex-1 flex flex-col justify-end p-4">
+                <div className="space-y-2">
+                  <button
+                    onClick={handleCodeFormerEnhancement}
+                    disabled={selectedFaceIndices.length === 0 || isProcessing}
+                    className="w-full px-3 py-2 bg-gradient-to-r from-purple-600 to-pink-600 
+                             hover:from-purple-700 hover:to-pink-700 disabled:from-gray-400 
+                             disabled:to-gray-400 disabled:cursor-not-allowed text-white rounded 
+                             flex items-center justify-center space-x-2 transition-all duration-200 
+                             font-medium text-sm"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    <span>
+                      {isProcessing 
+                        ? `Processing...` 
+                        : `CodeFormer Enhance ${selectedFaceIndices.length > 0 ? `(${selectedFaceIndices.length})` : ''}`
+                      }
+                    </span>
+                  </button>
+
+                  {retouchedImageUrl && (
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={handleSave}
+                        className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white 
+                                 rounded flex items-center justify-center space-x-1 transition-colors duration-200 text-sm"
+                      >
+                        <Save className="h-3 w-3" />
+                        <span>Save</span>
+                      </button>
+                      
+                      <button
+                        onClick={handleDownload}
+                        className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white 
+                                 rounded flex items-center justify-center space-x-1 transition-colors duration-200 text-sm"
+                      >
+                        <Download className="h-3 w-3" />
+                        <span>Download</span>
+                      </button>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleReset}
+                    className="w-full px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded 
+                             flex items-center justify-center space-x-2 transition-colors duration-200 text-sm"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    <span>Reset</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Full mode - original large modal
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm" onClick={onClose}>
       <div className="h-full flex" onClick={e => e.stopPropagation()}>
@@ -272,6 +563,16 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                   <span>{settings.showPreview ? 'Show Original' : 'Show CodeFormer Enhanced'}</span>
                 </button>
               )}
+              
+              {/* Compact Mode Toggle */}
+              <button
+                onClick={() => setIsCompactMode(true)}
+                className="absolute top-4 right-4 px-3 py-1.5 bg-black/75 text-white text-sm 
+                         rounded-md hover:bg-black/90 transition-colors duration-200 flex items-center space-x-2"
+              >
+                <Minimize2 className="h-4 w-4" />
+                <span>Compact View</span>
+              </button>
               
               {/* Processing Progress */}
               {isProcessing && processingProgress && (

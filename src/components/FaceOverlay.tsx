@@ -124,84 +124,44 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
   };
 
   const calculateFacePosition = (face: Face) => {
-    // Ensure we have valid dimensions
-    if (originalDimensions.width === 0 || originalDimensions.height === 0 || 
-        imageDimensions.width === 0 || imageDimensions.height === 0 || 
-        !face.box || face.box.length !== 4) {
+    if (
+      originalDimensions.width === 0 || originalDimensions.height === 0 ||
+      imageDimensions.width === 0 || imageDimensions.height === 0 ||
+      !face.box || face.box.length !== 4
+    ) {
       return { left: 0, top: 0, width: 0, height: 0 };
     }
 
     const [x1, y1, x2, y2] = face.box;
-    
-    // Validate coordinates
-    if (x1 < 0 || y1 < 0 || x2 <= x1 || y2 <= y1) {
-      console.warn('Invalid face coordinates:', face.box);
-      return { left: 0, top: 0, width: 0, height: 0 };
-    }
-    
-    // Calculate how object-fit: cover scales and positions the image
-    const imageAspectRatio = originalDimensions.width / originalDimensions.height;
-    const containerAspectRatio = imageDimensions.width / imageDimensions.height;
-    
-    let scale, offsetX = 0, offsetY = 0;
-    let visibleImageWidth, visibleImageHeight;
-    
-    if (imageAspectRatio > containerAspectRatio) {
-      // Image is wider than container - height fills container, width is cropped from sides
-      scale = imageDimensions.height / originalDimensions.height;
-      visibleImageHeight = imageDimensions.height;
-      visibleImageWidth = originalDimensions.width * scale;
-      
-      // Calculate how much is cropped from each side
-      const totalCropped = visibleImageWidth - imageDimensions.width;
-      const croppedFromEachSide = totalCropped / 2;
-      
-      // The visible portion starts at this offset in the original image
-      offsetX = croppedFromEachSide / scale; // Convert back to original image coordinates
-      offsetY = 0;
-    } else {
-      // Image is taller than container - width fills container, height is cropped from top/bottom
-      scale = imageDimensions.width / originalDimensions.width;
-      visibleImageWidth = imageDimensions.width;
-      visibleImageHeight = originalDimensions.height * scale;
-      
-      // Calculate how much is cropped from each side
-      const totalCropped = visibleImageHeight - imageDimensions.height;
-      const croppedFromEachSide = totalCropped / 2;
-      
-      // The visible portion starts at this offset in the original image
-      offsetX = 0;
-      offsetY = croppedFromEachSide / scale; // Convert back to original image coordinates
-    }
-    
-    // Adjust face coordinates to account for the cropped portion
-    const adjustedX1 = x1 - offsetX;
-    const adjustedY1 = y1 - offsetY;
-    const adjustedX2 = x2 - offsetX;
-    const adjustedY2 = y2 - offsetY;
-    
-    // Only show faces that are within the visible area
-    if (adjustedX2 <= 0 || adjustedY2 <= 0 || 
-        adjustedX1 >= (visibleImageWidth / scale) || 
-        adjustedY1 >= (visibleImageHeight / scale)) {
-      return { left: 0, top: 0, width: 0, height: 0 };
-    }
-    
-    // Apply scaling to get final display coordinates
-    const left = Math.max(0, adjustedX1 * scale);
-    const top = Math.max(0, adjustedY1 * scale);
-    const right = Math.min(imageDimensions.width, adjustedX2 * scale);
-    const bottom = Math.min(imageDimensions.height, adjustedY2 * scale);
-    
-    const width = right - left;
-    const height = bottom - top;
 
-    return { 
-      left: Math.round(left), 
-      top: Math.round(top), 
-      width: Math.round(width), 
-      height: Math.round(height) 
-    };
+    // Step 1: Compute scale for both axes
+    const widthScale = imageDimensions.width / originalDimensions.width;
+    const heightScale = imageDimensions.height / originalDimensions.height;
+
+    // Step 2: Figure out which axis is "fitted" (full) and which is "cropped"
+    let scale: number, dx = 0, dy = 0;
+    const containerAspect = imageDimensions.width / imageDimensions.height;
+    const imageAspect = originalDimensions.width / originalDimensions.height;
+
+    if (containerAspect > imageAspect) {
+      // Container is wider than image aspect, image fills height, width cropped
+      scale = heightScale;
+      const usedImageWidth = originalDimensions.width * scale;
+      dx = (imageDimensions.width - usedImageWidth) / 2;
+    } else {
+      // Container is taller than image aspect, image fills width, height cropped
+      scale = widthScale;
+      const usedImageHeight = originalDimensions.height * scale;
+      dy = (imageDimensions.height - usedImageHeight) / 2;
+    }
+
+    // Step 3: Map face coordinates to displayed (cropped) coordinates
+    const left = Math.round(x1 * scale + dx);
+    const top = Math.round(y1 * scale + dy);
+    const width = Math.round((x2 - x1) * scale);
+    const height = Math.round((y2 - y1) * scale);
+
+    return { left, top, width, height };
   };
 
   const handleFaceHover = (index: number, event: React.MouseEvent) => {

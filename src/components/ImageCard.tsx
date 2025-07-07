@@ -208,6 +208,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
                 onClick={handleGetTip}
                 title="Get AI Tip"
                 disabled={isLoadingTip}
+                style={{ zIndex: 15 }} // Higher z-index than face boxes
               >
                 {isLoadingTip ? (
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-yellow-500 border-t-transparent" />
@@ -219,7 +220,8 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
                   {tip ? 'Show AI Tip' : 'Get AI Tip'}
                 </div>
               </button>
-              <button className="p-1.5 bg-blue-600 rounded-full text-white hover:bg-blue-700 transition-colors" onClick={handleCull}>
+              <button className="p-1.5 bg-blue-600 rounded-full text-white hover:bg-blue-700 transition-colors" 
+                      onClick={handleCull} style={{ zIndex: 15 }}>
                 <Scissors className="h-5 w-5" />
               </button>
               {photo.faces && photo.faces.length > 0 && (
@@ -228,6 +230,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
                            hover:from-purple-700 hover:to-pink-700 transition-all duration-200"
                   onClick={handleFaceRetouch}
                   title="Retouch Faces"
+                  style={{ zIndex: 15 }} // Higher z-index than face boxes
                 >
                   <SparklesIcon className="h-5 w-5" />
                 </button>
@@ -238,10 +241,12 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
                   e.stopPropagation();
                   setShowInpaintModal(true);
                 }}
+                style={{ zIndex: 15 }}
               >
                 <Wand2 className="h-5 w-5" />
               </button>
-              <button className="p-1.5 bg-red-600 rounded-full text-white hover:bg-red-700 transition-colors" onClick={handleDelete}>
+              <button className="p-1.5 bg-red-600 rounded-full text-white hover:bg-red-700 transition-colors" 
+                      onClick={handleDelete} style={{ zIndex: 15 }}>
                 <Trash2 className="h-5 w-5" />
               </button>
             </div>
@@ -471,7 +476,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
       </div>
       <div className="flex items-center pr-3 space-x-1">
         <button className="p-1.5 text-gray-500 hover:text-gray-900 dark:hover:text-white" onClick={() => setShowModal(true)}><Eye className="h-4 w-4" /></button>
-        <button className="p-1.5 text-blue-500 hover:text-blue-700" onClick={handleCull}><Scissors className="h-4 w-4" /></button>
+        <button className="p-1.5 text-blue-500 hover:text-blue-700" onClick={handleCull} style={{ zIndex: 15 }}><Scissors className="h-4 w-4" /></button>
         <button
           className={`p-1.5 relative group ${
             showTip 
@@ -480,6 +485,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
           }`}
           onClick={handleGetTip}
           disabled={isLoadingTip}
+          style={{ zIndex: 15 }}
         >
           {isLoadingTip ? (
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-yellow-500 border-t-transparent" />
@@ -496,6 +502,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             className="p-1.5 text-purple-500 hover:text-purple-700" 
             onClick={handleFaceRetouch}
             title="Retouch Faces"
+            style={{ zIndex: 15 }}
           >
             <SparklesIcon className="h-4 w-4" />
           </button>
@@ -506,10 +513,11 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             e.stopPropagation();
             setShowInpaintModal(true);
           }}
+          style={{ zIndex: 15 }}
         >
           <Wand2 className="h-4 w-4" />
         </button>
-        <button className="p-1.5 text-red-500 hover:text-red-700" onClick={handleDelete}><Trash2 className="h-4 w-4" /></button>
+        <button className="p-1.5 text-red-500 hover:text-red-700" onClick={handleDelete} style={{ zIndex: 15 }}><Trash2 className="h-4 w-4" /></button>
       </div>
       {tip && showTip && (
         <div className="absolute right-14 top-1/2 -translate-y-1/2 bg-black/75 text-white text-sm p-2 rounded-lg max-w-xs z-10">
@@ -611,7 +619,8 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
       </div>
       {isHovered && (
         <div className="absolute top-1 right-1">
-          <button className="p-1 bg-red-600 rounded text-white text-xs hover:bg-red-700 transition-colors" onClick={handleDelete}><X className="h-3 w-3" /></button>
+          <button className="p-1 bg-red-600 rounded text-white text-xs hover:bg-red-700 transition-colors" 
+                  onClick={handleDelete} style={{ zIndex: 15 }}><X className="h-3 w-3" /></button>
         </div>
       )}
       {tip && showTip && (
@@ -621,7 +630,8 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
       )}
       {isHovered && (
         <div className="absolute top-1 left-1">
-          <button className="p-1 bg-blue-600 rounded text-white text-xs hover:bg-blue-700 transition-colors" onClick={handleCull}><CheckCheck className="h-3 w-3" /></button>
+          <button className="p-1 bg-blue-600 rounded text-white text-xs hover:bg-blue-700 transition-colors" 
+                  onClick={handleCull} style={{ zIndex: 15 }}><CheckCheck className="h-3 w-3" /></button>
           <button 
             className={`p-1 rounded text-white text-xs transition-all duration-300 ml-1 relative group ${
               showTip 
@@ -630,6 +640,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             }`} 
             onClick={handleGetTip}
             disabled={isLoadingTip}
+            style={{ zIndex: 15 }}
           >
             {isLoadingTip ? (
               <div className="h-3 w-3 animate-spin rounded-full border-[1.5px] border-white border-t-transparent" />
@@ -647,6 +658,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
                        hover:from-purple-700 hover:to-pink-700 transition-all duration-200 ml-1" 
               onClick={handleFaceRetouch}
               title="Retouch Faces"
+              style={{ zIndex: 15 }}
             >
               <SparklesIcon className="h-3 w-3" />
             </button>
@@ -657,6 +669,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
               e.stopPropagation();
               setShowInpaintModal(true);
             }}
+            style={{ zIndex: 15 }}
           >
             <Wand2 className="h-3 w-3" />
           </button>

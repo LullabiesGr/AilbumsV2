@@ -1007,7 +1007,7 @@ const FaceRetouchOverlay: React.FC<FaceRetouchOverlayProps> = ({
               top: `${position.top}px`,
               width: `${position.width}px`,
               height: `${position.height}px`,
-              zIndex: 10,
+              zIndex: 5, // Lower z-index to not interfere with UI buttons
               boxSizing: 'border-box'
             }}
             onClick={(e) => {
@@ -1022,7 +1022,8 @@ const FaceRetouchOverlay: React.FC<FaceRetouchOverlayProps> = ({
               isSelected 
                 ? 'bg-green-500 text-white opacity-100 scale-105' 
                 : 'bg-blue-500 text-white opacity-90 group-hover:bg-purple-500 group-hover:opacity-100'
-            }`}>
+            }`}
+            style={{ pointerEvents: 'none' }}>
               {isSelected ? '✓ Selected for CodeFormer' : 'Click to select'}
             </div>
             
@@ -1031,7 +1032,8 @@ const FaceRetouchOverlay: React.FC<FaceRetouchOverlayProps> = ({
               isSelected 
                 ? 'bg-green-500 text-white scale-125 ring-2 ring-green-300' 
                 : 'bg-blue-500 text-white group-hover:bg-purple-500 group-hover:scale-110'
-            }`}>
+            }`}
+            style={{ pointerEvents: 'none' }}>
               {index + 1}
             </div>
 
@@ -1039,7 +1041,8 @@ const FaceRetouchOverlay: React.FC<FaceRetouchOverlayProps> = ({
             {position.width > 40 && position.height > 40 && face.face_quality && (
               <div className={`absolute bottom-0 left-0 right-0 bg-black/75 text-white text-xs p-1 text-center transition-opacity duration-200 ${
                 isSelected || isHovered ? 'opacity-100' : 'opacity-70'
-              }`}>
+              }`}
+              style={{ pointerEvents: 'none' }}>
                 Quality: {Math.round(face.face_quality * 100)}%
               </div>
             )}
@@ -1056,7 +1059,8 @@ const FaceRetouchOverlay: React.FC<FaceRetouchOverlayProps> = ({
 
       {/* Instructions overlay */}
       {faces.length > 0 && selectedFaceIndices.length === 0 && (
-        <div className="absolute top-4 right-4 bg-black/75 text-white text-sm p-3 rounded-lg max-w-xs">
+        <div className="absolute top-4 right-4 bg-black/75 text-white text-sm p-3 rounded-lg max-w-xs"
+             style={{ zIndex: 20, pointerEvents: 'none' }}>
           <p className="font-medium mb-1">CodeFormer Face Selection</p>
           <p>Click on any blue face box to select it for CodeFormer enhancement. The full image will be processed.</p>
         </div>
@@ -1064,7 +1068,8 @@ const FaceRetouchOverlay: React.FC<FaceRetouchOverlayProps> = ({
 
       {/* Selected faces info */}
       {selectedFaceIndices.length > 0 && (
-        <div className="absolute bottom-4 right-4 bg-green-500/90 text-white text-sm p-3 rounded-lg">
+        <div className="absolute bottom-4 right-4 bg-green-500/90 text-white text-sm p-3 rounded-lg"
+             style={{ zIndex: 20, pointerEvents: 'none' }}>
           <p className="font-medium">
             {selectedFaceIndices.length} Face(s) Selected
           </p>
@@ -1082,7 +1087,8 @@ const FaceRetouchOverlay: React.FC<FaceRetouchOverlayProps> = ({
       {/* No faces detected message */}
       {faces.length === 0 && (
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
-                      bg-black/75 text-white text-sm p-4 rounded-lg text-center">
+                      bg-black/75 text-white text-sm p-4 rounded-lg text-center"
+             style={{ zIndex: 20, pointerEvents: 'none' }}>
           <p className="font-medium mb-1">No Faces Detected</p>
           <p>This photo doesn't have any detected faces to enhance with CodeFormer.</p>
         </div>

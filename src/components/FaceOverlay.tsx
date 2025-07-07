@@ -502,13 +502,14 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
               onMouseMove={(e) => handleFaceHover(index, e)}
               onMouseLeave={handleFaceLeave}
               onClick={(e) => handleFaceClick(face, index, e)}
+              style={{
             >
               {/* Face index indicator - only show if box is large enough */}
               {position.width > 20 && position.height > 20 && (
                 <div className="absolute -top-6 left-0 bg-red-500 text-white text-xs px-1.5 py-0.5
                               rounded-full font-medium opacity-0 group-hover:opacity-100 transition-opacity
                               pointer-events-none"
-                     style={{ zIndex: 11 }}>
+                     style={{ zIndex: 6 }}>
                   {index + 1}
                 </div>
               )}
@@ -517,7 +518,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
               {position.width > 30 && position.height > 30 && (
                 <div className="absolute bottom-0 left-0 right-0 bg-black/75 text-white text-xs p-1
                               opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                     style={{ zIndex: 11 }}>
+                     style={{ zIndex: 6 }}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-1">
                       {face.emotion && getEmotionIcon(face.emotion)}

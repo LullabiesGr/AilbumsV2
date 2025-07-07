@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, Scissors, Edit, Trash2, X, CheckCheck, Wand2, Check, Lightbulb, 
+import { Eye, Scissors, Edit, Trash2, X, CheckCheck, Wand2, Check, Lightbulb, Copy,
          AlertCircle, Smile, EyeOff, Users, Sparkles, Flag, Heart, Frown, Meh } from 'lucide-react';
 import { usePhoto } from '../context/PhotoContext';
 import ImageModal from './ImageModal';

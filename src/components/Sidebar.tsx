@@ -50,7 +50,8 @@ const Sidebar = () => {
     photo.faces?.map(face => ({
       photoId: photo.id,
       photoUrl: photo.url,
-      face
+      face,
+      filename: photo.filename
     })) || []
   ).slice(0, 6); // Limit to 6 faces
 
@@ -327,12 +328,31 @@ const Sidebar = () => {
                   key={index}
                   className="aspect-square rounded-lg overflow-hidden relative cursor-pointer
                            hover:ring-2 ring-blue-500 transition-all duration-200"
-                  style={{
-                    backgroundImage: `url(${face.photoUrl})`,
-                    backgroundPosition: `${face.face.x * 100}% ${face.face.y * 100}%`,
-                    backgroundSize: `${100 / face.face.width}%`
-                  }}
-                />
+                  title={`Face from ${face.filename}`}
+                >
+                  <img
+                    src={face.photoUrl}
+                    alt={`Face from ${face.filename}`}
+                    className="w-full h-full object-cover"
+                    style={{
+                      objectPosition: face.face.box ? 
+                        `${((face.face.box[0] + face.face.box[2]) / 2) / 1000 * 100}% ${((face.face.box[1] + face.face.box[3]) / 2) / 1000 * 100}%` :
+                        'center center'
+                    }}
+                  />
+                  {/* Face quality indicator */}
+                  {face.face.face_quality && (
+                    <div className="absolute top-1 right-1 bg-black/75 text-white text-xs px-1 py-0.5 rounded">
+                      {Math.round(face.face.face_quality * 100)}%
+                    </div>
+                  )}
+                  {/* Emotion indicator */}
+                  {face.face.emotion && (
+                    <div className="absolute bottom-1 left-1 bg-black/75 text-white text-xs px-1 py-0.5 rounded capitalize">
+                      {face.face.emotion}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>

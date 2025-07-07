@@ -220,7 +220,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
           <div className="flex items-center justify-between">
             <span className="text-gray-300">Confidence:</span>
             <span className={`font-medium ${getConfidenceColor(face.confidence)}`}>
-              {(face.confidence * 100).toFixed(1)}%
+              {((face.confidence ?? 0) * 100).toFixed(1)}%
             </span>
           </div>
 
@@ -253,9 +253,9 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
                 <span className="font-medium text-white capitalize">
                   {face.emotion}
                 </span>
-                {face.emotion_confidence && (
+                {face.emotion_confidence != null && (
                   <span className="text-gray-400 text-xs">
-                    ({(face.emotion_confidence * 100).toFixed(0)}%)
+                    ({((face.emotion_confidence ?? 0) * 100).toFixed(0)}%)
                   </span>
                 )}
               </div>

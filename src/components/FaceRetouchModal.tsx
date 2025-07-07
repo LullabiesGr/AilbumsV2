@@ -59,7 +59,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
       });
 
       // Call the /enhance-face-in-image endpoint
-      const response = await fetch('https://ddc6-5-54-157-17.ngrok-free.app/enhance-face-in-image', {
+      const response = await fetch('https://ddc6-5-54-157-17.ngrok-free.app/enhance', {
         method: 'POST',
         body: formData,
         mode: 'cors',

@@ -154,15 +154,13 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
         <div 
           className="w-full h-full cursor-pointer"
           onClick={() => setShowModal(true)}
-          onMouseEnter={() => setShowFaceOverlay(true)}
-          onMouseLeave={() => setShowFaceOverlay(false)}
         >
-          {showFaceOverlay && photo.faces && photo.faces.length > 0 ? (
+          {photo.faces && photo.faces.length > 0 ? (
             <FaceOverlay
               faces={photo.faces}
               imageUrl={photo.url}
               className="w-full h-full"
-              showTooltips={true}
+              showTooltips={isHovered}
               onFaceClick={handleFaceClick}
             />
           ) : (
@@ -368,7 +366,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
               faces={photo.faces}
               imageUrl={photo.url}
               className="w-full h-full"
-              showTooltips={false} // Disable tooltips in list view for space
+              showTooltips={false}
               onFaceClick={handleFaceClick}
             />
           ) : (
@@ -515,7 +513,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
               faces={photo.faces}
               imageUrl={photo.url}
               className="w-full h-full"
-              showTooltips={false} // Disable tooltips in compact view
+              showTooltips={false}
               onFaceClick={handleFaceClick}
             />
           ) : (

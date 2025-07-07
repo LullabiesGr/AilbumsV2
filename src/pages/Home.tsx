@@ -294,11 +294,6 @@ const Home: React.FC = () => {
                     <FacesGrid />
                   </div>
                 )}
-                  <div className="space-y-8">
-                    <PeopleGroupManager />
-                    <FacesGrid />
-                  </div>
-                )}
               </div>
             </div>
           </div>

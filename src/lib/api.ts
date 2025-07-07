@@ -201,6 +201,15 @@ export const analyzeSinglePhoto = async (photo: Photo, userId: string, eventType
     const results = await response.json();
     const result = Array.isArray(results) ? results[0] : results;
     
+    // Debug: Log the raw API response to see what we're getting
+    console.log('Fast Analysis API Response for', photo.filename, ':', {
+      result,
+      faces: result?.faces,
+      firstFace: result?.faces?.[0],
+      hasFaceCrop: result?.faces?.[0]?.face_crop_b64 ? 'YES' : 'NO',
+      faceCropLength: result?.faces?.[0]?.face_crop_b64?.length || 0
+    });
+    
     if (result) {
       // Compute perceptual hash if not provided by backend
       let phash = result.phash;
@@ -227,7 +236,6 @@ export const analyzeSinglePhoto = async (photo: Photo, userId: string, eventType
           // Use backend coordinates directly - no transformation
           box: face.box,
           confidence: face.confidence || 0,
-          face_crop_b64: face.face_crop_b64, // Map the face crop field
           landmarks: face.landmarks,
           age: face.age,
           gender: face.gender,
@@ -356,6 +364,15 @@ export const deepAnalyzeSinglePhoto = async (photo: Photo, userId: string, event
     const results = await response.json();
     const result = Array.isArray(results) ? results[0] : results;
     
+    // Debug: Log the raw API response to see what we're getting
+    console.log('Deep Analysis API Response for', photo.filename, ':', {
+      result,
+      faces: result?.faces,
+      firstFace: result?.faces?.[0],
+      hasFaceCrop: result?.faces?.[0]?.face_crop_b64 ? 'YES' : 'NO',
+      faceCropLength: result?.faces?.[0]?.face_crop_b64?.length || 0
+    });
+    
     if (result) {
       // Compute perceptual hash if not provided by backend
       let phash = result.phash;
@@ -382,7 +399,6 @@ export const deepAnalyzeSinglePhoto = async (photo: Photo, userId: string, event
           // Use backend coordinates directly - no transformation
           box: face.box,
           confidence: face.confidence || 0,
-          face_crop_b64: face.face_crop_b64, // Map the face crop field
           landmarks: face.landmarks,
           age: face.age,
           gender: face.gender,

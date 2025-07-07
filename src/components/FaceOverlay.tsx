@@ -182,7 +182,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     return 'text-red-500';
   };
 
-  // Calculate face position using THIS instance's dimensions
+  // Calculate face position using THIS instance's dimensions with proper object-fit: cover handling
   const calculateFacePosition = useCallback((face: Face, faceIndex: number) => {
     console.log(`[${instanceId.current}] Calculating position for face ${faceIndex}:`);
     console.log(`  - Face box from backend:`, face.box);
@@ -203,7 +203,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     const [x1, y1, x2, y2] = face.box;
     console.log(`  - Face coordinates: x1=${x1}, y1=${y1}, x2=${x2}, y2=${y2}`);
 
-    // Calculate how THIS image is scaled and positioned (object-fit: cover)
+    // Calculate how the original image is displayed with object-fit: cover
     const containerAspect = imageDimensions.width / imageDimensions.height;
     const imageAspect = originalDimensions.width / originalDimensions.height;
     
@@ -211,33 +211,73 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     console.log(`  - Image aspect: ${imageAspect.toFixed(3)}`);
 
     let scale: number;
-    let offsetX = 0;
-    let offsetY = 0;
+    let visibleImageWidth: number;
+    let visibleImageHeight: number;
+    let cropOffsetX = 0;
+    let cropOffsetY = 0;
 
     if (containerAspect > imageAspect) {
-      // Container is wider - image fills width, height is cropped
+      // Container is wider than image - image fills container width, height is cropped
       scale = imageDimensions.width / originalDimensions.width;
-      const scaledImageHeight = originalDimensions.height * scale;
-      offsetY = (imageDimensions.height - scaledImageHeight) / 2;
-      console.log(`  - Width-constrained: scale=${scale.toFixed(3)}, offsetY=${offsetY.toFixed(1)}`);
+      visibleImageWidth = imageDimensions.width;
+      visibleImageHeight = originalDimensions.height * scale;
+      
+      // Calculate how much of the original image is cropped from top/bottom
+      const totalScaledHeight = originalDimensions.height * scale;
+      const croppedHeight = totalScaledHeight - imageDimensions.height;
+      cropOffsetY = croppedHeight / 2; // Equal crop from top and bottom
+      
+      console.log(`  - Width-constrained: scale=${scale.toFixed(3)}, cropOffsetY=${cropOffsetY.toFixed(1)}`);
     } else {
-      // Container is taller - image fills height, width is cropped
+      // Container is taller than image - image fills container height, width is cropped
       scale = imageDimensions.height / originalDimensions.height;
-      const scaledImageWidth = originalDimensions.width * scale;
-      offsetX = (imageDimensions.width - scaledImageWidth) / 2;
-      console.log(`  - Height-constrained: scale=${scale.toFixed(3)}, offsetX=${offsetX.toFixed(1)}`);
+      visibleImageWidth = originalDimensions.width * scale;
+      visibleImageHeight = imageDimensions.height;
+      
+      // Calculate how much of the original image is cropped from left/right
+      const totalScaledWidth = originalDimensions.width * scale;
+      const croppedWidth = totalScaledWidth - imageDimensions.width;
+      cropOffsetX = croppedWidth / 2; // Equal crop from left and right
+      
+      console.log(`  - Height-constrained: scale=${scale.toFixed(3)}, cropOffsetX=${cropOffsetX.toFixed(1)}`);
     }
 
-    // Transform coordinates for THIS specific image instance
-    const left = Math.round(x1 * scale + offsetX);
-    const top = Math.round(y1 * scale + offsetY);
-    const width = Math.round((x2 - x1) * scale);
-    const height = Math.round((y2 - y1) * scale);
+    // Transform face coordinates from original image space to visible container space
+    // First scale the coordinates
+    const scaledX1 = x1 * scale;
+    const scaledY1 = y1 * scale;
+    const scaledX2 = x2 * scale;
+    const scaledY2 = y2 * scale;
+    
+    // Then adjust for cropping - subtract the crop offset to get position in visible area
+    const visibleX1 = scaledX1 - cropOffsetX;
+    const visibleY1 = scaledY1 - cropOffsetY;
+    const visibleX2 = scaledX2 - cropOffsetX;
+    const visibleY2 = scaledY2 - cropOffsetY;
+    
+    console.log(`  - Scaled coordinates: (${scaledX1.toFixed(1)}, ${scaledY1.toFixed(1)}) to (${scaledX2.toFixed(1)}, ${scaledY2.toFixed(1)})`);
+    console.log(`  - Visible coordinates: (${visibleX1.toFixed(1)}, ${visibleY1.toFixed(1)}) to (${visibleX2.toFixed(1)}, ${visibleY2.toFixed(1)})`);
+
+    // Calculate final position and size
+    const left = Math.round(Math.max(0, visibleX1));
+    const top = Math.round(Math.max(0, visibleY1));
+    const right = Math.round(Math.min(imageDimensions.width, visibleX2));
+    const bottom = Math.round(Math.min(imageDimensions.height, visibleY2));
+    
+    const width = Math.max(0, right - left);
+    const height = Math.max(0, bottom - top);
 
     const finalPosition = { left, top, width, height };
     console.log(`  - Final position:`, finalPosition);
 
-    return finalPosition;
+    // Check if face is actually visible (not completely cropped out)
+    const isVisible = width > 2 && height > 2 && 
+                     left < imageDimensions.width && top < imageDimensions.height &&
+                     right > 0 && bottom > 0;
+    
+    console.log(`  - Face visible:`, isVisible);
+
+    return isVisible ? finalPosition : { left: 0, top: 0, width: 0, height: 0 };
   }, [originalDimensions, imageDimensions]);
 
   const handleFaceHover = (index: number, event: React.MouseEvent) => {
@@ -468,7 +508,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
         
         // Only render if we have valid position with minimum size
         if (position.width <= 2 || position.height <= 2) {
-          console.log(`[${instanceId.current}] Skipping face ${index} - too small:`, position);
+          console.log(`[${instanceId.current}] Skipping face ${index} - too small or not visible:`, position);
           return null;
         }
         
@@ -518,49 +558,6 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
                     </div>
                   </div>
                 </div>
-              )}
-
-              {/* Landmarks - using backend coordinates directly */}
-              {face.landmarks && face.landmarks.length > 0 && hoveredFace === index && position.width > 40 && position.height > 40 && (
-                <>
-                  {face.landmarks.map((landmark, landmarkIndex) => {
-                    // Backend provides landmarks in original image coordinates
-                    const [landmarkX, landmarkY] = landmark;
-                    
-                    // Apply same transformation as face box for THIS instance
-                    const containerAspect = imageDimensions.width / imageDimensions.height;
-                    const imageAspect = originalDimensions.width / originalDimensions.height;
-
-                    let scale: number;
-                    let offsetX = 0;
-                    let offsetY = 0;
-
-                    if (containerAspect > imageAspect) {
-                      scale = imageDimensions.width / originalDimensions.width;
-                      const scaledImageHeight = originalDimensions.height * scale;
-                      offsetY = (imageDimensions.height - scaledImageHeight) / 2;
-                    } else {
-                      scale = imageDimensions.height / originalDimensions.height;
-                      const scaledImageWidth = originalDimensions.width * scale;
-                      offsetX = (imageDimensions.width - scaledImageWidth) / 2;
-                    }
-                    
-                    const scaledX = landmarkX * scale + offsetX;
-                    const scaledY = landmarkY * scale + offsetY;
-                    
-                    return (
-                      <div
-                        key={landmarkIndex}
-                        className="absolute w-1 h-1 bg-yellow-400 rounded-full"
-                        style={{
-                          left: `${scaledX - position.left}px`,
-                          top: `${scaledY - position.top}px`,
-                          transform: 'translate(-50%, -50%)'
-                        }}
-                      />
-                    );
-                  })}
-                </>
               )}
             </div>
 

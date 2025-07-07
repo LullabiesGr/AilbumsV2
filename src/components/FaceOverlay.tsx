@@ -499,7 +499,10 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
         position: 'relative',
         width: '100%',
         height: '100%',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
       }}
     >
       <img
@@ -510,8 +513,10 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
         onLoad={handleImageLoad}
         style={{
           display: 'block',
-          width: '100%',
-          height: '100%',
+          maxWidth: '100%',
+          maxHeight: '100%',
+          width: 'auto',
+          height: 'auto',
           objectFit: 'contain'
         }}
       />

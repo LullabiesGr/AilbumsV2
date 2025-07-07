@@ -383,24 +383,34 @@ const ImageModal: React.FC<ImageModalProps> = ({ photo, onClose }) => {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-3">
             <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={editParams.grayscale}
-                onChange={(e) => setEditParams(prev => ({ ...prev, grayscale: e.target.checked }))}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          <div className="relative flex items-center justify-center" style={{ maxWidth: '80vw', maxHeight: '80vh' }}>
+            {showFaceOverlay && photo.faces && photo.faces.length > 0 ? (
+              <div className="relative max-w-full max-h-full">
+                <FaceOverlay
+                  faces={photo.faces}
+                  imageUrl={editedImageUrl || photo.url}
+                  className="max-w-full max-h-full rounded-lg shadow-2xl"
+                  showTooltips={true}
+                  onFaceClick={(face, index) => {
+                    console.log('Face clicked in modal:', face, index);
+                    // You can add custom logic here
+                  }}
+                />
+              </div>
+            ) : (
+              <img 
+                src={editedImageUrl || photo.url}
+                ref={imgRef}
+                alt={photo.filename} 
+                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                style={{
+                  maxWidth: '80vw',
+                  maxHeight: '80vh',
+                  width: 'auto',
+                  height: 'auto'
+                }}
               />
-              <span className="text-sm text-gray-700 dark:text-gray-300">Grayscale</span>
-            </label>
-            
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={editParams.invert}
-                onChange={(e) => setEditParams(prev => ({ ...prev, invert: e.target.checked }))}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700 dark:text-gray-300">Invert Colors</span>
-            </label>
+            )}
           </div>
           
           <div className="space-y-3">
@@ -539,7 +549,7 @@ const ImageModal: React.FC<ImageModalProps> = ({ photo, onClose }) => {
             )}
             
             {showFaceOverlay && photo.faces && photo.faces.length > 0 ? (
-              <FaceOverlay
+                className="absolute inset-0 w-full h-full object-contain mix-blend-overlay opacity-75 rounded-lg pointer-events-none"
                 faces={photo.faces}
                 imageUrl={editedImageUrl || photo.url}
                 className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
@@ -800,7 +810,6 @@ const ImageModal: React.FC<ImageModalProps> = ({ photo, onClose }) => {
                 </div>
               )}
             </div>
-          </div>
         </div>
       </div>
     </div>

@@ -18,7 +18,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
   onFaceClick
 }) => {
   // Each instance has its own state - completely independent
-  const [renderedDimensions, setRenderedDimensions] = useState({ width: 0, height: 0 });
+  const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
   const [originalDimensions, setOriginalDimensions] = useState({ width: 0, height: 0 });
   const [hoveredFace, setHoveredFace] = useState<number | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
@@ -49,35 +49,35 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     img.src = imageUrl;
   }, [imageUrl]);
 
-  // Update dimensions for THIS specific image instance
+  // Update dimensions for THIS specific container instance
   const updateDimensions = useCallback(() => {
     if (updateTimeoutRef.current) {
       clearTimeout(updateTimeoutRef.current);
     }
 
     updateTimeoutRef.current = setTimeout(() => {
-      if (imageRef.current && containerRef.current) {
-        // Get the EXACT rendered size of the image element itself
-        const imageRect = imageRef.current.getBoundingClientRect();
+      if (containerRef.current) {
+        // Get the container dimensions (this is what we need for letterbox calculations)
+        const containerRect = containerRef.current.getBoundingClientRect();
         
         const newDimensions = {
-          width: Math.round(imageRect.width),
-          height: Math.round(imageRect.height)
+          width: Math.round(containerRect.width),
+          height: Math.round(containerRect.height)
         };
         
-        console.log(`[${instanceId.current}] Dimension update:`, {
-          imageRect: { width: imageRect.width, height: imageRect.height },
+        console.log(`[${instanceId.current}] Container dimension update:`, {
+          containerRect: { width: containerRect.width, height: containerRect.height },
           newDimensions
         });
         
         // Only update if we have valid dimensions and they changed significantly
         if (newDimensions.width > 0 && newDimensions.height > 0) {
-          setRenderedDimensions(prev => {
+          setContainerDimensions(prev => {
             const widthDiff = Math.abs(prev.width - newDimensions.width);
             const heightDiff = Math.abs(prev.height - newDimensions.height);
             
             if (widthDiff > 1 || heightDiff > 1) {
-              console.log(`[${instanceId.current}] Dimensions changed:`, prev, '->', newDimensions);
+              console.log(`[${instanceId.current}] Container dimensions changed:`, prev, '->', newDimensions);
               return newDimensions;
             }
             return prev;
@@ -90,7 +90,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
         
         if (ready !== isReady) {
           console.log(`[${instanceId.current}] Ready state changed:`, ready, {
-            rendered: newDimensions,
+            container: newDimensions,
             original: originalDimensions
           });
           setIsReady(ready);
@@ -121,11 +121,6 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
       });
 
       resizeObserverRef.current.observe(containerRef.current);
-      
-      // Also observe the image element directly
-      if (imageRef.current) {
-        resizeObserverRef.current.observe(imageRef.current);
-      }
     }
 
     return () => {
@@ -152,7 +147,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
   useEffect(() => {
     console.log(`[${instanceId.current}] Image URL changed, resetting state`);
     setIsReady(false);
-    setRenderedDimensions({ width: 0, height: 0 });
+    setContainerDimensions({ width: 0, height: 0 });
     setHoveredFace(null);
   }, [imageUrl]);
 
@@ -195,20 +190,20 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     return 'text-red-500';
   };
 
-  // Calculate face position using proper scaling from original to rendered dimensions
+  // Calculate face position with proper object-fit: contain handling and letterbox offsets
   const calculateFacePosition = useCallback((face: Face, faceIndex: number) => {
     if (process.env.NODE_ENV === 'development') {
       console.log(`[${instanceId.current}] Calculating position for face ${faceIndex}:`, {
         faceBox: face.box,
         original: originalDimensions,
-        rendered: renderedDimensions
+        container: containerDimensions
       });
     }
     
     // Validate we have all required data for THIS instance
     if (
       originalDimensions.width === 0 || originalDimensions.height === 0 ||
-      renderedDimensions.width === 0 || renderedDimensions.height === 0 ||
+      containerDimensions.width === 0 || containerDimensions.height === 0 ||
       !face.box || face.box.length !== 4
     ) {
       return { left: 0, top: 0, width: 0, height: 0 };
@@ -217,21 +212,32 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     // Backend coordinates: [x1, y1, x2, y2] in original image pixels
     const [x1, y1, x2, y2] = face.box;
 
-    // Calculate scaling factors from original to rendered size
-    const scaleX = renderedDimensions.width / originalDimensions.width;
-    const scaleY = renderedDimensions.height / originalDimensions.height;
+    // Calculate how the image fits with object-fit: contain
+    // The image will be scaled to fit entirely within the container while preserving aspect ratio
+    const scale = Math.min(
+      containerDimensions.width / originalDimensions.width,
+      containerDimensions.height / originalDimensions.height
+    );
 
-    // Apply scaling to convert from original coordinates to rendered coordinates
-    const left = Math.round(x1 * scaleX);
-    const top = Math.round(y1 * scaleY);
-    const width = Math.round((x2 - x1) * scaleX);
-    const height = Math.round((y2 - y1) * scaleY);
+    // Calculate the actual displayed image dimensions
+    const imageDisplayWidth = originalDimensions.width * scale;
+    const imageDisplayHeight = originalDimensions.height * scale;
 
-    // Clamp to visible area (shouldn't be needed with proper scaling, but safety check)
-    const clampedLeft = Math.max(0, Math.min(left, renderedDimensions.width));
-    const clampedTop = Math.max(0, Math.min(top, renderedDimensions.height));
-    const clampedWidth = Math.max(0, Math.min(width, renderedDimensions.width - clampedLeft));
-    const clampedHeight = Math.max(0, Math.min(height, renderedDimensions.height - clampedTop));
+    // Calculate letterbox offsets (margins) due to aspect ratio differences
+    const offsetX = (containerDimensions.width - imageDisplayWidth) / 2;
+    const offsetY = (containerDimensions.height - imageDisplayHeight) / 2;
+
+    // Apply scaling and offset to face coordinates
+    const left = Math.round(x1 * scale + offsetX);
+    const top = Math.round(y1 * scale + offsetY);
+    const width = Math.round((x2 - x1) * scale);
+    const height = Math.round((y2 - y1) * scale);
+
+    // Clamp to visible area within the container
+    const clampedLeft = Math.max(0, Math.min(left, containerDimensions.width));
+    const clampedTop = Math.max(0, Math.min(top, containerDimensions.height));
+    const clampedWidth = Math.max(0, Math.min(width, containerDimensions.width - clampedLeft));
+    const clampedHeight = Math.max(0, Math.min(height, containerDimensions.height - clampedTop));
 
     const finalPosition = { 
       left: clampedLeft, 
@@ -244,9 +250,11 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     const isVisible = clampedWidth > 2 && clampedHeight > 2;
 
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[${instanceId.current}] Face ${faceIndex} position:`, {
+      console.log(`[${instanceId.current}] Face ${faceIndex} position calculation:`, {
         originalBox: [x1, y1, x2, y2],
-        scaleFactors: { scaleX, scaleY },
+        scale,
+        imageDisplay: { width: imageDisplayWidth, height: imageDisplayHeight },
+        offsets: { offsetX, offsetY },
         scaledPosition: { left, top, width, height },
         finalPosition,
         isVisible
@@ -254,7 +262,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     }
 
     return isVisible ? finalPosition : { left: 0, top: 0, width: 0, height: 0 };
-  }, [originalDimensions, renderedDimensions]);
+  }, [originalDimensions, containerDimensions]);
 
   const handleFaceHover = (index: number, event: React.MouseEvent) => {
     setHoveredFace(index);
@@ -470,13 +478,13 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
           ref={imageRef}
           src={imageUrl}
           alt="No faces detected"
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
           onLoad={handleImageLoad}
           style={{
             display: 'block',
             width: '100%',
             height: '100%',
-            objectFit: 'cover'
+            objectFit: 'contain'
           }}
         />
       </div>
@@ -498,13 +506,13 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
         ref={imageRef}
         src={imageUrl}
         alt="Face detection"
-        className="w-full h-full object-cover"
+        className="w-full h-full object-contain"
         onLoad={handleImageLoad}
         style={{
           display: 'block',
           width: '100%',
           height: '100%',
-          objectFit: 'cover'
+          objectFit: 'contain'
         }}
       />
       
@@ -519,7 +527,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
         }
         
         // Use unique key that includes instance dimensions to force re-render when size changes
-        const uniqueKey = `${instanceId.current}-face-${index}-${renderedDimensions.width}x${renderedDimensions.height}`;
+        const uniqueKey = `${instanceId.current}-face-${index}-${containerDimensions.width}x${containerDimensions.height}`;
         
         return (
           <div key={uniqueKey}>

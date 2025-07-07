@@ -75,6 +75,11 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
   // Handle image load
   const handleImageLoad = () => {
     setImageLoaded(true);
+    // Update dimensions immediately when image loads
+    if (imageRef.current) {
+      const rect = imageRef.current.getBoundingClientRect();
+      setImageDimensions({ width: rect.width, height: rect.height });
+    }
     // Small delay to ensure the image is fully rendered
     setTimeout(updateDimensions, 50);
   };
@@ -121,23 +126,51 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
   const calculateFacePosition = (face: Face) => {
     // Ensure we have valid dimensions
     if (originalDimensions.width === 0 || originalDimensions.height === 0 || 
-        imageDimensions.width === 0 || imageDimensions.height === 0) {
+        imageDimensions.width === 0 || imageDimensions.height === 0 || 
+        !face.box || face.box.length !== 4) {
       return { left: 0, top: 0, width: 0, height: 0 };
     }
 
     const [x1, y1, x2, y2] = face.box;
     
+    // Validate coordinates
+    if (x1 < 0 || y1 < 0 || x2 <= x1 || y2 <= y1) {
+      console.warn('Invalid face coordinates:', face.box);
+      return { left: 0, top: 0, width: 0, height: 0 };
+    }
+    
     // Calculate scale factors
     const scaleX = imageDimensions.width / originalDimensions.width;
     const scaleY = imageDimensions.height / originalDimensions.height;
     
-    // Convert absolute coordinates to scaled coordinates
+    // Ensure coordinates are within bounds of original image
+    const boundedX1 = Math.max(0, Math.min(x1, originalDimensions.width));
+    const boundedY1 = Math.max(0, Math.min(y1, originalDimensions.height));
+    const boundedX2 = Math.max(boundedX1, Math.min(x2, originalDimensions.width));
+    const boundedY2 = Math.max(boundedY1, Math.min(y2, originalDimensions.height));
+    
+    // Convert bounded coordinates to scaled coordinates
+    const left = boundedX1 * scaleX;
+    const top = boundedY1 * scaleY;
+    const width = (boundedX2 - boundedX1) * scaleX;
+    const height = (boundedY2 - boundedY1) * scaleY;
+    
+    /* Original calculation for reference
     const left = x1 * scaleX;
     const top = y1 * scaleY;
     const width = (x2 - x1) * scaleX;
     const height = (y2 - y1) * scaleY;
 
     return { left, top, width, height };
+  };
+    */
+
+    return { 
+      left: Math.round(left), 
+      top: Math.round(top), 
+      width: Math.round(width), 
+      height: Math.round(height) 
+    };
   };
 
   const handleFaceHover = (index: number, event: React.MouseEvent) => {
@@ -326,9 +359,9 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
           {/* Debug Info */}
           <div className="pt-2 border-t border-gray-600 text-xs text-gray-400">
             <div>Box: [{face.box.map(coord => Math.round(coord)).join(', ')}]</div>
-            <div>Original: {originalDimensions.width}×{originalDimensions.height}</div>
-            <div>Display: {Math.round(imageDimensions.width)}×{Math.round(imageDimensions.height)}</div>
-            <div>Scale: {originalDimensions.width > 0 ? (imageDimensions.width / originalDimensions.width).toFixed(3) : 'N/A'}x</div>
+            <div>Orig: {originalDimensions.width}×{originalDimensions.height}</div>
+            <div>Disp: {Math.round(imageDimensions.width)}×{Math.round(imageDimensions.height)}</div>
+            <div>Scale: {originalDimensions.width > 0 ? (imageDimensions.width / originalDimensions.width).toFixed(2) : 'N/A'}x</div>
           </div>
         </div>
       </div>
@@ -363,7 +396,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
       {imageLoaded && originalDimensions.width > 0 && imageDimensions.width > 0 && faces.map((face, index) => {
         const position = calculateFacePosition(face);
         
-        // Only render if we have valid position
+        // Only render if we have valid position with minimum size
         if (position.width <= 0 || position.height <= 0) {
           return null;
         }
@@ -371,7 +404,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
         return (
           <div key={index}>
             {/* Face bounding box */}
-            <div
+            <div 
               className="absolute border-2 border-red-500 bg-red-500/10 cursor-pointer
                          hover:border-red-400 hover:bg-red-400/20 transition-all duration-200
                          group"
@@ -387,7 +420,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
               onClick={(e) => handleFaceClick(face, index, e)}
             >
               {/* Face index indicator */}
-              <div className="absolute -top-6 left-0 bg-red-500 text-white text-xs px-1.5 py-0.5 
+              <div className="absolute -top-6 left-0 bg-red-500 text-white text-xs px-1.5 py-0.5
                             rounded-full font-medium opacity-0 group-hover:opacity-100 transition-opacity">
                 {index + 1}
               </div>
@@ -413,7 +446,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
               {face.landmarks && face.landmarks.length > 0 && hoveredFace === index && (
                 <>
                   {face.landmarks.map((landmark, landmarkIndex) => {
-                    // Calculate landmark position relative to the face box
+                    // Calculate landmark position relative to the face box  
                     const landmarkX = ((landmark[0] - face.box[0]) / (face.box[2] - face.box[0])) * position.width;
                     const landmarkY = ((landmark[1] - face.box[1]) / (face.box[3] - face.box[1])) * position.height;
                     

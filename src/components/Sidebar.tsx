@@ -670,11 +670,11 @@ const FaceCrop: React.FC<{
   return (
     <>
       <canvas ref={canvasRef} style={{ display: 'none' }} />
-      <div className={`${className} bg-gray-800 flex items-center justify-center rounded`}>
-        <div className="text-gray-500 text-xs text-center p-1">
+      <img
+        src={croppedImageUrl}
         alt="Cropped face"
         className={`${className} object-cover rounded`}
-      </div>
+      />
     </>
   );
 };

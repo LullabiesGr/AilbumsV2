@@ -35,10 +35,13 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
   useEffect(() => {
     const img = new Image();
     img.onload = () => {
-      setOriginalDimensions({
+      const originalDims = {
         width: img.naturalWidth,
         height: img.naturalHeight
-      });
+      };
+      
+      console.log(`[${instanceId.current}] Original dimensions loaded:`, originalDims);
+      setOriginalDimensions(originalDims);
     };
     img.onerror = () => {
       console.warn(`[${instanceId.current}] Failed to load image:`, imageUrl);
@@ -62,6 +65,8 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
           height: Math.round(imageRect.height)
         };
         
+        console.log(`[${instanceId.current}] Rendered dimensions updated:`, newDimensions);
+        
         // Only update if we have valid dimensions and they changed
         if (newDimensions.width > 0 && newDimensions.height > 0) {
           setImageDimensions(prev => {
@@ -76,6 +81,12 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
         // Set ready state when both dimensions are valid
         const ready = newDimensions.width > 0 && newDimensions.height > 0 && 
                      originalDimensions.width > 0 && originalDimensions.height > 0;
+        
+        console.log(`[${instanceId.current}] Ready state:`, ready, {
+          rendered: newDimensions,
+          original: originalDimensions
+        });
+        
         setIsReady(ready);
       }
     }, 50);
@@ -117,6 +128,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
 
   // Handle image load for THIS specific image
   const handleImageLoad = useCallback(() => {
+    console.log(`[${instanceId.current}] Image loaded, updating dimensions`);
     // Multiple update attempts to ensure we catch the final layout
     requestAnimationFrame(() => updateDimensions());
     setTimeout(() => updateDimensions(), 100);
@@ -125,6 +137,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
 
   // Reset when image changes
   useEffect(() => {
+    console.log(`[${instanceId.current}] Image URL changed, resetting state`);
     setIsReady(false);
     setImageDimensions({ width: 0, height: 0 });
     setHoveredFace(null);
@@ -170,22 +183,32 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
   };
 
   // Calculate face position using THIS instance's dimensions
-  const calculateFacePosition = useCallback((face: Face) => {
+  const calculateFacePosition = useCallback((face: Face, faceIndex: number) => {
+    console.log(`[${instanceId.current}] Calculating position for face ${faceIndex}:`);
+    console.log(`  - Face box from backend:`, face.box);
+    console.log(`  - Original dimensions:`, originalDimensions);
+    console.log(`  - Rendered dimensions:`, imageDimensions);
+    
     // Validate we have all required data for THIS instance
     if (
       originalDimensions.width === 0 || originalDimensions.height === 0 ||
       imageDimensions.width === 0 || imageDimensions.height === 0 ||
       !face.box || face.box.length !== 4
     ) {
+      console.log(`  - Invalid data, returning zero position`);
       return { left: 0, top: 0, width: 0, height: 0 };
     }
 
     // Use backend coordinates directly - [x1, y1, x2, y2] in original image pixels
     const [x1, y1, x2, y2] = face.box;
+    console.log(`  - Face coordinates: x1=${x1}, y1=${y1}, x2=${x2}, y2=${y2}`);
 
     // Calculate how THIS image is scaled and positioned (object-fit: cover)
     const containerAspect = imageDimensions.width / imageDimensions.height;
     const imageAspect = originalDimensions.width / originalDimensions.height;
+    
+    console.log(`  - Container aspect: ${containerAspect.toFixed(3)}`);
+    console.log(`  - Image aspect: ${imageAspect.toFixed(3)}`);
 
     let scale: number;
     let offsetX = 0;
@@ -196,11 +219,13 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
       scale = imageDimensions.width / originalDimensions.width;
       const scaledImageHeight = originalDimensions.height * scale;
       offsetY = (imageDimensions.height - scaledImageHeight) / 2;
+      console.log(`  - Width-constrained: scale=${scale.toFixed(3)}, offsetY=${offsetY.toFixed(1)}`);
     } else {
       // Container is taller - image fills height, width is cropped
       scale = imageDimensions.height / originalDimensions.height;
       const scaledImageWidth = originalDimensions.width * scale;
       offsetX = (imageDimensions.width - scaledImageWidth) / 2;
+      console.log(`  - Height-constrained: scale=${scale.toFixed(3)}, offsetX=${offsetX.toFixed(1)}`);
     }
 
     // Transform coordinates for THIS specific image instance
@@ -209,7 +234,10 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     const width = Math.round((x2 - x1) * scale);
     const height = Math.round((y2 - y1) * scale);
 
-    return { left, top, width, height };
+    const finalPosition = { left, top, width, height };
+    console.log(`  - Final position:`, finalPosition);
+
+    return finalPosition;
   }, [originalDimensions, imageDimensions]);
 
   const handleFaceHover = (index: number, event: React.MouseEvent) => {
@@ -399,6 +427,16 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     );
   };
 
+  // Debug log when faces prop changes
+  useEffect(() => {
+    console.log(`[${instanceId.current}] Faces data received:`, faces?.length || 0, 'faces');
+    if (faces && faces.length > 0) {
+      faces.forEach((face, index) => {
+        console.log(`  Face ${index}:`, face.box);
+      });
+    }
+  }, [faces]);
+
   // If no faces, just render the image
   if (!faces || faces.length === 0) {
     return (
@@ -426,10 +464,11 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
       
       {/* Face bounding boxes - only render when THIS instance is ready */}
       {isReady && faces.map((face, index) => {
-        const position = calculateFacePosition(face);
+        const position = calculateFacePosition(face, index);
         
         // Only render if we have valid position with minimum size
         if (position.width <= 2 || position.height <= 2) {
+          console.log(`[${instanceId.current}] Skipping face ${index} - too small:`, position);
           return null;
         }
         

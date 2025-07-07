@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Face } from '../types';
 import { User, Eye, EyeOff, Smile, Frown, Meh, Heart, AlertCircle, Glasses, Shield } from 'lucide-react';
 
@@ -22,8 +22,10 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
   const [hoveredFace, setHoveredFace] = useState<number | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   // Load original image dimensions
   useEffect(() => {
@@ -34,55 +36,87 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
         height: img.naturalHeight
       });
     };
+    img.onerror = () => {
+      console.warn('Failed to load image for face overlay:', imageUrl);
+    };
     img.src = imageUrl;
   }, [imageUrl]);
 
-  // Update displayed image dimensions
-  const updateDimensions = () => {
-    if (imageRef.current) {
-      const rect = imageRef.current.getBoundingClientRect();
+  // Update displayed image dimensions with debouncing
+  const updateDimensions = useCallback(() => {
+    if (imageRef.current && containerRef.current) {
+      const imageRect = imageRef.current.getBoundingClientRect();
+      const containerRect = containerRef.current.getBoundingClientRect();
+      
+      // Use the actual rendered image size
       const newDimensions = {
-        width: rect.width,
-        height: rect.height
+        width: imageRect.width,
+        height: imageRect.height
       };
       
-      // Only update if dimensions actually changed
-      if (newDimensions.width !== imageDimensions.width || 
-          newDimensions.height !== imageDimensions.height) {
+      // Only update if dimensions actually changed significantly (avoid micro-updates)
+      if (Math.abs(newDimensions.width - imageDimensions.width) > 1 || 
+          Math.abs(newDimensions.height - imageDimensions.height) > 1) {
         setImageDimensions(newDimensions);
       }
+      
+      // Mark as ready when we have valid dimensions
+      if (newDimensions.width > 0 && newDimensions.height > 0 && 
+          originalDimensions.width > 0 && originalDimensions.height > 0) {
+        setIsReady(true);
+      }
     }
-  };
+  }, [imageDimensions.width, imageDimensions.height, originalDimensions.width, originalDimensions.height]);
 
-  // Set up resize observer and window resize listener
+  // Set up resize observer for this specific image
   useEffect(() => {
-    const resizeObserver = new ResizeObserver(() => {
-      updateDimensions();
-    });
-
     if (imageRef.current) {
-      resizeObserver.observe(imageRef.current);
-    }
+      // Clean up previous observer
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+      }
 
-    window.addEventListener('resize', updateDimensions);
+      // Create new observer for this image
+      resizeObserverRef.current = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          // Use requestAnimationFrame to ensure DOM is updated
+          requestAnimationFrame(() => {
+            updateDimensions();
+          });
+        }
+      });
+
+      resizeObserverRef.current.observe(imageRef.current);
+    }
 
     return () => {
-      resizeObserver.disconnect();
-      window.removeEventListener('resize', updateDimensions);
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+      }
     };
-  }, [imageLoaded]);
+  }, [imageLoaded, updateDimensions]);
 
   // Handle image load
-  const handleImageLoad = () => {
+  const handleImageLoad = useCallback(() => {
     setImageLoaded(true);
+    
     // Update dimensions immediately when image loads
-    if (imageRef.current) {
-      const rect = imageRef.current.getBoundingClientRect();
-      setImageDimensions({ width: rect.width, height: rect.height });
-    }
-    // Small delay to ensure the image is fully rendered
-    setTimeout(updateDimensions, 50);
-  };
+    setTimeout(() => {
+      updateDimensions();
+    }, 10);
+    
+    // Additional update after a short delay to ensure everything is rendered
+    setTimeout(() => {
+      updateDimensions();
+    }, 100);
+  }, [updateDimensions]);
+
+  // Reset state when image URL changes
+  useEffect(() => {
+    setImageLoaded(false);
+    setIsReady(false);
+    setImageDimensions({ width: 0, height: 0 });
+  }, [imageUrl]);
 
   const getEmotionIcon = (emotion: string, confidence?: number) => {
     const iconProps = { className: "h-3 w-3" };
@@ -123,8 +157,8 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     return 'text-red-500';
   };
 
-  // Calculate face position using backend coordinates directly
-  const calculateFacePosition = (face: Face) => {
+  // Calculate face position using backend coordinates directly with proper object-fit: cover handling
+  const calculateFacePosition = useCallback((face: Face) => {
     if (
       originalDimensions.width === 0 || originalDimensions.height === 0 ||
       imageDimensions.width === 0 || imageDimensions.height === 0 ||
@@ -163,7 +197,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     const height = Math.round((y2 - y1) * scale);
 
     return { left, top, width, height };
-  };
+  }, [originalDimensions, imageDimensions]);
 
   const handleFaceHover = (index: number, event: React.MouseEvent) => {
     setHoveredFace(index);
@@ -376,17 +410,17 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
         onLoad={handleImageLoad}
       />
       
-      {/* Face bounding boxes - only render when image is loaded and we have dimensions */}
-      {imageLoaded && originalDimensions.width > 0 && imageDimensions.width > 0 && faces.map((face, index) => {
+      {/* Face bounding boxes - only render when everything is ready */}
+      {isReady && faces.map((face, index) => {
         const position = calculateFacePosition(face);
         
         // Only render if we have valid position with minimum size
-        if (position.width <= 0 || position.height <= 0) {
+        if (position.width <= 2 || position.height <= 2) {
           return null;
         }
         
         return (
-          <div key={index}>
+          <div key={`${imageUrl}-face-${index}`}>
             {/* Face bounding box */}
             <div 
               className="absolute border-2 border-red-500 bg-red-500/10 cursor-pointer

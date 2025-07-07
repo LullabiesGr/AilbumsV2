@@ -123,6 +123,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     return 'text-red-500';
   };
 
+  // Calculate face position using backend coordinates directly
   const calculateFacePosition = (face: Face) => {
     if (
       originalDimensions.width === 0 || originalDimensions.height === 0 ||
@@ -132,13 +133,13 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
       return { left: 0, top: 0, width: 0, height: 0 };
     }
 
+    // Use backend coordinates directly - [x1, y1, x2, y2] in original image pixels
     const [x1, y1, x2, y2] = face.box;
 
-    // Step 1: Compute scale for both axes
+    // Calculate scale and offset for object-fit: cover
     const widthScale = imageDimensions.width / originalDimensions.width;
     const heightScale = imageDimensions.height / originalDimensions.height;
 
-    // Step 2: Figure out which axis is "fitted" (full) and which is "cropped"
     let scale: number, dx = 0, dy = 0;
     const containerAspect = imageDimensions.width / imageDimensions.height;
     const imageAspect = originalDimensions.width / originalDimensions.height;
@@ -155,7 +156,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
       dy = (imageDimensions.height - usedImageHeight) / 2;
     }
 
-    // Step 3: Map face coordinates to displayed (cropped) coordinates
+    // Map backend coordinates to displayed coordinates
     const left = Math.round(x1 * scale + dx);
     const top = Math.round(y1 * scale + dy);
     const width = Math.round((x2 - x1) * scale);
@@ -346,14 +347,6 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
               )}
             </div>
           )}
-
-          {/* Debug Info */}
-          <div className="pt-2 border-t border-gray-600 text-xs text-gray-400">
-            <div>Box: [{face.box.map(coord => Math.round(coord)).join(', ')}]</div>
-            <div>Orig: {originalDimensions.width}×{originalDimensions.height}</div>
-            <div>Disp: {Math.round(imageDimensions.width)}×{Math.round(imageDimensions.height)}</div>
-            <div>Scale: {originalDimensions.width > 0 ? (imageDimensions.width / originalDimensions.width).toFixed(2) : 'N/A'}x</div>
-          </div>
         </div>
       </div>
     );
@@ -433,21 +426,42 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
                 </div>
               </div>
 
-              {/* Landmarks (optional) */}
+              {/* Landmarks - using backend coordinates directly */}
               {face.landmarks && face.landmarks.length > 0 && hoveredFace === index && (
                 <>
                   {face.landmarks.map((landmark, landmarkIndex) => {
-                    // Calculate landmark position relative to the face box  
-                    const landmarkX = ((landmark[0] - face.box[0]) / (face.box[2] - face.box[0])) * position.width;
-                    const landmarkY = ((landmark[1] - face.box[1]) / (face.box[3] - face.box[1])) * position.height;
+                    // Backend provides landmarks in original image coordinates
+                    // Calculate their position using the same scaling as face boxes
+                    const [landmarkX, landmarkY] = landmark;
+                    
+                    // Apply same transformation as face box
+                    const widthScale = imageDimensions.width / originalDimensions.width;
+                    const heightScale = imageDimensions.height / originalDimensions.height;
+                    
+                    let scale: number, dx = 0, dy = 0;
+                    const containerAspect = imageDimensions.width / imageDimensions.height;
+                    const imageAspect = originalDimensions.width / originalDimensions.height;
+
+                    if (containerAspect > imageAspect) {
+                      scale = heightScale;
+                      const usedImageWidth = originalDimensions.width * scale;
+                      dx = (imageDimensions.width - usedImageWidth) / 2;
+                    } else {
+                      scale = widthScale;
+                      const usedImageHeight = originalDimensions.height * scale;
+                      dy = (imageDimensions.height - usedImageHeight) / 2;
+                    }
+                    
+                    const scaledX = landmarkX * scale + dx;
+                    const scaledY = landmarkY * scale + dy;
                     
                     return (
                       <div
                         key={landmarkIndex}
                         className="absolute w-1 h-1 bg-yellow-400 rounded-full"
                         style={{
-                          left: `${landmarkX}px`,
-                          top: `${landmarkY}px`,
+                          left: `${scaledX - position.left}px`,
+                          top: `${scaledY - position.top}px`,
                           transform: 'translate(-50%, -50%)'
                         }}
                       />

@@ -10,6 +10,7 @@ import FaceOverlay from './FaceOverlay';
 import { Photo } from '../types';
 import { getPhotoTip } from '../lib/api';
 import { useToast } from '../context/ToastContext';
+import { usePhoto as usePhotoContext } from '../context/PhotoContext';
 
 interface ImageCardProps {
   photo: Photo;
@@ -21,6 +22,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
   const [showModal, setShowModal] = useState(false);
   const [showInpaintModal, setShowInpaintModal] = useState(false);
   const { deletePhoto, cullPhoto, togglePhotoSelection, updatePhotoScore } = usePhoto();
+  const { selectedPersonGroup } = usePhotoContext();
   const { showToast } = useToast();
   const [showTip, setShowTip] = useState(false);
   const [tip, setTip] = useState<string | null>(null);
@@ -155,13 +157,14 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
           className="w-full h-full cursor-pointer"
           onClick={() => setShowModal(true)}
         >
-          {photo.faces && photo.faces.length > 0 ? (
+          {photo.faces && photo.faces.length > 0 && (selectedPersonGroup || showFaceOverlay) ? (
             <FaceOverlay
               faces={photo.faces}
               imageUrl={photo.url}
               className="w-full h-full"
               showTooltips={isHovered}
               onFaceClick={handleFaceClick}
+              highlightPersonGroup={selectedPersonGroup}
             />
           ) : (
             <img
@@ -361,13 +364,14 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
           className="w-full h-full cursor-pointer"
           onClick={() => setShowModal(true)}
         >
-          {photo.faces && photo.faces.length > 0 ? (
+          {photo.faces && photo.faces.length > 0 && (selectedPersonGroup || showFaceOverlay) ? (
             <FaceOverlay
               faces={photo.faces}
               imageUrl={photo.url}
               className="w-full h-full"
               showTooltips={false}
               onFaceClick={handleFaceClick}
+              highlightPersonGroup={selectedPersonGroup}
             />
           ) : (
             <img
@@ -508,13 +512,14 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
           className="w-full h-full cursor-pointer"
           onClick={() => setShowModal(true)}
         >
-          {photo.faces && photo.faces.length > 0 ? (
+          {photo.faces && photo.faces.length > 0 && (selectedPersonGroup || showFaceOverlay) ? (
             <FaceOverlay
               faces={photo.faces}
               imageUrl={photo.url}
               className="w-full h-full"
               showTooltips={false}
               onFaceClick={handleFaceClick}
+              highlightPersonGroup={selectedPersonGroup}
             />
           ) : (
             <img

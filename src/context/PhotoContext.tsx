@@ -722,6 +722,13 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       ? photos.filter(photo => photo.albumId === currentAlbum.id)
       : photos;
 
+    // Apply person group filter first (highest priority)
+    if (selectedPersonGroup) {
+      filtered = filtered.filter(photo => 
+        photo.faces?.some(face => face.same_person_group === selectedPersonGroup)
+      );
+    }
+
     // Apply caption filter first
     if (captionFilter) {
       filtered = filtered.filter(photo => 

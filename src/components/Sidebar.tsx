@@ -46,14 +46,27 @@ const Sidebar = () => {
   }));
 
   // Get unique faces from all photos
-  const faces = photos.flatMap(photo => 
+  const allFaces = photos.flatMap(photo => 
     photo.faces?.map(face => ({
       photoId: photo.id,
       photoUrl: photo.url,
       face,
-      filename: photo.filename
+      filename: photo.filename,
+      quality: face.face_quality || 0,
+      confidence: face.confidence || 0
     })) || []
-  ).slice(0, 6); // Limit to 6 faces
+  );
+  
+  // Sort faces by quality and confidence, then take the best ones
+  const faces = allFaces
+    .filter(faceData => faceData.face.box && faceData.face.box.length === 4)
+    .sort((a, b) => {
+      // Sort by quality first, then confidence
+      const qualityDiff = (b.quality || 0) - (a.quality || 0);
+      if (Math.abs(qualityDiff) > 0.1) return qualityDiff;
+      return (b.confidence || 0) - (a.confidence || 0);
+    })
+    .slice(0, 9); // Show up to 9 faces in a 3x3 grid
 
   // Get duplicate sets
   const duplicates = photos
@@ -321,37 +334,63 @@ const Sidebar = () => {
 
         {faces.length > 0 && (
           <div className="p-4 border-b border-gray-700">
-            <h2 className="text-lg font-semibold text-white mb-3">Key Faces</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-white">Key Faces</h2>
+              <span className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded-full">
+                {faces.length}
+              </span>
+            </div>
             <div className="grid grid-cols-3 gap-2">
               {faces.map((face, index) => (
                 <div
                   key={index}
-                  className="aspect-square rounded-lg overflow-hidden relative cursor-pointer bg-gray-700
-                           hover:ring-2 ring-blue-500 transition-all duration-200 group"
+                  className="aspect-square rounded-lg overflow-hidden relative cursor-pointer bg-gray-800
+                           hover:ring-2 ring-blue-400 transition-all duration-200 group border border-gray-600"
                   title={`Face from ${face.filename}`}
                 >
                   <FaceCrop 
                     imageUrl={face.photoUrl}
                     faceBox={face.face.box}
-                    className="w-full h-full"
+                    className="w-full h-full hover:scale-105 transition-transform duration-200"
                   />
-                  {/* Face quality indicator */}
-                  {face.face.face_quality && (
-                    <div className="absolute top-1 right-1 bg-black/75 text-white text-xs px-1 py-0.5 rounded
-                                  opacity-0 group-hover:opacity-100 transition-opacity">
-                      {Math.round(face.face.face_quality * 100)}%
+                  
+                  {/* Quality and confidence indicators */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent 
+                                opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <div className="absolute bottom-1 left-1 right-1">
+                      {face.quality > 0 && (
+                        <div className="text-white text-xs font-medium mb-1">
+                          Q: {Math.round(face.quality * 100)}%
+                        </div>
+                      )}
+                      {face.face.emotion && (
+                        <div className="text-white text-xs capitalize">
+                          {face.face.emotion}
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {/* Emotion indicator */}
-                  {face.face.emotion && (
-                    <div className="absolute bottom-1 left-1 bg-black/75 text-white text-xs px-1 py-0.5 rounded capitalize
+                  </div>
+                  
+                  {/* Age and gender indicators */}
+                  {(face.face.age || face.face.gender) && (
+                    <div className="absolute top-1 right-1 bg-black/75 text-white text-xs px-1.5 py-0.5 rounded
                                   opacity-0 group-hover:opacity-100 transition-opacity">
-                      {face.face.emotion}
+                      {face.face.age && `${Math.round(face.face.age)}y`}
+                      {face.face.age && face.face.gender && ' '}
+                      {face.face.gender && face.face.gender.charAt(0).toUpperCase()}
                     </div>
                   )}
                 </div>
               ))}
             </div>
+            
+            {allFaces.length > faces.length && (
+              <div className="mt-2 text-center">
+                <span className="text-xs text-gray-500">
+                  Showing {faces.length} of {allFaces.length} detected faces
+                </span>
+              </div>
+            )}
           </div>
         )}
 
@@ -424,50 +463,74 @@ const FaceCrop: React.FC<{
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
+        // Backend returns [x1, y1, x2, y2] in original image coordinates
         const [x1, y1, x2, y2] = faceBox;
-        const faceWidth = x2 - x1;
-        const faceHeight = y2 - y1;
+        const faceWidth = Math.abs(x2 - x1);
+        const faceHeight = Math.abs(y2 - y1);
         
-        // Add 30% padding around the face
-        const padding = Math.min(faceWidth, faceHeight) * 0.3;
-        const cropX = Math.max(0, x1 - padding);
-        const cropY = Math.max(0, y1 - padding);
+        // Ensure we have valid face dimensions
+        if (faceWidth <= 0 || faceHeight <= 0) {
+          setHasError(true);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Add 40% padding around the face for better context
+        const padding = Math.min(faceWidth, faceHeight) * 0.4;
+        const cropX = Math.max(0, Math.min(x1, x2) - padding);
+        const cropY = Math.max(0, Math.min(y1, y2) - padding);
         const cropWidth = Math.min(img.naturalWidth - cropX, faceWidth + (padding * 2));
         const cropHeight = Math.min(img.naturalHeight - cropY, faceHeight + (padding * 2));
+        
+        // Ensure crop dimensions are valid
+        if (cropWidth <= 0 || cropHeight <= 0) {
+          setHasError(true);
+          setIsLoading(false);
+          return;
+        }
 
-        // Set canvas size to a fixed square
-        const size = 120;
+        // Set canvas size to a fixed square for consistent display
+        const size = 80;
         canvas.width = size;
         canvas.height = size;
 
-        // Clear canvas
-        ctx.fillStyle = '#374151'; // gray-700
+        // Clear canvas with a neutral background
+        ctx.fillStyle = '#1f2937'; // gray-800
         ctx.fillRect(0, 0, size, size);
 
-        // Calculate scale to fit the crop in the canvas
+        // Calculate scale to fit the crop in the canvas (maintain aspect ratio)
         const scale = Math.min(size / cropWidth, size / cropHeight);
         const scaledWidth = cropWidth * scale;
         const scaledHeight = cropHeight * scale;
         
-        // Center the image in the canvas
+        // Center the cropped image in the canvas
         const offsetX = (size - scaledWidth) / 2;
         const offsetY = (size - scaledHeight) / 2;
 
-        // Draw the cropped and scaled image
+        // Draw the cropped face region
         ctx.drawImage(
           img,
           cropX, cropY, cropWidth, cropHeight, // Source rectangle
           offsetX, offsetY, scaledWidth, scaledHeight // Destination rectangle
         );
 
+        // Add a subtle border to make the face stand out
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.3)'; // blue-500 with opacity
+        ctx.lineWidth = 1;
+        ctx.strokeRect(0, 0, size, size);
+
         // Convert canvas to blob URL
         canvas.toBlob((blob) => {
           if (blob) {
             const url = URL.createObjectURL(blob);
+            // Clean up previous URL
+            if (croppedImageUrl) {
+              URL.revokeObjectURL(croppedImageUrl);
+            }
             setCroppedImageUrl(url);
           }
           setIsLoading(false);
-        }, 'image/png', 0.9);
+        }, 'image/jpeg', 0.85);
         
       } catch (error) {
         console.error('Face crop error:', error);
@@ -483,7 +546,7 @@ const FaceCrop: React.FC<{
 
     img.src = imageUrl;
 
-    // Cleanup function
+    // Cleanup function to prevent memory leaks
     return () => {
       if (croppedImageUrl) {
         URL.revokeObjectURL(croppedImageUrl);
@@ -502,19 +565,19 @@ const FaceCrop: React.FC<{
 
   if (isLoading) {
     return (
-      <div className={`${className} bg-gray-700 flex items-center justify-center`}>
-        <div className="w-4 h-4 border-2 border-gray-500 border-t-white rounded-full animate-spin" />
+      <div className={`${className} bg-gray-800 flex items-center justify-center rounded`}>
+        <div className="w-3 h-3 border-2 border-gray-600 border-t-blue-400 rounded-full animate-spin" />
       </div>
     );
   }
 
   if (hasError || !croppedImageUrl) {
     return (
-      <img
-        src={imageUrl}
-        alt="Face"
-        className={`${className} object-cover`}
-      />
+      <div className={`${className} bg-gray-800 flex items-center justify-center rounded`}>
+        <div className="text-gray-500 text-xs text-center p-1">
+          Face not available
+        </div>
+      </div>
     );
   }
 
@@ -523,8 +586,8 @@ const FaceCrop: React.FC<{
       <canvas ref={canvasRef} style={{ display: 'none' }} />
       <img
         src={croppedImageUrl}
-        alt="Face crop"
-        className={`${className} object-cover`}
+        alt="Cropped face"
+        className={`${className} object-cover rounded`}
       />
     </>
   );

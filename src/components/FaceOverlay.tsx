@@ -26,6 +26,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load original image dimensions
   useEffect(() => {
@@ -42,56 +43,63 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     img.src = imageUrl;
   }, [imageUrl]);
 
-  // Update displayed image dimensions with debouncing
+  // Debounced dimension update function
   const updateDimensions = useCallback(() => {
-    if (imageRef.current && containerRef.current) {
-      const imageRect = imageRef.current.getBoundingClientRect();
-      const containerRect = containerRef.current.getBoundingClientRect();
-      
-      // Use the actual rendered image size
-      const newDimensions = {
-        width: imageRect.width,
-        height: imageRect.height
-      };
-      
-      // Only update if dimensions actually changed significantly (avoid micro-updates)
-      if (Math.abs(newDimensions.width - imageDimensions.width) > 1 || 
-          Math.abs(newDimensions.height - imageDimensions.height) > 1) {
-        setImageDimensions(newDimensions);
-      }
-      
-      // Mark as ready when we have valid dimensions
-      if (newDimensions.width > 0 && newDimensions.height > 0 && 
-          originalDimensions.width > 0 && originalDimensions.height > 0) {
-        setIsReady(true);
-      }
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
     }
+
+    updateTimeoutRef.current = setTimeout(() => {
+      if (imageRef.current && containerRef.current) {
+        // Get the actual rendered size of the image element
+        const imageRect = imageRef.current.getBoundingClientRect();
+        
+        // Use the actual rendered image size (this is what we see on screen)
+        const newDimensions = {
+          width: imageRect.width,
+          height: imageRect.height
+        };
+        
+        // Only update if dimensions actually changed significantly (avoid micro-updates)
+        if (Math.abs(newDimensions.width - imageDimensions.width) > 0.5 || 
+            Math.abs(newDimensions.height - imageDimensions.height) > 0.5) {
+          setImageDimensions(newDimensions);
+        }
+        
+        // Mark as ready when we have valid dimensions
+        if (newDimensions.width > 0 && newDimensions.height > 0 && 
+            originalDimensions.width > 0 && originalDimensions.height > 0) {
+          setIsReady(true);
+        }
+      }
+    }, 10); // Small debounce delay
   }, [imageDimensions.width, imageDimensions.height, originalDimensions.width, originalDimensions.height]);
 
-  // Set up resize observer for this specific image
+  // Set up resize observer for this specific image container
   useEffect(() => {
-    if (imageRef.current) {
+    if (containerRef.current) {
       // Clean up previous observer
       if (resizeObserverRef.current) {
         resizeObserverRef.current.disconnect();
       }
 
-      // Create new observer for this image
+      // Create new observer for this container
       resizeObserverRef.current = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          // Use requestAnimationFrame to ensure DOM is updated
-          requestAnimationFrame(() => {
-            updateDimensions();
-          });
-        }
+        // Use requestAnimationFrame to ensure DOM is fully updated
+        requestAnimationFrame(() => {
+          updateDimensions();
+        });
       });
 
-      resizeObserverRef.current.observe(imageRef.current);
+      resizeObserverRef.current.observe(containerRef.current);
     }
 
     return () => {
       if (resizeObserverRef.current) {
         resizeObserverRef.current.disconnect();
+      }
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
       }
     };
   }, [imageLoaded, updateDimensions]);
@@ -101,14 +109,14 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     setImageLoaded(true);
     
     // Update dimensions immediately when image loads
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       updateDimensions();
-    }, 10);
+    });
     
     // Additional update after a short delay to ensure everything is rendered
     setTimeout(() => {
       updateDimensions();
-    }, 100);
+    }, 50);
   }, [updateDimensions]);
 
   // Reset state when image URL changes
@@ -116,6 +124,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     setImageLoaded(false);
     setIsReady(false);
     setImageDimensions({ width: 0, height: 0 });
+    setHoveredFace(null);
   }, [imageUrl]);
 
   const getEmotionIcon = (emotion: string, confidence?: number) => {
@@ -415,12 +424,12 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
         const position = calculateFacePosition(face);
         
         // Only render if we have valid position with minimum size
-        if (position.width <= 2 || position.height <= 2) {
+        if (position.width <= 1 || position.height <= 1) {
           return null;
         }
         
         return (
-          <div key={`${imageUrl}-face-${index}`}>
+          <div key={`${imageUrl}-face-${index}-${imageDimensions.width}-${imageDimensions.height}`}>
             {/* Face bounding box */}
             <div 
               className="absolute border-2 border-red-500 bg-red-500/10 cursor-pointer
@@ -437,31 +446,35 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
               onMouseLeave={handleFaceLeave}
               onClick={(e) => handleFaceClick(face, index, e)}
             >
-              {/* Face index indicator */}
-              <div className="absolute -top-6 left-0 bg-red-500 text-white text-xs px-1.5 py-0.5
-                            rounded-full font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                {index + 1}
-              </div>
+              {/* Face index indicator - only show if box is large enough */}
+              {position.width > 20 && position.height > 20 && (
+                <div className="absolute -top-6 left-0 bg-red-500 text-white text-xs px-1.5 py-0.5
+                              rounded-full font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                  {index + 1}
+                </div>
+              )}
 
-              {/* Quick info overlay */}
-              <div className="absolute bottom-0 left-0 right-0 bg-black/75 text-white text-xs p-1
-                            opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-1">
-                    {face.emotion && getEmotionIcon(face.emotion)}
-                    {face.age && <span>{Math.round(face.age)}y</span>}
-                    {face.gender && <span className="capitalize">{face.gender}</span>}
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    {face.eyes_closed && <EyeOff className="h-3 w-3 text-red-400" />}
-                    {face.glasses && <Glasses className="h-3 w-3 text-blue-400" />}
-                    {face.mask && <Shield className="h-3 w-3 text-green-400" />}
+              {/* Quick info overlay - only show if box is large enough */}
+              {position.width > 30 && position.height > 30 && (
+                <div className="absolute bottom-0 left-0 right-0 bg-black/75 text-white text-xs p-1
+                              opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-1">
+                      {face.emotion && getEmotionIcon(face.emotion)}
+                      {face.age && <span>{Math.round(face.age)}y</span>}
+                      {face.gender && <span className="capitalize">{face.gender}</span>}
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      {face.eyes_closed && <EyeOff className="h-3 w-3 text-red-400" />}
+                      {face.glasses && <Glasses className="h-3 w-3 text-blue-400" />}
+                      {face.mask && <Shield className="h-3 w-3 text-green-400" />}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Landmarks - using backend coordinates directly */}
-              {face.landmarks && face.landmarks.length > 0 && hoveredFace === index && (
+              {face.landmarks && face.landmarks.length > 0 && hoveredFace === index && position.width > 40 && position.height > 40 && (
                 <>
                   {face.landmarks.map((landmark, landmarkIndex) => {
                     // Backend provides landmarks in original image coordinates
@@ -505,8 +518,8 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
               )}
             </div>
 
-            {/* Tooltip */}
-            {renderTooltip(face, index)}
+            {/* Tooltip - only show for larger boxes to avoid clutter */}
+            {position.width > 25 && position.height > 25 && renderTooltip(face, index)}
           </div>
         );
       })}

@@ -24,16 +24,6 @@ const LoginScreen: React.FC = () => {
   const handleGuestLogin = () => {
     try {
       loginAsGuest();
-      showToast('Welcome! You are now using the app as a guest.', 'success');
-    } catch (error: any) {
-      console.error('Guest login failed:', error);
-      showToast('Failed to login as guest. Please try again.', 'error');
-    }
-  };
-
-  const handleGuestLogin = () => {
-    try {
-      loginAsGuest();
       showToast('Logged in as guest!', 'success');
     } catch (error: any) {
       console.error('Guest login failed:', error);

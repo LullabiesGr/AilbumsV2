@@ -52,8 +52,12 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
       resizeObserver.observe(imageRef.current);
     }
 
+    // Also listen for window resize
+    window.addEventListener('resize', updateDimensions);
+
     return () => {
       resizeObserver.disconnect();
+      window.removeEventListener('resize', updateDimensions);
     };
   }, [imageUrl]);
 
@@ -97,7 +101,8 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
   };
 
   const calculateFacePosition = (face: Face) => {
-    if (originalDimensions.width === 0 || originalDimensions.height === 0) {
+    if (originalDimensions.width === 0 || originalDimensions.height === 0 || 
+        imageDimensions.width === 0 || imageDimensions.height === 0) {
       return { left: 0, top: 0, width: 0, height: 0 };
     }
 
@@ -298,6 +303,12 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
               )}
             </div>
           )}
+
+          {/* Debug Info */}
+          <div className="pt-2 border-t border-gray-600 text-xs text-gray-400">
+            <div>Box: [{face.box.map(coord => Math.round(coord)).join(', ')}]</div>
+            <div>Scale: {(imageDimensions.width / originalDimensions.width).toFixed(2)}x</div>
+          </div>
         </div>
       </div>
     );
@@ -311,6 +322,18 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
           src={imageUrl}
           alt="No faces detected"
           className="w-full h-full object-cover"
+          onLoad={() => {
+            // Trigger dimension update after image loads
+            setTimeout(() => {
+              if (imageRef.current) {
+                const rect = imageRef.current.getBoundingClientRect();
+                setImageDimensions({
+                  width: rect.width,
+                  height: rect.height
+                });
+              }
+            }, 100);
+          }}
         />
       </div>
     );
@@ -323,11 +346,28 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
         src={imageUrl}
         alt="Face detection"
         className="w-full h-full object-cover"
+        onLoad={() => {
+          // Trigger dimension update after image loads
+          setTimeout(() => {
+            if (imageRef.current) {
+              const rect = imageRef.current.getBoundingClientRect();
+              setImageDimensions({
+                width: rect.width,
+                height: rect.height
+              });
+            }
+          }, 100);
+        }}
       />
       
       {/* Face bounding boxes */}
       {faces.map((face, index) => {
         const position = calculateFacePosition(face);
+        
+        // Only render if we have valid dimensions and position
+        if (position.width === 0 || position.height === 0) {
+          return null;
+        }
         
         return (
           <div key={index}>

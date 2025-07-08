@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Sparkles, Eye, EyeOff, Download, Save, RotateCcw, Settings, Users, Check, Minimize2, Maximize2 } from 'lucide-react';
 import { Photo, Face } from '../types';
 import { useToast } from '../context/ToastContext';
+import { usePhoto } from '../context/PhotoContext';
 
 interface FaceRetouchModalProps {
   photo: Photo;
@@ -16,6 +17,7 @@ interface RetouchSettings {
 }
 
 const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onSave }) => {
+  const { updatePhotoUrl } = usePhoto();
   const [selectedFaceIndices, setSelectedFaceIndices] = useState<number[]>([]);
   const [settings, setSettings] = useState<RetouchSettings>({
     fidelity: 0.7, // Default CodeFormer fidelity

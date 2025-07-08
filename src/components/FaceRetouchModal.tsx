@@ -610,7 +610,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                 {photo.filename}
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {photo.faces?.length || 0} face(s) detected • Original image will be sent to CodeFormer
+                {photo.faces?.length || 0} face(s) detected • Original image will be sent to Ailbums
               </p>
             </div>
           </div>
@@ -621,7 +621,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
               <Sparkles className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
               <div className="text-sm">
                 <p className="text-purple-800 dark:text-purple-200 font-medium mb-1">
-                  CodeFormer AI Face Restoration
+                  Ailbums AI Face Restoration
                 </p>
                 <p className="text-purple-700 dark:text-purple-300">
                   Select faces to enhance with CodeFormer. The full original image is sent to the backend, 
@@ -680,7 +680,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                 </div>
                 {selectedFaceIndices.length > 1 && (
                   <p className="text-xs text-green-600 dark:text-green-400 mt-2">
-                    Faces will be enhanced sequentially by CodeFormer
+                    Faces will be enhanced sequentially by Ailbums
                   </p>
                 )}
               </div>
@@ -688,7 +688,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 
                             rounded-lg p-3">
                 <p className="text-sm text-blue-700 dark:text-blue-300">
-                  No faces selected. Click on face boxes in the image to select them for CodeFormer enhancement.
+                  No faces selected. Click on face boxes in the image to select them for Ailbums enhancement.
                 </p>
               </div>
             )}
@@ -698,7 +698,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center space-x-2">
               <Settings className="h-4 w-4" />
-              <span>CodeFormer Settings</span>
+              <span>Face Enhance Settings</span>
             </h4>
             
             <div className="space-y-4">
@@ -728,7 +728,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                   <span>Enhanced (1.0)</span>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  CodeFormer fidelity: 0.0 = more natural/original details, 1.0 = stronger enhancement/less original details
+                  Ailbums fidelity: 0.0 = more natural/original details, 1.0 = stronger enhancement/less original details
                 </p>
               </div>
 
@@ -739,7 +739,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                 </h5>
                 <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                   <li>• Full image saved to <code>./inputs/whole_imgs/</code></li>
-                  <li>• CodeFormer inference with w={settings.fidelity}</li>
+                  <li>• Ailbums inference with w={settings.fidelity}</li>
                   <li>• Enhanced result returned from <code>./results</code></li>
                   <li>• Face upsampling enabled</li>
                 </ul>

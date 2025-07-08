@@ -1061,7 +1061,7 @@ const FaceRetouchOverlay: React.FC<FaceRetouchOverlayProps> = ({
         <div className="absolute top-4 right-4 bg-black/75 text-white text-sm p-3 rounded-lg max-w-xs"
              style={{ zIndex: 20, pointerEvents: 'none' }}>
           <p className="font-medium mb-1">CodeFormer Face Selection</p>
-          <p>Click on any blue face box to select it for CodeFormer enhancement. The full image will be processed.</p>
+          <p>Click on any blue face box to select it for Ailbums enhancement. The full image will be processed.</p>
         </div>
       )}
 
@@ -1073,7 +1073,7 @@ const FaceRetouchOverlay: React.FC<FaceRetouchOverlayProps> = ({
             {selectedFaceIndices.length} Face(s) Selected
           </p>
           <p className="text-xs opacity-90">
-            Ready for CodeFormer enhancement
+            Ready for Ailbums enhancement
           </p>
           {selectedFaceIndices.length > 1 && (
             <p className="text-xs opacity-90 mt-1">
@@ -1089,7 +1089,7 @@ const FaceRetouchOverlay: React.FC<FaceRetouchOverlayProps> = ({
                       bg-black/75 text-white text-sm p-4 rounded-lg text-center"
              style={{ zIndex: 20, pointerEvents: 'none' }}>
           <p className="font-medium mb-1">No Faces Detected</p>
-          <p>This photo doesn't have any detected faces to enhance with CodeFormer.</p>
+          <p>This photo doesn't have any detected faces to enhance with Ailbums.</p>
         </div>
       )}
     </div>

@@ -24,6 +24,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [retouchedImageUrl, setRetouchedImageUrl] = useState<string | null>(null);
+  const [retouchedImageBlob, setRetouchedImageBlob] = useState<Blob | null>(null);
   const [originalImageUrl] = useState(photo.url);
   const [processingProgress, setProcessingProgress] = useState<string>('');
   const [isMinimized, setIsMinimized] = useState(false);
@@ -100,6 +101,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
         const formData = new FormData();
         
         // Send the FULL original image (not cropped) - this is critical for CodeFormer
+          setRetouchedImageBlob(finalImageBlob);
         formData.append('file', currentImageFile);
         
         // Include the user's selected retouch fidelity value (w parameter for CodeFormer)
@@ -194,30 +196,55 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
   };
 
   const handleSave = () => {
-    if (retouchedImageUrl && onSave) {
-      onSave(retouchedImageUrl);
-      onClose();
+    if (!retouchedImageBlob) {
+      showToast('No enhanced image to save', 'warning');
+      return;
     }
-  };
-
-  const handleDownload = async () => {
-    if (!retouchedImageUrl) return;
     
     try {
-      const response = await fetch(retouchedImageUrl);
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      
+      // Create download link for local save
+      const url = URL.createObjectURL(retouchedImageBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `codeformer_enhanced_${photo.filename}`;
+      a.download = `enhanced_${photo.filename}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
-      showToast('CodeFormer enhanced image downloaded!', 'success');
+      // Update the dashboard UI with the enhanced image
+      if (retouchedImageUrl && onSave) {
+        onSave(retouchedImageUrl);
+      }
+      
+      showToast('Enhanced image saved to downloads and updated in dashboard!', 'success');
+      onClose();
     } catch (error) {
+      console.error('Failed to save enhanced image:', error);
+      showToast('Failed to save enhanced image', 'error');
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!retouchedImageBlob) {
+      showToast('No enhanced image to download', 'warning');
+      return;
+    }
+    
+    try {
+      const url = URL.createObjectURL(retouchedImageBlob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ailbums_enhanced_${photo.filename}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      showToast('Enhanced image downloaded!', 'success');
+    } catch (error) {
+      console.error('Download failed:', error);
       showToast('Failed to download enhanced image', 'error');
     }
   };
@@ -227,6 +254,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
       URL.revokeObjectURL(retouchedImageUrl);
     }
     setRetouchedImageUrl(null);
+    setRetouchedImageBlob(null);
     setSelectedFaceIndices([]);
     setSettings({
       fidelity: 0.7,
@@ -243,7 +271,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
         URL.revokeObjectURL(retouchedImageUrl);
       }
     };
-  }, [retouchedImageUrl]);
+  }, [retouchedImageUrl, retouchedImageBlob]);
 
   const currentImageUrl = settings.showPreview && retouchedImageUrl ? retouchedImageUrl : originalImageUrl;
 
@@ -500,16 +528,16 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                     <div className="flex space-x-2">
                       <button
                         onClick={handleSave}
-                        className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white 
+                        className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white 
                                  rounded flex items-center justify-center space-x-1 transition-colors duration-200 text-sm"
                       >
                         <Save className="h-3 w-3" />
-                        <span>Save</span>
+                        <span>Save & Update</span>
                       </button>
                       
                       <button
                         onClick={handleDownload}
-                        className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white 
+                        className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white 
                                  rounded flex items-center justify-center space-x-1 transition-colors duration-200 text-sm"
                       >
                         <Download className="h-3 w-3" />
@@ -762,8 +790,8 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                 <Sparkles className="h-5 w-5" />
                 <span>
                   {isProcessing 
-                    ? `CodeFormer Processing...` 
-                    : `CodeFormer Enhance ${selectedFaceIndices.length > 0 ? `(${selectedFaceIndices.length})` : ''}`
+                    ? `Ailbums Processing...` 
+                    : `Magic Retouch ${selectedFaceIndices.length > 0 ? `(${selectedFaceIndices.length})` : ''}`
                   }
                 </span>
               </button>
@@ -772,11 +800,11 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                 <div className="flex space-x-2">
                   <button
                     onClick={handleSave}
-                    className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white 
+                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white 
                              rounded-lg flex items-center justify-center space-x-2 transition-colors duration-200"
                   >
                     <Save className="h-4 w-4" />
-                    <span>Save</span>
+                    <span>Save & Update Dashboard</span>
                   </button>
                   
                   <button
@@ -785,12 +813,12 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                              rounded-lg flex items-center justify-center space-x-2 transition-colors duration-200"
                   >
                     <Download className="h-4 w-4" />
-                    <span>Download</span>
+                    <span>Save & Update</span>
                   </button>
                 </div>
               )}
 
-              <button
+                    className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white 
                 onClick={handleReset}
                 className="w-full px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg 
                          flex items-center justify-center space-x-2 transition-colors duration-200"
@@ -1061,7 +1089,7 @@ const FaceRetouchOverlay: React.FC<FaceRetouchOverlayProps> = ({
         <div className="absolute top-4 right-4 bg-black/75 text-white text-sm p-3 rounded-lg max-w-xs"
              style={{ zIndex: 20, pointerEvents: 'none' }}>
           <p className="font-medium mb-1">CodeFormer Face Selection</p>
-          <p>Click on any blue face box to select it for Ailbums enhancement. The full image will be processed.</p>
+          <p>Click on any blue face box to select it for enhancement. The full image will be processed.</p>
         </div>
       )}
 
@@ -1073,7 +1101,7 @@ const FaceRetouchOverlay: React.FC<FaceRetouchOverlayProps> = ({
             {selectedFaceIndices.length} Face(s) Selected
           </p>
           <p className="text-xs opacity-90">
-            Ready for Ailbums enhancement
+            Ready for enhancement
           </p>
           {selectedFaceIndices.length > 1 && (
             <p className="text-xs opacity-90 mt-1">
@@ -1089,7 +1117,7 @@ const FaceRetouchOverlay: React.FC<FaceRetouchOverlayProps> = ({
                       bg-black/75 text-white text-sm p-4 rounded-lg text-center"
              style={{ zIndex: 20, pointerEvents: 'none' }}>
           <p className="font-medium mb-1">No Faces Detected</p>
-          <p>This photo doesn't have any detected faces to enhance with Ailbums.</p>
+          <p>This photo doesn't have any detected faces to enhance.</p>
         </div>
       )}
     </div>

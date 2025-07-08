@@ -437,7 +437,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
               <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                 <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3 text-sm flex items-center space-x-2">
                   <Settings className="h-4 w-4" />
-                  <span>CodeFormer Settings</span>
+                  <span>Ailbums Settings</span>
                 </h4>
                 
                 <div className="space-y-3">

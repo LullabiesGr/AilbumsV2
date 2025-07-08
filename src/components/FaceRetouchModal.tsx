@@ -818,7 +818,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                 </div>
               )}
 
-                    className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white 
+              <button
                 onClick={handleReset}
                 className="w-full px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg 
                          flex items-center justify-center space-x-2 transition-colors duration-200"

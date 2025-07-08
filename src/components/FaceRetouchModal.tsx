@@ -78,122 +78,114 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
         }))
       });
 
-      // Prepare form data exactly as specified for CodeFormer backend
-      const formData = new FormData();
-      
-      // Send the FULL original image (not cropped) - this is critical for CodeFormer
-      formData.append('file', originalImageFile);
-      
-      // Include the user's selected retouch fidelity value (w parameter for CodeFormer)
-      formData.append('w', settings.fidelity.toString());
-      
-      // Include selected face indices for targeted enhancement
-      formData.append('selected_faces', JSON.stringify(selectedFaceIndices));
+      let finalImageBlob = null;
+      let currentImageFile = originalImageFile;
 
-      setProcessingProgress(`Enhancing ${selectedFaceIndices.length} face(s) with CodeFormer...`);
+      // Process each selected face sequentially
+      // CodeFormer will handle face detection and enhancement on the full image
+      for (let i = 0; i < selectedFaceIndices.length; i++) {
+        const faceIndex = selectedFaceIndices[i];
+        const selectedFace = photo.faces[faceIndex];
+        
+        // Face coordinates from AI analysis (already in original image coordinates)
+        const [x1, y1, x2, y2] = selectedFace.box;
+        
+        setProcessingProgress(`Enhancing face ${i + 1} of ${selectedFaceIndices.length} with CodeFormer...`);
 
-      console.log(`CodeFormer API Call:`, {
-        filename: photo.filename,
-        selectedFaces: selectedFaceIndices.length,
-        fidelity: settings.fidelity,
-        fileSize: originalImageFile.size,
-        fileType: originalImageFile.type
-      });
+        // For subsequent faces, use the result from the previous enhancement
+        if (finalImageBlob) {
+          currentImageFile = new File([finalImageBlob], photo.file.name, { type: photo.file.type });
+        }
 
         // Prepare form data exactly as specified for CodeFormer backend
-      // Call the /enhance endpoint for CodeFormer processing
-      const response = await fetch('https://11c3b7b3ac90.ngrok-free.app/enhance', {
-        method: 'POST',
-        body: formData,
-        mode: 'cors',
-        headers: {
-          'ngrok-skip-browser-warning': 'true'
-        }
-      });
+        const formData = new FormData();
+        
+        // Send the FULL original image (not cropped) - this is critical for CodeFormer
+          setRetouchedImageBlob(finalImageBlob);
+        formData.append('file', currentImageFile);
+        
+        // Include the user's selected retouch fidelity value (w parameter for CodeFormer)
+        formData.append('w', settings.fidelity.toString());
+        
+        // Optional: Include face coordinates if backend supports targeted enhancement
+        // These coordinates are in original image resolution
+        formData.append('x1', Math.round(x1).toString());
+        formData.append('y1', Math.round(y1).toString());
+        formData.append('x2', Math.round(x2).toString());
+        formData.append('y2', Math.round(y2).toString());
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('CodeFormer Enhancement API Error:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText,
-          requestDetails: {
-            filename: photo.filename,
-            fidelity: settings.fidelity,
-            selectedFaces: selectedFaceIndices.length
-          }
+        console.log(`CodeFormer API Call ${i + 1}/${selectedFaceIndices.length}:`, {
+          filename: photo.filename,
+          faceIndex: faceIndex + 1,
+          faceBox: [Math.round(x1), Math.round(y1), Math.round(x2), Math.round(y2)],
+          fidelity: settings.fidelity,
+          fileSize: currentImageFile.size,
+          fileType: currentImageFile.type
         });
-        throw new Error(`CodeFormer enhancement failed: ${errorText || `HTTP ${response.status}`}`);
-      }
 
-      // Wait a moment for the backend to save the file
-      setProcessingProgress('Finalizing enhancement...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Now fetch the enhanced image from the results folder
-      setProcessingProgress('Retrieving enhanced image...');
-      
-      // Generate the expected filename (backend should return this or we construct it)
-      const baseFilename = photo.filename.replace(/\.[^/.]+$/, ""); // Remove extension
-      const enhancedFilename = `${baseFilename}_enhanced.png`; // Or whatever naming convention backend uses
-      
-      const resultResponse = await fetch(`https://11c3b7b3ac90.ngrok-free.app/get-enhanced-result/${encodeURIComponent(enhancedFilename)}`, {
-        method: 'GET',
-        mode: 'cors',
-        headers: {
-          'ngrok-skip-browser-warning': 'true'
-        }
-      });
-
-      if (!resultResponse.ok) {
-        // Fallback: try with original filename
-        const fallbackResponse = await fetch(`https://11c3b7b3ac90.ngrok-free.app/get-enhanced-result/${encodeURIComponent(photo.filename)}`, {
-          method: 'GET',
+        // Call the /enhance endpoint for CodeFormer processing
+        const response = await fetch('https://11c3b7b3ac90.ngrok-free.app/enhance', {
+          method: 'POST',
+          body: formData,
           mode: 'cors',
           headers: {
             'ngrok-skip-browser-warning': 'true'
           }
         });
-        
-        if (!fallbackResponse.ok) {
-          throw new Error('Enhanced image not found in results folder. Please try again.');
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('CodeFormer Enhancement API Error:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorText,
+            faceIndex: faceIndex + 1,
+            requestDetails: {
+              filename: photo.filename,
+              fidelity: settings.fidelity,
+              faceBox: [x1, y1, x2, y2]
+            }
+          });
+          throw new Error(`CodeFormer enhancement failed for face ${faceIndex + 1}: ${errorText || `HTTP ${response.status}`}`);
         }
-        
-        const finalImageBlob = await fallbackResponse.blob();
+
+        finalImageBlob = await response.blob();
         if (!finalImageBlob || finalImageBlob.size === 0) {
-          throw new Error('Enhanced image file is empty');
+          throw new Error(`CodeFormer returned empty response for face ${faceIndex + 1}`);
         }
-        
-        setRetouchedImageBlob(finalImageBlob);
-      } else {
-        const finalImageBlob = await resultResponse.blob();
-        if (!finalImageBlob || finalImageBlob.size === 0) {
-          throw new Error('Enhanced image file is empty');
-        }
-        
-        setRetouchedImageBlob(finalImageBlob);
+
+        console.log(`CodeFormer face ${i + 1} enhanced successfully:`, {
+          originalSize: currentImageFile.size,
+          enhancedSize: finalImageBlob.size,
+          faceIndex: faceIndex + 1
+        });
+
+        // Update progress
+        showToast(`CodeFormer enhanced face ${i + 1} of ${selectedFaceIndices.length}`, 'info');
       }
 
-      // Clean up previous retouched image URL
-      if (retouchedImageUrl) {
-        URL.revokeObjectURL(retouchedImageUrl);
+      if (finalImageBlob) {
+        // Clean up previous retouched image URL
+        if (retouchedImageUrl) {
+          URL.revokeObjectURL(retouchedImageUrl);
+        }
+        
+        const retouchedUrl = URL.createObjectURL(finalImageBlob);
+        setRetouchedImageUrl(retouchedUrl);
+        setSettings(prev => ({ ...prev, showPreview: true }));
+        
+        console.log('CodeFormer Enhancement Complete:', {
+          originalFilename: photo.filename,
+          facesEnhanced: selectedFaceIndices.length,
+          finalImageSize: finalImageBlob.size,
+          fidelity: settings.fidelity
+        });
+        
+        showToast(
+          `CodeFormer successfully enhanced ${selectedFaceIndices.length} face(s) with fidelity ${settings.fidelity}!`, 
+          'success'
+        );
       }
-      
-      const retouchedUrl = URL.createObjectURL(retouchedImageBlob);
-      setRetouchedImageUrl(retouchedUrl);
-      setSettings(prev => ({ ...prev, showPreview: true }));
-      
-      console.log('CodeFormer Enhancement Complete:', {
-        originalFilename: photo.filename,
-        facesEnhanced: selectedFaceIndices.length,
-        finalImageSize: retouchedImageBlob.size,
-        fidelity: settings.fidelity
-      });
-      
-      showToast(
-        `CodeFormer successfully enhanced ${selectedFaceIndices.length} face(s) with fidelity ${settings.fidelity}!`, 
-        'success'
-      );
     } catch (error: any) {
       console.error('CodeFormer enhancement error:', error);
       showToast(error.message || 'CodeFormer enhancement failed', 'error');

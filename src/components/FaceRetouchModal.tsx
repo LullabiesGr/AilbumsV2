@@ -202,26 +202,16 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
     }
     
     try {
-      // Create download link for local save
-      const url = URL.createObjectURL(retouchedImageBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `enhanced_${photo.filename}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      // Update the dashboard UI with the enhanced image
+      // Update the dashboard UI with the enhanced image first
       if (retouchedImageUrl && onSave) {
         onSave(retouchedImageUrl);
       }
       
-      showToast('Enhanced image saved to downloads and updated in dashboard!', 'success');
+      showToast('Enhanced image updated in dashboard!', 'success');
       onClose();
     } catch (error) {
       console.error('Failed to save enhanced image:', error);
-      showToast('Failed to save enhanced image', 'error');
+      showToast('Failed to update dashboard', 'error');
     }
   };
 

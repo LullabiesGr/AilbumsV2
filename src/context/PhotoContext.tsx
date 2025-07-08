@@ -808,7 +808,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     return photos.filter(photo => photo.selected);
   }, [photos]);
 
-  const value: PhotoContextType = {
+  const value: PhotoContextType = useMemo(() => ({
     photos,
     filteredPhotos,
     duplicateClusters,
@@ -865,7 +865,64 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     saveAlbumAndTrainAI,
     markDuplicateAsKeep,
     deleteDuplicateGroup
-  };
+  }), [
+    photos,
+    filteredPhotos,
+    duplicateClusters,
+    personGroups,
+    albums,
+    currentAlbum,
+    isLoading,
+    isUploading,
+    isAnalyzing,
+    isFindingDuplicates,
+    analysisProgress,
+    showAnalysisOverlay,
+    setShowAnalysisOverlay,
+    workflowStage,
+    setWorkflowStage,
+    eventType,
+    cullingMode,
+    viewMode,
+    filterOption,
+    captionFilter,
+    starRatingFilter,
+    selectedPersonGroup,
+    setCaptionFilter,
+    setStarRatingFilter,
+    setSelectedPersonGroup,
+    uploadPhotos,
+    handleEventTypeChange,
+    setCullingMode,
+    startAnalysis,
+    startBackgroundAnalysis,
+    findDuplicates,
+    groupPeopleByFaces,
+    resetWorkflow,
+    deletePhoto,
+    cullPhoto,
+    cullAllPhotos,
+    updatePhotoUrl,
+    setViewMode,
+    setFilterOption,
+    togglePhotoSelection,
+    selectAllPhotos,
+    deselectAllPhotos,
+    selectedPhotos,
+    updatePhotoScore,
+    updatePhotoColorLabel,
+    markPhotoAsKeep,
+    markPhotoAsReject,
+    createAlbum,
+    deleteAlbum,
+    updateAlbum,
+    setCurrentAlbum,
+    addPhotosToAlbum,
+    removePhotosFromAlbum,
+    saveAlbumAndTrainAI,
+    markDuplicateAsKeep,
+    deleteDuplicateGroup
+  ]);
 
   return <PhotoContext.Provider value={value}>{children}</PhotoContext.Provider>;
 };

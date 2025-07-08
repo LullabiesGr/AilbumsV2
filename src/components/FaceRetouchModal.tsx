@@ -101,7 +101,6 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
         const formData = new FormData();
         
         // Send the FULL original image (not cropped) - this is critical for CodeFormer
-          setRetouchedImageBlob(finalImageBlob);
         formData.append('file', currentImageFile);
         
         // Include the user's selected retouch fidelity value (w parameter for CodeFormer)
@@ -165,6 +164,9 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
       }
 
       if (finalImageBlob) {
+        // Store the blob for download functionality
+        setRetouchedImageBlob(finalImageBlob);
+        
         // Clean up previous retouched image URL
         if (retouchedImageUrl) {
           URL.revokeObjectURL(retouchedImageUrl);
@@ -182,13 +184,13 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
         });
         
         showToast(
-          `CodeFormer successfully enhanced ${selectedFaceIndices.length} face(s) with fidelity ${settings.fidelity}!`, 
+          `Successfully enhanced ${selectedFaceIndices.length} face(s) with fidelity ${settings.fidelity}!`, 
           'success'
         );
       }
     } catch (error: any) {
       console.error('CodeFormer enhancement error:', error);
-      showToast(error.message || 'CodeFormer enhancement failed', 'error');
+      showToast(error.message || 'Face enhancement failed', 'error');
     } finally {
       setIsProcessing(false);
       setProcessingProgress('');
@@ -196,19 +198,20 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
   };
 
   const handleSave = () => {
-    if (!retouchedImageBlob) {
-      showToast('No enhanced image to save', 'warning');
+    if (!retouchedImageUrl || !retouchedImageBlob) {
+      showToast('No enhanced image available to save', 'warning');
       return;
     }
     
     try {
-      // Update the dashboard UI with the enhanced image first
-      if (retouchedImageUrl && onSave) {
+      // Call the onSave callback to update the dashboard
+      if (onSave) {
         onSave(retouchedImageUrl);
+        showToast('Enhanced image updated in dashboard!', 'success');
+        onClose();
+      } else {
+        showToast('Save function not available', 'error');
       }
-      
-      showToast('Enhanced image updated in dashboard!', 'success');
-      onClose();
     } catch (error) {
       console.error('Failed to save enhanced image:', error);
       showToast('Failed to update dashboard', 'error');
@@ -527,11 +530,11 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                       
                       <button
                         onClick={handleDownload}
-                        className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white 
+                        className="flex-1 px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white 
                                  rounded flex items-center justify-center space-x-1 transition-colors duration-200 text-sm"
                       >
                         <Download className="h-3 w-3" />
-                        <span>Download</span>
+                        <span>Download Only</span>
                       </button>
                     </div>
                   )}
@@ -799,11 +802,11 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                   
                   <button
                     onClick={handleDownload}
-                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white 
+                    className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white 
                              rounded-lg flex items-center justify-center space-x-2 transition-colors duration-200"
                   >
                     <Download className="h-4 w-4" />
-                    <span>Save & Update</span>
+                    <span>Download Only</span>
                   </button>
                 </div>
               )}

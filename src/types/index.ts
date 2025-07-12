@@ -151,8 +151,7 @@ export type CullingMode = 'fast' | 'slow' | 'manual';
 
 export type EventType = 'wedding' | 'baptism' | 'portrait' | 'event' | 'landscape' | 'family' | 'corporate';
 
-export type WorkflowStage = 'upload' | 'configure' | 'analyzing' | 'review';
-export type WorkflowStage = 'upload' | 'configure' | 'analyzing' | 'review' | 'face-retouch';
+export type WorkflowStage = 'upload' | 'configure' | 'analyzing' | 'review' | 'face-retouch' | 'ai-edit';
 
 export interface ColorLabelConfig {
   color: ColorLabel;

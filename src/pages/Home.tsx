@@ -17,7 +17,7 @@ import AlbumSelector from '../components/AlbumSelector';
 import AnalysisOverlay from '../components/AnalysisOverlay';
 import Sidebar from '../components/Sidebar';
 import FaceRetouchModal from '../components/FaceRetouchModal';
-import { Play, RotateCcw, Brain, Copy, Users, Grid, List, Sparkles, ArrowLeft } from 'lucide-react';
+import { Play, RotateCcw, Brain, Copy, Users, Grid, List, Sparkles, ArrowLeft, Wand2 } from 'lucide-react';
 
 const Home: React.FC = () => {
   const { 
@@ -260,6 +260,108 @@ const Home: React.FC = () => {
           </div>
         );
 
+      case 'ai-edit':
+        return (
+          <div className="space-y-6">
+            {/* Visual Separation */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-100 via-purple-100 to-blue-100 
+                            dark:from-blue-900/20 dark:via-purple-900/20 dark:to-blue-900/20 rounded-lg" />
+              <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg border-2 
+                            border-blue-200 dark:border-blue-800 p-6">
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full 
+                                flex items-center justify-center mx-auto mb-4">
+                    <Wand2 className="h-8 w-8 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 
+                               bg-clip-text text-transparent">
+                    AI Edit & Relighting Studio
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                    Transform your photos with advanced AI editing and relighting powered by FAL.AI. 
+                    Remove backgrounds, enhance lighting, and apply creative effects with simple text prompts.
+                  </p>
+                </div>
+
+                {/* Navigation */}
+                <div className="flex items-center justify-between mb-6">
+                  <button
+                    onClick={() => setWorkflowStage('review')}
+                    className="flex items-center space-x-2 px-4 py-2 bg-gray-500 hover:bg-gray-600 
+                             text-white rounded-lg transition-colors duration-200"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Back to Review</span>
+                  </button>
+                  
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    {photos.length} photos available for AI editing
+                  </div>
+                </div>
+
+                {/* Instructions */}
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/30 
+                              dark:to-purple-900/30 border border-blue-200 dark:border-blue-700 
+                              rounded-lg p-4 mb-6">
+                  <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                    How AI Edit & Relight Works:
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-4 text-sm text-blue-700 dark:text-blue-300">
+                    <div>
+                      <h4 className="font-medium mb-1">AI Edit Mode:</h4>
+                      <ul className="space-y-1">
+                        <li>• Remove or change backgrounds</li>
+                        <li>• Enhance colors and contrast</li>
+                        <li>• Apply artistic effects</li>
+                        <li>• Creative transformations</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-medium mb-1">AI Relight Mode:</h4>
+                      <ul className="space-y-1">
+                        <li>• Change lighting conditions</li>
+                        <li>• Add golden hour effects</li>
+                        <li>• Adjust mood and atmosphere</li>
+                        <li>• Professional lighting setups</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <AlbumSelector />
+            <ActionBar />
+            
+            {/* Enhanced Gallery for AI Editing */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Photos Available for AI Editing ({photos.length})
+                </h3>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Click "AI Edit" button on any photo to start
+                </div>
+              </div>
+              
+              {photos.length === 0 ? (
+                <div className="text-center py-12">
+                  <Wand2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                    No Photos Available
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Upload photos first to start AI editing and relighting.
+                  </p>
+                </div>
+              ) : (
+                <Gallery />
+              )}
+            </div>
+          </div>
+        );
+
       case 'review':
         return (
           <div className="space-y-6">
@@ -348,6 +450,35 @@ const Home: React.FC = () => {
                 </div>
               </div>
             )}
+            
+            {/* AI Edit & Relight Step Button */}
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 
+                          dark:to-purple-900/20 border-2 border-dashed border-blue-300 
+                          dark:border-blue-700 rounded-lg p-6 text-center">
+              <div className="flex items-center justify-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full 
+                              flex items-center justify-center">
+                  <Wand2 className="h-6 w-6 text-white" />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                    AI Edit & Relighting Available
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Transform your photos with advanced AI editing and relighting
+                  </p>
+                </div>
+                <button
+                  onClick={() => setWorkflowStage('ai-edit')}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 
+                           hover:from-blue-700 hover:to-purple-700 text-white rounded-lg 
+                           flex items-center space-x-2 transition-all duration-200 font-medium"
+                >
+                  <Wand2 className="h-5 w-5" />
+                  <span>Enter AI Edit Mode</span>
+                </button>
+              </div>
+            </div>
             
             {/* Tab Navigation */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md">

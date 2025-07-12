@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Eye, Scissors, Edit, Trash2, X, CheckCheck, Wand2, Check, Lightbulb, Copy, Sparkles as SparklesIcon,
+import { Eye, Scissors, Edit, Trash2, X, CheckCheck, Wand2, Check, Lightbulb, Copy, Sparkles as SparklesIcon, Palette,
          AlertCircle, Smile, EyeOff, Users, Sparkles, Flag, Heart, Frown, Meh } from 'lucide-react';
 import { usePhoto } from '../context/PhotoContext';
 import ImageModal from './ImageModal';
 import StarRating from './StarRating';
 import InpaintModal from './InpaintModal';
 import FaceRetouchModal from './FaceRetouchModal';
+import AIEditModal from './AIEditModal';
 import ColorLabelIndicator from './ColorLabelIndicator';
 import FaceOverlay from './FaceOverlay';
 import { Photo } from '../types';
@@ -22,6 +23,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
   const [showModal, setShowModal] = useState(false);
   const [showInpaintModal, setShowInpaintModal] = useState(false);
   const [showFaceRetouchModal, setShowFaceRetouchModal] = useState(false);
+  const [showAIEditModal, setShowAIEditModal] = useState(false);
   const { deletePhoto, cullPhoto, togglePhotoSelection, updatePhotoScore, updatePhotoUrl } = usePhoto();
   const { showToast } = useToast();
   const [showTip, setShowTip] = useState(false);
@@ -113,6 +115,12 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
     // Update the photo URL with the enhanced version in the dashboard
     updatePhotoUrl(photo.id, retouchedImageUrl);
     showToast('Enhanced photo updated in dashboard!', 'success');
+  };
+
+  const handleSaveEditedPhoto = (editedImageUrl: string) => {
+    // Update the photo URL with the edited version in the dashboard
+    updatePhotoUrl(photo.id, editedImageUrl);
+    showToast('AI edited photo updated in dashboard!', 'success');
   };
 
   // Get face summary badges
@@ -245,6 +253,18 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
                 style={{ zIndex: 15 }}
               >
                 <Wand2 className="h-5 w-5" />
+              </button>
+              <button 
+                className="p-1.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-white 
+                         hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowAIEditModal(true);
+                }}
+                title="AI Edit & Relight"
+                style={{ zIndex: 15 }}
+              >
+                <Palette className="h-5 w-5" />
               </button>
               <button className="p-1.5 bg-red-600 rounded-full text-white hover:bg-red-700 transition-colors" 
                       onClick={handleDelete} style={{ zIndex: 15 }}>
@@ -610,6 +630,17 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
               {icon}
             </div>
           ) : null;
+          <button 
+            className="p-1.5 text-blue-500 hover:text-blue-700" 
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowAIEditModal(true);
+            }}
+            title="AI Edit & Relight"
+            style={{ zIndex: 15 }}
+          >
+            <Palette className="h-4 w-4" />
+          </button>
         })}
         {photo.face_summary && photo.face_summary.total_faces > 0 && (
           <div className="p-1 rounded-full bg-black/50 backdrop-blur-sm flex items-center">
@@ -663,6 +694,18 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             >
               <SparklesIcon className="h-3 w-3" />
             </button>
+            <button 
+              className="p-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded text-white text-xs 
+                       hover:from-blue-700 hover:to-purple-700 transition-all duration-200 ml-1" 
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowAIEditModal(true);
+              }}
+              title="AI Edit & Relight"
+              style={{ zIndex: 15 }}
+            >
+              <Palette className="h-3 w-3" />
+            </button>
           )}
           <button 
             className="p-1 bg-purple-600 rounded text-white text-xs hover:bg-purple-700 transition-colors ml-1" 
@@ -706,6 +749,27 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             photo={photo} 
             onClose={() => setShowFaceRetouchModal(false)}
             onSave={handleSaveRetouchedPhoto}
+          />
+        )}
+        {showAIEditModal && (
+          <AIEditModal 
+            photo={photo} 
+            onClose={() => setShowAIEditModal(false)}
+            onSave={handleSaveEditedPhoto}
+          />
+        )}
+        {showAIEditModal && (
+          <AIEditModal 
+            photo={photo} 
+            onClose={() => setShowAIEditModal(false)}
+            onSave={handleSaveEditedPhoto}
+          />
+        )}
+        {showAIEditModal && (
+          <AIEditModal 
+            photo={photo} 
+            onClose={() => setShowAIEditModal(false)}
+            onSave={handleSaveEditedPhoto}
           />
         )}
       </div>

@@ -771,3 +771,62 @@ export const batchAutofix = async (files: File[]): Promise<BatchResult[]> => {
     throw error instanceof Error ? error : new Error(error.toString());
   }
 };
+
+// AI Edit & Relighting endpoints
+export const falEdit = async (file: File, prompt: string): Promise<{ result_url: string; full_response: any }> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('prompt', prompt);
+
+  try {
+    const response = await fetch(`${API_URL}/fal-edit`, {
+      method: 'POST',
+      body: formData,
+      mode: 'cors',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Failed to process AI edit');
+    }
+
+    const result = await response.json();
+    if (!result.result_url) {
+      throw new Error('Invalid response: missing result_url');
+    }
+    
+    return result;
+  } catch (error: any) {
+    console.error('FAL Edit error:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};
+
+export const falRelight = async (file: File, prompt: string): Promise<{ result_url: string; full_response: any }> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('prompt', prompt);
+
+  try {
+    const response = await fetch(`${API_URL}/fal-relight`, {
+      method: 'POST',
+      body: formData,
+      mode: 'cors',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Failed to process AI relight');
+    }
+
+    const result = await response.json();
+    if (!result.result_url) {
+      throw new Error('Invalid response: missing result_url');
+    }
+    
+    return result;
+  } catch (error: any) {
+    console.error('FAL Relight error:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};

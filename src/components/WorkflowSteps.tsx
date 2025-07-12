@@ -12,7 +12,8 @@ const WorkflowSteps: React.FC<WorkflowStepsProps> = ({ currentStage }) => {
     { id: 'configure', label: 'Configure', icon: Settings },
     { id: 'analyzing', label: 'AI Analysis', icon: Brain },
     { id: 'review', label: 'Review & Cull', icon: Eye },
-    { id: 'face-retouch', label: 'Face Retouch', icon: Sparkles, separated: true }
+    { id: 'face-retouch', label: 'Face Retouch', icon: Sparkles, separated: true },
+    { id: 'ai-edit', label: 'Edit & Relight', icon: Sparkles, separated: false }
   ];
 
   const getStepStatus = (stepId: string) => {

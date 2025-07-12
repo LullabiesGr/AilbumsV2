@@ -31,6 +31,25 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
   const [isLoadingTip, setIsLoadingTip] = useState(false);
   const [showFaceOverlay, setShowFaceOverlay] = useState(false);
 
+  // Get border color based on color label (Aftershoot style)
+  const getBorderColor = () => {
+    if (!photo.color_label) return 'border-gray-200 dark:border-gray-700';
+    
+    switch (photo.color_label) {
+      case 'green':
+        return 'border-green-500 border-4 shadow-green-500/30 shadow-lg';
+      case 'red':
+        return 'border-red-500 border-4 shadow-red-500/30 shadow-lg';
+      case 'yellow':
+        return 'border-yellow-500 border-4 shadow-yellow-500/30 shadow-lg';
+      case 'blue':
+        return 'border-blue-500 border-4 shadow-blue-500/30 shadow-lg';
+      case 'purple':
+        return 'border-purple-500 border-4 shadow-purple-500/30 shadow-lg';
+      default:
+        return 'border-gray-200 dark:border-gray-700';
+    }
+  };
   const getTagIcon = (tag: string) => {
     switch (tag) {
       case 'blurry':
@@ -391,7 +410,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
 
   const renderListCard = () => (
     <div
-      className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-all duration-200 hover:shadow-lg flex"
+      className={`bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-all duration-200 hover:shadow-lg flex border-2 ${getBorderColor()}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -550,7 +569,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
 
   const renderCompactCard = () => (
     <div
-      className="relative bg-white dark:bg-gray-800 rounded-md shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md group"
+      className={`relative bg-white dark:bg-gray-800 rounded-md shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md group border-2 ${getBorderColor()}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -728,7 +747,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
     case 'grid':
     default: return (
       <div
-        className="relative bg-white dark:bg-gray-800 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg"
+        className={`relative bg-white dark:bg-gray-800 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg border-2 ${getBorderColor()}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >

@@ -97,18 +97,15 @@ const AIEditModal: React.FC<AIEditModalProps> = ({ photo, onClose, onSave }) => 
   };
 
   const handleSave = () => {
-    if (!editResult?.result_url) {
+    if (!editResult?.result_url || !onSave) {
       showToast('No edited image available to save', 'warning');
       return;
     }
     
     try {
-      if (onSave) {
-        onSave(editResult.result_url);
-        onClose();
-      } else {
-        showToast('Save function not available', 'error');
-      }
+      onSave(editResult.result_url);
+      onClose();
+      showToast('AI edited image updated in dashboard!', 'success');
     } catch (error) {
       console.error('Failed to save edited image:', error);
       showToast('Failed to update dashboard', 'error');
@@ -378,7 +375,7 @@ const AIEditModal: React.FC<AIEditModalProps> = ({ photo, onClose, onSave }) => 
           {editResult && (
             <div className="p-6 border-b border-gray-200 dark:border-gray-700">
               <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">
-                Processing Result
+                {editResult.mode === 'edit' ? 'AI Edit' : 'AI Relight'} Result
               </h4>
               <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 
                             rounded-lg p-3">
@@ -392,7 +389,7 @@ const AIEditModal: React.FC<AIEditModalProps> = ({ photo, onClose, onSave }) => 
                   Prompt: "{editResult.prompt}"
                 </p>
                 <p className="text-xs text-green-600 dark:text-green-400">
-                  Use the slider above to compare before and after
+                  Use the slider to compare before and after, then save or download
                 </p>
               </div>
             </div>
@@ -426,10 +423,12 @@ const AIEditModal: React.FC<AIEditModalProps> = ({ photo, onClose, onSave }) => 
                   <button
                     onClick={handleSave}
                     className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white 
-                             rounded-lg flex items-center justify-center space-x-2 transition-colors duration-200"
+                             rounded-lg flex items-center justify-center space-x-2 transition-colors duration-200
+                             disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!onSave}
                   >
                     <Save className="h-4 w-4" />
-                    <span>Save & Update</span>
+                    <span>Save & Update Dashboard</span>
                   </button>
                   
                   <button
@@ -438,7 +437,7 @@ const AIEditModal: React.FC<AIEditModalProps> = ({ photo, onClose, onSave }) => 
                              rounded-lg flex items-center justify-center space-x-2 transition-colors duration-200"
                   >
                     <Download className="h-4 w-4" />
-                    <span>Download</span>
+                    <span>Download Only</span>
                   </button>
                 </div>
               )}

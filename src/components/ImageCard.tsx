@@ -674,6 +674,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             </div>
           </button>
           {photo.faces && photo.faces.length > 0 && (
+            <>
             <button 
               className="p-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded text-white text-xs 
                        hover:from-purple-700 hover:to-pink-700 transition-all duration-200 ml-1" 
@@ -695,6 +696,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             >
               <Palette className="h-3 w-3" />
             </button>
+            </>
           )}
           <button 
             className="p-1 bg-purple-600 rounded text-white text-xs hover:bg-purple-700 transition-colors ml-1" 

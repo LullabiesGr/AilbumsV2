@@ -630,17 +630,6 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
               {icon}
             </div>
           ) : null;
-          <button 
-            className="p-1.5 text-blue-500 hover:text-blue-700" 
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowAIEditModal(true);
-            }}
-            title="AI Edit & Relight"
-            style={{ zIndex: 15 }}
-          >
-            <Palette className="h-4 w-4" />
-          </button>
         })}
         {photo.face_summary && photo.face_summary.total_faces > 0 && (
           <div className="p-1 rounded-full bg-black/50 backdrop-blur-sm flex items-center">

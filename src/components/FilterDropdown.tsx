@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Filter, ChevronDown, Star, AlertCircle, EyeOff, Copy, Users, Heart, AlertTriangle } from 'lucide-react';
 import { usePhoto } from '../context/PhotoContext';
 
-type FilterOption = 'all' | 'high-score' | 'blurry' | 'eyes-closed' | 'duplicates' | 'people' | 'emotions' | 'quality-issues';
+type FilterOption = 'all' | 'high-score' | 'approved' | 'not-approved' | 'blurry' | 'eyes-closed' | 'duplicates' | 'people' | 'emotions' | 'quality-issues';
 
 interface FilterItem {
   value: FilterOption;
@@ -12,7 +12,9 @@ interface FilterItem {
 
 const filterOptions: FilterItem[] = [
   { value: 'all', label: 'Show All', icon: <Filter className="h-4 w-4" /> },
-  { value: 'high-score', label: 'AI Score > 8', icon: <Star className="h-4 w-4" /> },
+  { value: 'high-score', label: 'High Score (7+)', icon: <Star className="h-4 w-4" /> },
+  { value: 'approved', label: 'Backend Approved', icon: <Check className="h-4 w-4" /> },
+  { value: 'not-approved', label: 'Not Approved', icon: <X className="h-4 w-4" /> },
   { value: 'people', label: 'With People', icon: <Users className="h-4 w-4" /> },
   { value: 'emotions', label: 'With Emotions', icon: <Heart className="h-4 w-4" /> },
   { value: 'blurry', label: 'Blurry', icon: <AlertCircle className="h-4 w-4" /> },

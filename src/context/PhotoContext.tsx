@@ -757,7 +757,11 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       case 'selected':
         return filtered.filter(photo => photo.selected);
       case 'high-score':
-        return filtered.filter(photo => photo.ai_score > 8);
+        return filtered.filter(photo => photo.ai_score >= 7); // Backend logic: green = 7+
+      case 'approved':
+        return filtered.filter(photo => photo.approved === true);
+      case 'not-approved':
+        return filtered.filter(photo => photo.approved === false);
       case 'highlights':
         return filtered.filter(photo => photo.blip_highlights && photo.blip_highlights.length > 0);
       case 'flagged':

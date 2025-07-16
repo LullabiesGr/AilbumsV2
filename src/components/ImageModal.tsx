@@ -799,6 +799,48 @@ const ImageModal: React.FC<ImageModalProps> = ({ photo, onClose }) => {
                   ))}
                 </div>
               )}
+              
+              {/* Backend Approval Status */}
+              {photo.approved !== undefined && (
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-300">Backend Status:</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
+                    photo.approved 
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                      : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                  }`}>
+                    {photo.approved ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                    {photo.approved ? 'Approved' : 'Not Approved'}
+                  </span>
+                </div>
+              )}
+              
+              {/* Deep Prompts Reasoning */}
+              {photo.deep_prompts && Object.keys(photo.deep_prompts).length > 0 && (
+                <div className="space-y-2">
+                  <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    AI Analysis Reasoning:
+                  </h5>
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 space-y-2 max-h-40 overflow-y-auto">
+                    {Object.entries(photo.deep_prompts).map(([question, answer], index) => (
+                      <div key={index} className="text-xs">
+                        <div className="font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Q: {question}
+                        </div>
+                        <div className={`pl-2 border-l-2 ${
+                          answer.toLowerCase().includes('no') || answer.toLowerCase().includes('bad') || answer.toLowerCase().includes('poor')
+                            ? 'border-red-300 text-red-700 dark:text-red-300'
+                            : answer.toLowerCase().includes('yes') || answer.toLowerCase().includes('good') || answer.toLowerCase().includes('excellent')
+                            ? 'border-green-300 text-green-700 dark:text-green-300'
+                            : 'border-gray-300 text-gray-600 dark:text-gray-400'
+                        }`}>
+                          A: {answer}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

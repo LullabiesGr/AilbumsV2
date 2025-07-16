@@ -17,24 +17,24 @@ interface ColorLabelIndicatorProps {
 const colorLabelConfigs: Record<ColorLabel, ColorLabelConfig> = {
   green: {
     color: 'green',
-    label: 'Approved',
+    label: 'High Score (7+)',
     bgColor: 'bg-green-500',
     textColor: 'text-green-500',
-    description: 'Approved/Keep'
+    description: 'High quality (7+ score)'
   },
   red: {
     color: 'red',
-    label: 'Rejected',
+    label: 'Low Score (<4)',
     bgColor: 'bg-red-500',
     textColor: 'text-red-500',
-    description: 'Rejected'
+    description: 'Low quality or issues'
   },
   yellow: {
     color: 'yellow',
-    label: 'Review',
+    label: 'Needs Review',
     bgColor: 'bg-yellow-500',
     textColor: 'text-yellow-500',
-    description: 'Needs Review'
+    description: 'Special cases (closed eyes, warnings)'
   },
   blue: {
     color: 'blue',
@@ -45,10 +45,10 @@ const colorLabelConfigs: Record<ColorLabel, ColorLabelConfig> = {
   },
   purple: {
     color: 'purple',
-    label: 'Duplicate',
+    label: 'Duplicates',
     bgColor: 'bg-purple-500',
     textColor: 'text-purple-500',
-    description: 'Duplicate'
+    description: 'Duplicate photos'
   }
 };
 

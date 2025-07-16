@@ -260,7 +260,9 @@ export const analyzeSinglePhoto = async (photo: Photo, userId: string, eventType
         event_type: result.event_type,
         color_label: result.color_label,
         blip_flags: result.blip_flags || [],
-        blip_highlights: result.blip_highlights || []
+        blip_highlights: result.blip_highlights || [],
+        deep_prompts: result.deep_prompts || {}, // Dynamic prompts from backend
+        approved: result.approved // Backend-determined approval
       };
     }
     
@@ -425,7 +427,8 @@ export const deepAnalyzeSinglePhoto = async (photo: Photo, userId: string, event
         color_label: result.color_label,
         blip_flags: result.blip_flags || [],
         blip_highlights: result.blip_highlights || [],
-        prompt_answers: result.prompt_answers || {},
+        deep_prompts: result.deep_prompts || {}, // Dynamic prompts from backend
+        approved: result.approved, // Backend-determined approval
         ai_categories: result.ai_categories || []
       };
     }

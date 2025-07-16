@@ -19,8 +19,9 @@ export interface Photo {
   event_type?: EventType;
   blip_flags?: string[];
   blip_highlights?: string[];
-  prompt_answers?: Record<string, string>;
+  deep_prompts?: Record<string, string>; // Dynamic prompts from backend
   ai_categories?: string[];
+  approved?: boolean; // Backend-determined approval status
   dateCreated: string;
   selected?: boolean;
   albumId?: string;

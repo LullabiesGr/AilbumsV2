@@ -12,7 +12,9 @@ const Sidebar = () => {
   const filterStats = {
     all: photos.length,
     selected: selectedPhotos.length,
-    'high-score': photos.filter(p => p.ai_score > 8).length,
+    'high-score': photos.filter(p => p.ai_score >= 7).length, // Backend logic: green = 7+
+    approved: photos.filter(p => p.approved === true).length,
+    'not-approved': photos.filter(p => p.approved === false).length,
     highlights: photos.filter(p => p.blip_highlights && p.blip_highlights.length > 0).length,
     flagged: photos.filter(p => p.blip_flags && p.blip_flags.length > 0).length,
     blurry: photos.filter(p => p.tags?.includes('blurry')).length,
@@ -29,7 +31,9 @@ const Sidebar = () => {
   const filterButtons = [
     { id: 'all' as const, label: 'All Photos', icon: Filter },
     { id: 'selected' as const, label: 'Selected', icon: ChevronRight },
-    { id: 'high-score' as const, label: 'Highlights', icon: Star },
+    { id: 'high-score' as const, label: 'High Score (7+)', icon: Star },
+    { id: 'approved' as const, label: 'Backend Approved', icon: Check },
+    { id: 'not-approved' as const, label: 'Not Approved', icon: X },
     { id: 'highlights' as const, label: 'Event Highlights', icon: Sparkles },
     { id: 'flagged' as const, label: 'Flagged Issues', icon: Flag },
     { id: 'blurry' as const, label: 'Blurred', icon: AlertCircle },
@@ -208,8 +212,12 @@ const Sidebar = () => {
             <span className="font-medium">{selectedPhotos.length}</span>
           </div>
           <div className="flex justify-between text-gray-300">
+            <span>Backend Approved</span>
+            <span className="font-medium text-green-400">{filterStats.approved}</span>
+          </div>
+          <div className="flex justify-between text-gray-300">
             <span>Highlights</span>
-           <span className="font-medium">{filterStats['high-score']}</span>
+            <span className="font-medium">{filterStats['high-score']}</span>
           </div>
           {(starRatingFilter.min !== null || starRatingFilter.max !== null) && (
             <div className="flex justify-between text-gray-300">

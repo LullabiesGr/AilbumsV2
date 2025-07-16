@@ -273,21 +273,21 @@ const AnalysisOverlay: React.FC<AnalysisOverlayProps> = ({ isVisible, onClose })
           <div className="grid grid-cols-3 gap-3 text-center">
             <div>
               <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                {photos.filter(p => p.ai_score > 8).length}
+                {photos.filter(p => p.ai_score >= 7).length}
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400">High Score</div>
+            </div>
+            <div>
+              <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                {photos.filter(p => p.approved === true).length}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Approved</div>
             </div>
             <div>
               <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
                 {photos.filter(p => p.faces && p.faces.length > 0).length}
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400">With Faces</div>
-            </div>
-            <div>
-              <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                {photos.filter(p => p.tags?.includes('blurry')).length}
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Blurry</div>
             </div>
           </div>
         </div>

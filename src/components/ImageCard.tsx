@@ -222,6 +222,11 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
               {tip}
             </div>
           )}
+          {photo.approved && (
+            <div className="p-1 bg-green-500 rounded-full" title="Backend approved">
+              <Check className="h-3 w-3 text-white" />
+            </div>
+          )}
           <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center transition-opacity duration-200">
             <div className="flex space-x-2">
               <button className="p-1.5 bg-white rounded-full text-gray-900 hover:bg-gray-200 transition-colors" onClick={() => setShowModal(true)}>
@@ -376,6 +381,12 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
               {category}
             </span>
           ))}
+          {photo.approved && (
+            <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs rounded font-medium flex items-center gap-1">
+              <Check className="h-3 w-3" />
+              Approved
+            </span>
+          )}
           {photo.tags?.map((tag, index) => {
             const icon = getTagIcon(tag);
             return icon ? (
@@ -476,6 +487,12 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
               <div className="flex items-center gap-1">
                 <Copy className="h-3 w-3 text-orange-500" />
                 <span className="text-xs text-orange-600 dark:text-orange-400">Duplicate</span>
+              </div>
+            )}
+            {photo.approved && (
+              <div className="flex items-center gap-1">
+                <Check className="h-3 w-3 text-green-500" />
+                <span className="text-xs text-green-600 dark:text-green-400">Approved</span>
               </div>
             )}
             {photo.blip_highlights && photo.blip_highlights.length > 0 && (

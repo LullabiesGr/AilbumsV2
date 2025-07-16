@@ -379,17 +379,23 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             editable={true}
           />
           {getFaceSummaryBadges()}
-          {photo.blip_highlights && photo.blip_highlights.map((highlight, index) => (
-            <span 
-              key={`highlight-${index}`}
-              className="px-2 py-1 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-xs rounded-full font-medium flex items-center gap-1 shadow-sm"
-              title="Event highlight"
-            >
-              {getHighlightIcon(highlight)}
-              {cleanTagLabel(highlight)}
-            </span>
-          ))}
         </div>
+        
+        {/* Event Highlights - Separate row with visual separation */}
+        {(photo.blip_highlights && photo.blip_highlights.length > 0) && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {photo.blip_highlights.map((highlight, index) => (
+              <span 
+                key={`highlight-${index}`}
+                className="px-2 py-1 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-xs rounded-full font-medium flex items-center gap-1 shadow-sm"
+                title="Event highlight"
+              >
+                {getHighlightIcon(highlight)}
+                {cleanTagLabel(highlight)}
+              </span>
+            ))}
+          </div>
+        )}
         
         {/* Secondary Tags - Separate row with visual separation */}
         {(photo.tags && photo.tags.length > 0) && (
@@ -423,8 +429,6 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             >
               <Flag className="h-3 w-3" />
               {cleanTagLabel(flag)}
-            </span>
-          ))}
           {photo.ai_categories && photo.ai_categories.map((category, index) => (
             <span 
               key={`category-${index}`}
@@ -543,26 +547,46 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
               </div>
             )}
           </div>
+          
+          {/* Event Highlights in List View */}
+          {(photo.blip_highlights && photo.blip_highlights.length > 0) && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {photo.blip_highlights.slice(0, 2).map((highlight, index) => (
+                <span 
+                  key={`highlight-${index}`}
+                  className="px-2 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-xs rounded-full font-medium flex items-center gap-1"
+                >
+                  {getHighlightIcon(highlight)}
+                  {cleanTagLabel(highlight)}
+                </span>
+              ))}
+            </div>
+          )}
+          
+          {/* Secondary Tags in List View */}
+          {(photo.tags && photo.tags.length > 0) && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {photo.tags.slice(0, 3).map((tag, index) => {
+                const icon = getTagIcon(tag);
+                return (
+                  <span 
+                    key={index} 
+                    className={`px-1.5 py-0.5 text-xs rounded flex items-center gap-1 ${
+                      tag === 'raw' 
+                        ? 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 font-medium' 
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                    }`}
+                  >
+                    {icon}
+                    <span>{tag === 'raw' ? 'RAW' : cleanTagLabel(tag)}</span>
+                  </span>
+                );
+              })}
+            </div>
+          )}
+          
           <div className="mt-1 flex flex-wrap gap-1">
             {getFaceSummaryBadges()}
-            {photo.tags?.map((tag, index) => {
-              const icon = getTagIcon(tag);
-              return icon ? (
-                <div key={index} className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">
-                  {icon}
-                  <span className="text-xs capitalize">
-                    {cleanTagLabel(tag)}
-                  </span>
-                </div>
-              ) : (
-                <span 
-                  key={index} 
-                  className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 text-xs rounded truncate max-w-[100px]"
-                >
-                  {cleanTagLabel(tag)}
-                </span>
-              );
-            })}
           </div>
         </div>
       </div>
@@ -610,14 +634,14 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
           <Wand2 className="h-4 w-4" />
         </button>
           {/* Event highlights in compact view */}
-          {photo.blip_highlights && photo.blip_highlights.slice(0, 1).map((highlight, index) => (
-            <div key={`highlight-${index}`} className="p-1 rounded-full bg-gradient-to-r from-yellow-400 to-orange-400 flex items-center">
-              {getHighlightIcon(highlight)}
+          {photo.blip_highlights && photo.blip_highlights.length > 0 && (
+            <div className="p-1 rounded-full bg-gradient-to-r from-yellow-400 to-orange-400 flex items-center">
+              {getHighlightIcon(photo.blip_highlights[0])}
               <span className="text-white text-[10px] ml-0.5 font-medium">
-                {cleanTagLabel(highlight).slice(0, 6)}
+                {cleanTagLabel(photo.blip_highlights[0]).slice(0, 6)}
               </span>
             </div>
-          ))}
+          )}
         <button className="p-1.5 text-red-500 hover:text-red-700" onClick={handleDelete} style={{ zIndex: 15 }}><Trash2 className="h-4 w-4" /></button>
       </div>
       {tip && showTip && (

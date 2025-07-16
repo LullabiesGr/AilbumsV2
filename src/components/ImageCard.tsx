@@ -53,13 +53,13 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
   const getTagIcon = (tag: string) => {
     switch (tag) {
       case 'blurry':
-        return <AlertCircle className="h-4 w-4 text-red-500\" title="Blurry" />;
+        return <AlertCircle className="h-4 w-4 text-red-500" title="Blurry" />;
       case 'smiling':
-        return <Smile className="h-4 w-4 text-green-500\" title="Smiling" />;
+        return <Smile className="h-4 w-4 text-green-500" title="Smiling" />;
       case 'closed_eyes':
-        return <EyeOff className="h-4 w-4 text-amber-500\" title="Eyes Closed" />;
+        return <EyeOff className="h-4 w-4 text-amber-500" title="Eyes Closed" />;
       case 'multiple_faces':
-        return <Users className="h-4 w-4 text-blue-500\" title="Multiple Faces" />;
+        return <Users className="h-4 w-4 text-blue-500" title="Multiple Faces" />;
       default:
         return null;
     }
@@ -333,7 +333,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
               </div>
             )}
             {photo.blip_highlights && photo.blip_highlights.length > 0 && (
-              <div className="p-1 bg-yellow-500 rounded-full\" title={`Event highlights: ${photo.blip_highlights.join(', ')}`}>
+              <div className="p-1 bg-yellow-500 rounded-full" title={`Event highlights: ${photo.blip_highlights.join(', ')}`}>
                 <Sparkles className="h-3 w-3 text-white" />
               </div>
             )}
@@ -429,6 +429,8 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             >
               <Flag className="h-3 w-3" />
               {cleanTagLabel(flag)}
+            </span>
+          ))}
           {photo.ai_categories && photo.ai_categories.map((category, index) => (
             <span 
               key={`category-${index}`}
@@ -633,15 +635,16 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
         >
           <Wand2 className="h-4 w-4" />
         </button>
-          {/* Event highlights in compact view */}
-          {photo.blip_highlights && photo.blip_highlights.length > 0 && (
-            <div className="p-1 rounded-full bg-gradient-to-r from-yellow-400 to-orange-400 flex items-center">
-              {getHighlightIcon(photo.blip_highlights[0])}
-              <span className="text-white text-[10px] ml-0.5 font-medium">
-                {cleanTagLabel(photo.blip_highlights[0]).slice(0, 6)}
-              </span>
-            </div>
-          )}
+        <button 
+          className="p-1.5 text-purple-500 hover:text-purple-700" 
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowAIEditModal(true);
+          }}
+          style={{ zIndex: 15 }}
+        >
+          <Palette className="h-4 w-4" />
+        </button>
         <button className="p-1.5 text-red-500 hover:text-red-700" onClick={handleDelete} style={{ zIndex: 15 }}><Trash2 className="h-4 w-4" /></button>
       </div>
       {tip && showTip && (
@@ -739,6 +742,15 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
           <div className="p-1 rounded-full bg-black/50 backdrop-blur-sm flex items-center">
             <Users className="h-2 w-2 text-white" />
             <span className="text-white text-[10px] ml-0.5">{photo.face_summary.total_faces}</span>
+          </div>
+        )}
+        {/* Event highlights in compact view */}
+        {photo.blip_highlights && photo.blip_highlights.length > 0 && (
+          <div className="p-1 rounded-full bg-gradient-to-r from-yellow-400 to-orange-400 flex items-center">
+            {getHighlightIcon(photo.blip_highlights[0])}
+            <span className="text-white text-[10px] ml-0.5 font-medium">
+              {cleanTagLabel(photo.blip_highlights[0]).slice(0, 6)}
+            </span>
           </div>
         )}
       </div>
@@ -844,20 +856,6 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             photo={photo} 
             onClose={() => setShowFaceRetouchModal(false)}
             onSave={handleSaveRetouchedPhoto}
-          />
-        )}
-        {showAIEditModal && (
-          <AIEditModal 
-            photo={photo} 
-            onClose={() => setShowAIEditModal(false)}
-            onSave={handleSaveEditedPhoto}
-          />
-        )}
-        {showAIEditModal && (
-          <AIEditModal 
-            photo={photo} 
-            onClose={() => setShowAIEditModal(false)}
-            onSave={handleSaveEditedPhoto}
           />
         )}
         {showAIEditModal && (

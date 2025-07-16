@@ -1,6 +1,6 @@
 import React from 'react';
 import { usePhoto } from '../context/PhotoContext';
-import { Filter, ChevronRight, Star, AlertCircle, Eye, Copy, AlertTriangle, Circle, ChevronDown, Sparkles, Flag } from 'lucide-react';
+import { Filter, ChevronRight, Star, AlertCircle, Eye, Copy, AlertTriangle, Circle, ChevronDown, Sparkles, Flag, Check, X } from 'lucide-react';
 import StarRating from './StarRating';
 import { colorLabelConfigs } from './ColorLabelIndicator';
 import { ColorLabel } from '../types';

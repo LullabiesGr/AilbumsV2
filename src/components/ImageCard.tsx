@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, Scissors, Edit, Trash2, X, CheckCheck, Wand2, Check, Lightbulb, Copy, Sparkles as SparklesIcon, Palette,
-         AlertCircle, Smile, EyeOff, Users, Sparkles, Flag, Heart, Frown, Meh } from 'lucide-react';
+         AlertCircle, Smile, EyeOff, Users, Sparkles, Flag, Heart, Frown, Meh, Crown, Baby, Camera, UserCheck } from 'lucide-react';
 import { usePhoto } from '../context/PhotoContext';
 import ImageModal from './ImageModal';
 import StarRating from './StarRating';
@@ -63,6 +63,33 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
       default:
         return null;
     }
+  };
+
+  // Get icon for event highlight tags
+  const getHighlightIcon = (highlight: string) => {
+    const lowerHighlight = highlight.toLowerCase();
+    if (lowerHighlight.includes('bride')) {
+      return <Crown className="h-3 w-3" />;
+    }
+    if (lowerHighlight.includes('groom')) {
+      return <UserCheck className="h-3 w-3" />;
+    }
+    if (lowerHighlight.includes('baby') || lowerHighlight.includes('child')) {
+      return <Baby className="h-3 w-3" />;
+    }
+    if (lowerHighlight.includes('portrait') || lowerHighlight.includes('pose')) {
+      return <Camera className="h-3 w-3" />;
+    }
+    return <Sparkles className="h-3 w-3" />;
+  };
+
+  // Clean up tag labels for better display
+  const cleanTagLabel = (tag: string) => {
+    return tag
+      .replace(/_/g, ' ')
+      .replace('_in_photo', '')
+      .replace(/\b\w/g, l => l.toUpperCase())
+      .trim();
   };
 
   const getEmotionIcon = (emotion: string) => {
@@ -355,13 +382,39 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
           {photo.blip_highlights && photo.blip_highlights.map((highlight, index) => (
             <span 
               key={`highlight-${index}`}
-              className="px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs rounded font-medium flex items-center gap-1"
+              className="px-2 py-1 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-xs rounded-full font-medium flex items-center gap-1 shadow-sm"
               title="Event highlight"
             >
-              <Sparkles className="h-3 w-3" />
-              {highlight}
+              {getHighlightIcon(highlight)}
+              {cleanTagLabel(highlight)}
             </span>
           ))}
+        </div>
+        
+        {/* Secondary Tags - Separate row with visual separation */}
+        {(photo.tags && photo.tags.length > 0) && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {photo.tags.map((tag, index) => {
+              const icon = getTagIcon(tag);
+              return (
+                <span 
+                  key={index} 
+                  className={`px-1.5 py-0.5 text-xs rounded flex items-center gap-1 ${
+                    tag === 'raw' 
+                      ? 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 font-medium' 
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                  }`}
+                >
+                  {icon}
+                  <span>{tag === 'raw' ? 'RAW' : cleanTagLabel(tag)}</span>
+                </span>
+              );
+            })}
+          </div>
+        )}
+        
+        {/* Additional Info Tags */}
+        <div className="mt-1 flex flex-wrap gap-1">
           {photo.blip_flags && photo.blip_flags.map((flag, index) => (
             <span 
               key={`flag-${index}`}
@@ -369,7 +422,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
               title="Issue detected"
             >
               <Flag className="h-3 w-3" />
-              {flag}
+              {cleanTagLabel(flag)}
             </span>
           ))}
           {photo.ai_categories && photo.ai_categories.map((category, index) => (
@@ -378,7 +431,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
               className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded font-medium"
               title="AI Category"
             >
-              {category}
+              {cleanTagLabel(category)}
             </span>
           ))}
           {photo.approved && (
@@ -387,28 +440,6 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
               Approved
             </span>
           )}
-          {photo.tags?.map((tag, index) => {
-            const icon = getTagIcon(tag);
-            return icon ? (
-              <div key={index} className="flex items-center gap-1">
-                {icon}
-                <span className="text-xs text-gray-600 dark:text-gray-400 capitalize">
-                  {tag.replace('_', ' ')}
-                </span>
-              </div>
-            ) : (
-              <span 
-                key={index} 
-                className={`px-1.5 py-0.5 text-xs rounded truncate max-w-full ${
-                  tag === 'raw' 
-                    ? 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 font-medium' 
-                    : 'bg-gray-200 dark:bg-gray-700'
-                }`}
-              >
-                {tag === 'raw' ? 'RAW' : tag}
-              </span>
-            );
-          })}
           {(photo.score_type === 'personalized' || photo.score_type === 'ai') && (
             <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400 text-xs rounded font-medium">
               {photo.score_type === 'ai' ? 'Deep AI' : 'Personalized'}
@@ -498,13 +529,17 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             {photo.blip_highlights && photo.blip_highlights.length > 0 && (
               <div className="flex items-center gap-1">
                 <Sparkles className="h-3 w-3 text-yellow-500" />
-                <span className="text-xs text-yellow-600 dark:text-yellow-400">Highlight</span>
+                <span className="text-xs text-yellow-600 dark:text-yellow-400">
+                  {photo.blip_highlights[0]}
+                </span>
               </div>
             )}
             {photo.blip_flags && photo.blip_flags.length > 0 && (
               <div className="flex items-center gap-1">
                 <Flag className="h-3 w-3 text-red-500" />
-                <span className="text-xs text-red-600 dark:text-red-400">Flagged</span>
+                <span className="text-xs text-red-600 dark:text-red-400">
+                  {cleanTagLabel(photo.blip_flags[0])}
+                </span>
               </div>
             )}
           </div>
@@ -516,7 +551,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
                 <div key={index} className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">
                   {icon}
                   <span className="text-xs capitalize">
-                    {tag.replace('_', ' ')}
+                    {cleanTagLabel(tag)}
                   </span>
                 </div>
               ) : (
@@ -524,7 +559,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
                   key={index} 
                   className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 text-xs rounded truncate max-w-[100px]"
                 >
-                  {tag}
+                  {cleanTagLabel(tag)}
                 </span>
               );
             })}
@@ -574,6 +609,15 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
         >
           <Wand2 className="h-4 w-4" />
         </button>
+          {/* Event highlights in compact view */}
+          {photo.blip_highlights && photo.blip_highlights.slice(0, 1).map((highlight, index) => (
+            <div key={`highlight-${index}`} className="p-1 rounded-full bg-gradient-to-r from-yellow-400 to-orange-400 flex items-center">
+              {getHighlightIcon(highlight)}
+              <span className="text-white text-[10px] ml-0.5 font-medium">
+                {cleanTagLabel(highlight).slice(0, 6)}
+              </span>
+            </div>
+          ))}
         <button className="p-1.5 text-red-500 hover:text-red-700" onClick={handleDelete} style={{ zIndex: 15 }}><Trash2 className="h-4 w-4" /></button>
       </div>
       {tip && showTip && (

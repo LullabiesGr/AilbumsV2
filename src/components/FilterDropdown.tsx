@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Filter, ChevronDown, Star, AlertCircle, EyeOff, Copy, Users, Heart, AlertTriangle } from 'lucide-react';
+import { Filter, ChevronDown, Star, AlertCircle, EyeOff, Copy, Users, Heart, AlertTriangle, Check, X } from 'lucide-react';
 import { usePhoto } from '../context/PhotoContext';
 
 type FilterOption = 'all' | 'high-score' | 'approved' | 'not-approved' | 'blurry' | 'eyes-closed' | 'duplicates' | 'people' | 'emotions' | 'quality-issues';

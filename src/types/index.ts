@@ -25,6 +25,7 @@ export interface Photo {
   dateCreated: string;
   selected?: boolean;
   albumId?: string;
+  albumName?: string;
   color_label?: 'green' | 'red' | 'yellow' | 'blue' | 'purple';
   duplicateGroup?: string[];
   isDuplicate?: boolean;

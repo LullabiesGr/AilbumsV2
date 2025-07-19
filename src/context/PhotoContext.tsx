@@ -5,6 +5,9 @@ import { useToast } from './ToastContext';
 
 interface PhotoContextType {
   photos: Photo[];
+  currentAlbumName: string;
+  currentAlbumId: string;
+  createNewAlbum: (albumName: string, eventType: EventType) => Promise<{ albumId: string; albumName: string }>;
   filteredPhotos: Photo[];
   duplicateClusters: DuplicateCluster[];
   personGroups: PersonGroup[];

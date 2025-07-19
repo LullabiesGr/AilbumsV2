@@ -3,7 +3,7 @@ import { findDuplicates } from './similarity';
 import { promisePoolWithProgress } from './promisePool';
 import { DuplicateCluster } from '../types';
 
-const API_URL = 'http://localhost:8000'; // Update this to your actual backend URL
+const API_URL = 'https://ef7c29d73b11.ngrok-free.app';
 
 // Utility function to compute perceptual hash on frontend (basic implementation)
 export const computePerceptualHash = async (imageUrl: string): Promise<string> => {

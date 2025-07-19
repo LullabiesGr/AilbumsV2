@@ -215,20 +215,54 @@ export const saveCompleteAlbum = async (albumData: {
 // Load user albums
 export const loadUserAlbums = async (userId: string): Promise<any[]> => {
   try {
+    console.log('Loading albums for user:', userId);
+    console.log('API URL:', `${API_URL}/albums?user_id=${userId}`);
+    
     const response = await fetch(`${API_URL}/albums?user_id=${userId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       },
       mode: 'cors',
     });
 
+    console.log('Albums API Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      url: response.url,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(errorText || 'Failed to load albums');
+      console.error('Albums API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText: errorText.substring(0, 200)
+      });
+      
+      // Check if we got HTML instead of JSON
+      if (errorText.includes('<!DOCTYPE html>') || errorText.includes('<html>')) {
+        throw new Error(`Albums endpoint returned HTML instead of JSON. Backend may not have /albums endpoint implemented.`);
+      }
+      
+      throw new Error(`Albums API Error: ${response.status} ${errorText || response.statusText}`);
     }
 
-    const albums = await response.json();
+    const responseText = await response.text();
+    console.log('Albums Response Text:', responseText.substring(0, 500));
+    
+    let albums;
+    try {
+      albums = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse albums JSON:', parseError);
+      console.error('Response was:', responseText.substring(0, 200));
+      throw new Error('Albums endpoint returned invalid JSON');
+    }
+    
+    console.log('Loaded albums:', albums);
     return albums || [];
   } catch (error: any) {
     console.error('Load albums error:', error);

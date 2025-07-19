@@ -165,39 +165,23 @@ export const saveAlbumAndTrain = async (trainingData: AITrainingData): Promise<v
   }
 };
 
-// Save complete album with all data
-export const saveCompleteAlbum = async (albumData: {
-  user_id: string;
-  title: string;
-  description?: string;
-  event_type: string;
-  photos: any[];
-  metadata: any;
-}): Promise<void> => {
+// Save album with files for local path storage
+export const saveAlbumWithFiles = async (formData: FormData): Promise<void> => {
   try {
-    console.log('Sending album data to backend:', {
-      title: albumData.title,
-      event_type: albumData.event_type,
-      photos_count: albumData.photos.length,
-      first_photo: albumData.photos[0]?.filename,
-      sample_photo_structure: albumData.photos[0] ? {
-        has_filename: !!albumData.photos[0].filename,
-        has_ai_score: !!albumData.photos[0].ai_score,
-        has_tags: !!albumData.photos[0].tags,
-        has_highlights: !!albumData.photos[0].blip_highlights,
-        has_faces: !!albumData.photos[0].faces,
-        keys: Object.keys(albumData.photos[0])
-      } : null,
-      metadata_keys: Object.keys(albumData.metadata)
+    console.log('Sending album FormData to backend for local storage:', {
+      formData_entries: Array.from(formData.entries()).map(([key, value]) => ({
+        key,
+        type: value instanceof File ? 'File' : 'string',
+        size: value instanceof File ? value.size : value.toString().length
+      }))
     });
     
     const response = await fetch(`${API_URL}/save-album`, {
       method: 'POST',
+      body: formData, // Send FormData directly (no Content-Type header needed)
       headers: {
-        'Content-Type': 'application/json',
         'ngrok-skip-browser-warning': 'true'
       },
-      body: JSON.stringify(albumData),
       mode: 'cors',
     });
 
@@ -207,21 +191,16 @@ export const saveCompleteAlbum = async (albumData: {
         status: response.status,
         statusText: response.statusText,
         error: errorText,
-        request_data: {
-          title: albumData.title,
-          photos_count: albumData.photos.length,
-          has_photos_array: Array.isArray(albumData.photos),
-          first_photo_keys: albumData.photos[0] ? Object.keys(albumData.photos[0]) : null
-        }
+        formData_info: 'FormData with files sent for local storage'
       });
       throw new Error(errorText || 'Failed to save album');
     }
     
     const result = await response.json();
-    console.log('Album saved successfully:', result);
+    console.log('Album saved successfully with local paths:', result);
     
   } catch (error: any) {
-    console.error('Save complete album error:', error);
+    console.error('Save album with files error:', error);
     throw error instanceof Error ? error : new Error(error.toString());
   }
 };

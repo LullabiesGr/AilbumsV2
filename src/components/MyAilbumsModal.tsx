@@ -23,7 +23,7 @@ interface SavedAlbum {
 
 interface SavedPhoto {
   filename: string;
-  url: string;
+  path: string; // Local path instead of URL
   ai_score: number;
   approved: boolean;
   color_label?: string;
@@ -33,10 +33,10 @@ interface SavedPhoto {
   faces?: any[];
   caption?: string;
   edited_versions?: {
-    autocorrect_url?: string;
-    autofix_url?: string;
-    face_retouch_url?: string;
-    ai_edit_url?: string;
+    autocorrect?: boolean;
+    autofix?: boolean;
+    face_retouch?: boolean;
+    ai_edit?: boolean;
   };
 }
 
@@ -252,17 +252,15 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
           >
             {/* Cover Photo */}
             <div className="aspect-video bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
-              {album.cover_photo_url ? (
+              {album.photos.length > 0 ? (
                 <img
-                  src={album.cover_photo_url}
+                  src={`${API_URL}/photo/${encodeURIComponent(album.photos[0].path)}`}
                   alt={album.title}
                   className="w-full h-full object-cover"
-                />
-              ) : album.photos.length > 0 ? (
-                <img
-                  src={album.photos[0].url}
-                  alt={album.title}
-                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Fallback to placeholder if path doesn't work
+                    e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+                  }}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
@@ -306,9 +304,12 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
                     {album.photos.slice(0, 4).map((photo, index) => (
                       <div key={index} className="aspect-square rounded overflow-hidden bg-gray-200 dark:bg-gray-700">
                         <img
-                          src={photo.url}
+                          src={`${API_URL}/photo/${encodeURIComponent(photo.path)}`}
                           alt={photo.filename}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+                          }}
                         />
                       </div>
                     ))}
@@ -442,9 +443,12 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
               <div key={index} className="relative group">
                 <div className="aspect-square rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700">
                   <img
-                    src={photo.url}
+                    src={`${API_URL}/photo/${encodeURIComponent(photo.path)}`}
                     alt={photo.filename}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    onError={(e) => {
+                      e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+                    }}
                   />
                 </div>
                 

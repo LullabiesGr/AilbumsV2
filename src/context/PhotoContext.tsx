@@ -750,20 +750,21 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         throw new Error('No photos selected or approved for album creation');
       }
 
-      // Prepare complete album data
+      // Prepare album data for local path storage
       const albumData = {
         user_id: 'user123', // Replace with actual user ID
         title: albumTitle.trim() || `${eventType.charAt(0).toUpperCase() + eventType.slice(1)} Album - ${new Date().toLocaleDateString()}`,
         description: `Album created on ${new Date().toLocaleDateString()} with ${uniquePhotos.length} photos`,
         event_type: eventType,
         photos: uniquePhotos.map(photo => ({
-          id: photo.id,
+          // Send the File object to backend so it can determine local path
+          file: photo.file,
           filename: photo.filename,
-          url: photo.url,
-          ai_score: photo.ai_score,
+          // Analysis and metadata (no URLs, backend will handle paths)
+          ai_score: photo.ai_score || 0,
           basic_score: photo.basic_score,
           ml_score: photo.ml_score,
-          score_type: photo.score_type,
+          score_type: photo.score_type || 'base',
           blur_score: photo.blur_score,
           approved: photo.approved || photo.color_label === 'green',
           color_label: photo.color_label,
@@ -775,19 +776,16 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           face_summary: photo.face_summary,
           deep_prompts: photo.deep_prompts || {},
           ai_categories: photo.ai_categories || [],
+          // Keep vectors for similarity analysis
           clip_vector: photo.clip_vector,
           phash: photo.phash,
           dateCreated: photo.dateCreated,
-          selected: photo.selected,
-          albumId: photo.albumId,
-          duplicateGroup: photo.duplicateGroup,
-          isDuplicate: photo.isDuplicate,
+          // Edit tracking
           edited_versions: {
-            // Store any edited versions if available in the future
-            autocorrect_url: undefined,
-            autofix_url: undefined,
-            face_retouch_url: undefined,
-            ai_edit_url: undefined
+            autocorrect: false,
+            autofix: false,
+            face_retouch: false,
+            ai_edit: false
           }
         })),
         metadata: {
@@ -812,20 +810,69 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         title: albumData.title,
         event_type: albumData.event_type,
         photos_count: albumData.photos.length,
-        first_photo: albumData.photos[0]?.filename,
-        sample_photo_data: {
+        first_photo_filename: albumData.photos[0]?.filename,
+        sample_photo_metadata: {
           filename: albumData.photos[0]?.filename,
           ai_score: albumData.photos[0]?.ai_score,
           approved: albumData.photos[0]?.approved,
-          tags: albumData.photos[0]?.tags,
-          highlights: albumData.photos[0]?.blip_highlights
+          tags: albumData.photos[0]?.tags?.length || 0,
+          highlights: albumData.photos[0]?.blip_highlights?.length || 0,
+          has_file: !!albumData.photos[0]?.file
         },
         metadata: albumData.metadata
       });
       
-      // Import the new save function
-      const { saveCompleteAlbum } = await import('../lib/api');
-      await saveCompleteAlbum(albumData);
+      // Use FormData to send files to backend for local path storage
+      const formData = new FormData();
+      
+      // Add album metadata
+      formData.append('user_id', albumData.user_id);
+      formData.append('title', albumData.title);
+      formData.append('description', albumData.description);
+      formData.append('event_type', albumData.event_type);
+      formData.append('metadata', JSON.stringify(albumData.metadata));
+      
+      // Add photo files and their metadata
+      albumData.photos.forEach((photo, index) => {
+        // Add the actual file for backend to save locally
+        formData.append(`files`, photo.file);
+        
+        // Add photo metadata as JSON
+        const photoMetadata = {
+          filename: photo.filename,
+          ai_score: photo.ai_score,
+          basic_score: photo.basic_score,
+          ml_score: photo.ml_score,
+          score_type: photo.score_type,
+          blur_score: photo.blur_score,
+          approved: photo.approved,
+          color_label: photo.color_label,
+          tags: photo.tags,
+          blip_highlights: photo.blip_highlights,
+          blip_flags: photo.blip_flags,
+          faces: photo.faces,
+          caption: photo.caption,
+          face_summary: photo.face_summary,
+          deep_prompts: photo.deep_prompts,
+          ai_categories: photo.ai_categories,
+          clip_vector: photo.clip_vector,
+          phash: photo.phash,
+          dateCreated: photo.dateCreated,
+          edited_versions: photo.edited_versions
+        };
+        formData.append(`photo_metadata_${index}`, JSON.stringify(photoMetadata));
+      });
+      
+      console.log('Sending FormData to backend with:', {
+        files_count: albumData.photos.length,
+        metadata_keys: Object.keys(albumData.metadata),
+        first_file_name: albumData.photos[0]?.file?.name,
+        first_file_size: albumData.photos[0]?.file?.size
+      });
+      
+      // Call the save album API with FormData
+      const { saveAlbumWithFiles } = await import('../lib/api');
+      await saveAlbumWithFiles(formData);
       
       showToast(`Άλμπουμ "${albumData.title}" αποθηκεύτηκε επιτυχώς με ${uniquePhotos.length} φωτογραφίες!`, 'success');
       

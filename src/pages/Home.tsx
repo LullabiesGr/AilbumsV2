@@ -22,6 +22,9 @@ import { Play, RotateCcw, Brain, Copy, Users, Grid, List, Sparkles, ArrowLeft, W
 const Home: React.FC = () => {
   const { 
     photos, 
+    currentAlbumName,
+    currentAlbumId,
+    createNewAlbum,
     duplicateClusters,
     personGroups,
     isLoading, 
@@ -43,6 +46,9 @@ const Home: React.FC = () => {
   const [activeTab, setActiveTab] = React.useState<'gallery' | 'duplicates' | 'people'>('gallery');
 
   const [showFaceRetouchStep, setShowFaceRetouchStep] = React.useState(false);
+  const [showCreateAlbumModal, setShowCreateAlbumModal] = React.useState(false);
+  const [newAlbumName, setNewAlbumName] = React.useState('');
+  const [selectedEventType, setSelectedEventType] = React.useState<EventType | null>(null);
 
   const getEventTypeLabel = (type: EventType | null) => {
     const eventLabels = {
@@ -59,20 +65,139 @@ const Home: React.FC = () => {
   
   const hasAnalyzedPhotos = photos.some(p => p.ai_score > 0);
   
+  const handleCreateAlbum = async () => {
+    if (!newAlbumName.trim()) {
+      showToast('Please enter album name', 'error');
+      return;
+    }
+    
+    if (!selectedEventType) {
+      showToast('Please select event type', 'error');
+      return;
+    }
+    
+    try {
+      await createNewAlbum(newAlbumName.trim(), selectedEventType);
+      setShowCreateAlbumModal(false);
+      setNewAlbumName('');
+      setSelectedEventType(null);
+      setWorkflowStage('configure');
+    } catch (error) {
+      // Error already handled in createNewAlbum
+    }
+  };
+  
   const renderWorkflowContent = () => {
     switch (workflowStage) {
       case 'upload':
         return (
-          <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
-            <h3 className="text-xl font-semibold mb-4">Welcome to AI Photo Culling</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Upload your photos (JPEG, PNG, RAW formats) to get started with intelligent photo analysis and culling
-            </p>
-            <UploadButton />
-            <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-              <p className="font-medium mb-1">Supported formats:</p>
-              <p>Standard: JPEG, PNG, TIFF, WebP, BMP</p>
-              <p>RAW: CR2, CR3, NEF, ARW, DNG, ORF, RAF, PEF, and more</p>
+          <div className="space-y-6">
+            {!currentAlbumName ? (
+              <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
+                <h3 className="text-xl font-semibold mb-4">Create Your Album First</h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Before uploading photos, please create an album to organize your work
+                </p>
+                <button
+                  onClick={() => setShowCreateAlbumModal(true)}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg 
+                           flex items-center space-x-2 transition-colors duration-200 font-medium"
+                >
+                  <span>Create New Album</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
+                <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                  <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2">
+                    Album Ready: "{currentAlbumName}"
+                  </h4>
+                  <p className="text-sm text-green-700 dark:text-green-300">
+                    Event Type: {getEventTypeLabel(eventType)} • ID: {currentAlbumId.slice(-8)}
+                  </p>
+                </div>
+                
+                <h3 className="text-xl font-semibold mb-4">Upload Photos to Album</h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Upload your photos (JPEG, PNG, RAW formats) to "{currentAlbumName}"
+                </p>
+                <UploadButton />
+                <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+                  <p className="font-medium mb-1">Supported formats:</p>
+                  <p>Standard: JPEG, PNG, TIFF, WebP, BMP</p>
+                  <p>RAW: CR2, CR3, NEF, ARW, DNG, ORF, RAF, PEF, and more</p>
+                </div>
+              </div>
+            )}
+            
+            {/* Create Album Modal */}
+            {showCreateAlbumModal && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
+                  <h3 className="text-lg font-semibold mb-4">Create New Album</h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Album Name *</label>
+                      <input
+                        type="text"
+                        value={newAlbumName}
+                        onChange={(e) => setNewAlbumName(e.target.value)}
+                        placeholder="e.g. Wedding of John & Mary 2024"
+                        className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Event Type *</label>
+                      <select
+                        value={selectedEventType || ''}
+                        onChange={(e) => setSelectedEventType(e.target.value as EventType)}
+                        className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600"
+                      >
+                        <option value="">Select event type...</option>
+                        <option value="wedding">Wedding</option>
+                        <option value="baptism">Baptism</option>
+                        <option value="portrait">Portrait</option>
+                        <option value="family">Family</option>
+                        <option value="corporate">Corporate</option>
+                        <option value="event">General Event</option>
+                        <option value="landscape">Landscape</option>
+                      </select>
+                    </div>
+                    
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        <strong>Note:</strong> All photos will be saved locally in this album. 
+                        No cloud storage is used.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end gap-2 mt-6">
+                    <button
+                      onClick={() => {
+                        setShowCreateAlbumModal(false);
+                        setNewAlbumName('');
+                        setSelectedEventType(null);
+                      }}
+                      className="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-300 
+                               dark:hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleCreateAlbum}
+                      disabled={!newAlbumName.trim() || !selectedEventType}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 
+                               disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Create Album
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             </div>
           </div>
         );
@@ -85,13 +210,15 @@ const Home: React.FC = () => {
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold mb-2">Configure Analysis</h2>
               <p className="text-gray-600 dark:text-gray-400">
-                {photos.length} photos uploaded. Configure your analysis settings below.
+                {photos.length} photos uploaded to "{currentAlbumName}". Configure your analysis settings below.
               </p>
             </div>
 
             {/* Show uploaded photos as thumbnails */}
             <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-6">
-              <h3 className="text-lg font-semibold mb-4">Uploaded Photos ({photos.length})</h3>
+              <h3 className="text-lg font-semibold mb-4">
+                Album: "{currentAlbumName}" ({photos.length} photos)
+              </h3>
               <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-2 max-h-48 overflow-y-auto">
                 {photos.map((photo) => (
                   <div key={photo.id} className="aspect-square rounded overflow-hidden bg-gray-200 dark:bg-gray-700">

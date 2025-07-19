@@ -228,11 +228,14 @@ export const analyzePhotos = async (photos: Photo[], userId: string, eventType: 
 };
 
 // New function to analyze a single photo for fast mode
-export const analyzeSinglePhoto = async (photo: Photo, userId: string, eventType: EventType, cullingMode: CullingMode): Promise<Photo> => {
+export const analyzeSinglePhoto = async (photo: Photo, userId: string, eventType: EventType, cullingMode: CullingMode, albumId?: string): Promise<Photo> => {
   const formData = new FormData();
   formData.append('user_id', userId);
   formData.append('event', eventType);
   formData.append('culling_mode', cullingMode);
+  if (albumId) {
+    formData.append('album_id', albumId);
+  }
   formData.append('files', photo.file);
 
   try {
@@ -337,12 +340,13 @@ export const analyzePhotosSingle = async (
   eventType: EventType,
   cullingMode: CullingMode,
   onProgress?: (processedCount: number, currentPhoto: string, updatedPhoto?: Photo) => void,
-  concurrency = 2
+  concurrency = 2,
+  albumId?: string
 ): Promise<Photo[]> => {
   // Create tasks for each photo
   const tasks = photos.map((photo, index) => async () => {
     try {
-      const analyzedPhoto = await analyzeSinglePhoto(photo, userId, eventType, cullingMode);
+      const analyzedPhoto = await analyzeSinglePhoto(photo, userId, eventType, cullingMode, albumId);
       
       // Call progress callback with the updated photo for real-time UI updates
       if (onProgress) {
@@ -395,10 +399,13 @@ export const deepAnalyzePhotos = async (photos: Photo[], userId: string, eventTy
 };
 
 // New function to analyze a single photo
-export const deepAnalyzeSinglePhoto = async (photo: Photo, userId: string, eventType: EventType): Promise<Photo> => {
+export const deepAnalyzeSinglePhoto = async (photo: Photo, userId: string, eventType: EventType, albumId?: string): Promise<Photo> => {
   const formData = new FormData();
   formData.append('user_id', userId);
   formData.append('event', eventType);
+  if (albumId) {
+    formData.append('album_id', albumId);
+  }
   formData.append('files', photo.file);
 
   try {
@@ -503,12 +510,13 @@ export const deepAnalyzePhotosSingle = async (
   userId: string, 
   eventType: EventType,
   onProgress?: (processedCount: number, currentPhoto: string, updatedPhoto?: Photo) => void,
-  concurrency = 2
+  concurrency = 2,
+  albumId?: string
 ): Promise<Photo[]> => {
   // Create tasks for each photo
   const tasks = photos.map((photo, index) => async () => {
     try {
-      const analyzedPhoto = await deepAnalyzeSinglePhoto(photo, userId, eventType);
+      const analyzedPhoto = await deepAnalyzeSinglePhoto(photo, userId, eventType, albumId);
       
       // Call progress callback with the updated photo for real-time UI updates
       if (onProgress) {

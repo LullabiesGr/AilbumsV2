@@ -74,6 +74,8 @@ export const usePhoto = () => {
 
 export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [currentAlbumName, setCurrentAlbumName] = useState<string>('');
+  const [currentAlbumId, setCurrentAlbumId] = useState<string>('');
   const [duplicateClusters, setDuplicateClusters] = useState<DuplicateCluster[]>([]);
   const [personGroups, setPersonGroups] = useState<PersonGroup[]>([]);
   const [albums, setAlbums] = useState<Album[]>([]);
@@ -97,6 +99,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const resetWorkflow = useCallback(() => {
     setPhotos([]);
+    setCurrentAlbumName('');
+    setCurrentAlbumId('');
     setDuplicateClusters([]);
     setPersonGroups([]);
     setShowAnalysisOverlay(false);
@@ -211,6 +215,11 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, [photos, showToast]);
 
   const uploadPhotos = useCallback(async (files: File[]) => {
+    if (!currentAlbumName || !currentAlbumId) {
+      showToast('Please create an album first before uploading photos', 'error');
+      return;
+    }
+    
     setIsUploading(true);
     
     try {
@@ -245,6 +254,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           filename: file.name,
           file: file,
           url: photoUrl,
+          albumId: currentAlbumId,
+          albumName: currentAlbumName,
           score: null,
           ai_score: 0,
           score_type: 'base',
@@ -283,7 +294,53 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   }, [showToast, workflowStage]);
 
+  const createNewAlbum = useCallback(async (albumName: string, eventType: EventType) => {
+    try {
+      const albumId = `album-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Create album on backend first
+      const response = await fetch('https://ef7c29d73b11.ngrok-free.app/create-album', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
+        },
+        body: JSON.stringify({
+          user_id: 'user123', // Replace with actual user ID
+          album_id: albumId,
+          title: albumName,
+          event_type: eventType,
+          date_created: new Date().toISOString()
+        }),
+        mode: 'cors',
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to create album');
+      }
+
+      const result = await response.json();
+      
+      setCurrentAlbumName(albumName);
+      setCurrentAlbumId(albumId);
+      setEventType(eventType);
+      
+      showToast(`Album "${albumName}" created successfully!`, 'success');
+      
+      return { albumId, albumName };
+    } catch (error: any) {
+      console.error('Failed to create album:', error);
+      showToast(error.message || 'Failed to create album', 'error');
+      throw error;
+    }
+  }, [showToast, setEventType]);
   const startBackgroundAnalysis = useCallback(() => {
+    if (!currentAlbumName || !currentAlbumId) {
+      showToast('Please create an album first', 'error');
+      return;
+    }
+    
     if (!cullingMode || photos.length === 0) {
       showToast('Please select culling mode', 'error');
       return;
@@ -326,7 +383,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 ));
               }
             },
-            2 // Concurrency limit
+            2, // Concurrency limit
+            currentAlbumId // Album ID
           );
           
           setPhotos(analyzedPhotos);
@@ -351,7 +409,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 ));
               }
             },
-            2 // Concurrency limit
+            2, // Concurrency limit
+            currentAlbumId // Album ID
           );
           
           setPhotos(analyzedPhotos);

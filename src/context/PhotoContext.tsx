@@ -618,6 +618,10 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setPhotos(prev => prev.map(photo => ({ ...photo, selected: false })));
   }, []);
 
+  const selectedPhotos = useMemo(() => {
+    return photos.filter(photo => photo.selected);
+  }, [photos]);
+
   const updatePhotoScore = useCallback((id: string, score: number) => {
     setPhotos(prev => prev.map(photo => 
       photo.id === id ? { ...photo, score, ai_score: score } : photo
@@ -928,10 +932,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   }, [currentAlbum, photos, captionFilter, selectedPersonGroup, starRatingFilter, filterOption]);
 
-  const selectedPhotos = useMemo(() => {
-    return photos.filter(photo => photo.selected);
-  }, [photos]);
-
   const value: PhotoContextType = useMemo(() => ({
     photos,
     filteredPhotos,
@@ -1032,6 +1032,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     togglePhotoSelection,
     selectAllPhotos,
     deselectAllPhotos,
+    selectedPhotos,
     updatePhotoScore,
     updatePhotoColorLabel,
     markPhotoAsKeep,

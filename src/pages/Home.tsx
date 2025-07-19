@@ -199,7 +199,6 @@ const Home: React.FC = () => {
               </div>
             )}
             </div>
-          </div>
         );
 
       case 'configure':

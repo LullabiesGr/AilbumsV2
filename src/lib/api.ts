@@ -165,46 +165,6 @@ export const saveAlbumAndTrain = async (trainingData: AITrainingData): Promise<v
   }
 };
 
-// Save album with files for local path storage
-export const saveAlbumWithFiles = async (formData: FormData): Promise<void> => {
-  try {
-    console.log('Sending album FormData to backend for local storage:', {
-      formData_entries: Array.from(formData.entries()).map(([key, value]) => ({
-        key,
-        type: value instanceof File ? 'File' : 'string',
-        size: value instanceof File ? value.size : value.toString().length
-      }))
-    });
-    
-    const response = await fetch(`${API_URL}/save-album`, {
-      method: 'POST',
-      body: formData, // Send FormData directly (no Content-Type header needed)
-      headers: {
-        'ngrok-skip-browser-warning': 'true'
-      },
-      mode: 'cors',
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Save album API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText,
-        formData_info: 'FormData with files sent for local storage'
-      });
-      throw new Error(errorText || 'Failed to save album');
-    }
-    
-    const result = await response.json();
-    console.log('Album saved successfully with local paths:', result);
-    
-  } catch (error: any) {
-    console.error('Save album with files error:', error);
-    throw error instanceof Error ? error : new Error(error.toString());
-  }
-};
-
 // Load user albums
 export const loadUserAlbums = async (userId: string): Promise<any[]> => {
   try {

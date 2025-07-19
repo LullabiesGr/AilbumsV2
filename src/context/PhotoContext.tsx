@@ -750,17 +750,45 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         throw new Error('No photos selected or approved for album creation');
       }
 
-      // Prepare album data for local path storage
-      const albumData = {
-        user_id: 'user123', // Replace with actual user ID
-        title: albumTitle.trim() || `${eventType.charAt(0).toUpperCase() + eventType.slice(1)} Album - ${new Date().toLocaleDateString()}`,
-        description: `Album created on ${new Date().toLocaleDateString()} with ${uniquePhotos.length} photos`,
-        event_type: eventType,
-        photos: uniquePhotos.map(photo => ({
-          // Send the File object to backend so it can determine local path
-          file: photo.file,
+      // Use FormData to send files to backend for local path storage
+      const formData = new FormData();
+      
+      // Add album basic info
+      const albumTitle_final = albumTitle.trim() || `${eventType.charAt(0).toUpperCase() + eventType.slice(1)} Album - ${new Date().toLocaleDateString()}`;
+      const albumDescription = `Album created on ${new Date().toLocaleDateString()} with ${uniquePhotos.length} photos`;
+      
+      formData.append('user_id', 'user123'); // Replace with actual user ID
+      formData.append('title', albumTitle_final);
+      formData.append('description', albumDescription);
+      formData.append('event_type', eventType);
+      
+      // Add album metadata as JSON
+      const albumMetadata = {
+        user_id: 'user123',
+        culling_mode: cullingMode || 'fast',
+        analysis_complete: photos.some(p => p.ai_score > 0),
+        original_total_photos: photos.length,
+        album_photos_count: uniquePhotos.length,
+        selected_photos: selectedPhotos.length,
+        approved_photos: uniquePhotos.filter(p => p.approved || p.color_label === 'green').length,
+        backend_approved: uniquePhotos.filter(p => p.approved === true).length,
+        high_score_photos: uniquePhotos.filter(p => p.ai_score >= 7).length,
+        event_highlights: uniquePhotos.filter(p => p.blip_highlights && p.blip_highlights.length > 0).length,
+        faces_detected: uniquePhotos.filter(p => p.faces && p.faces.length > 0).length,
+        date_created: new Date().toISOString(),
+        date_updated: new Date().toISOString(),
+        creation_source: 'ailbums_web_app'
+      };
+      formData.append('metadata', JSON.stringify(albumMetadata));
+      
+      // Add photo files and their metadata
+      uniquePhotos.forEach((photo, index) => {
+        // Add the actual File object for backend to save locally
+        formData.append('files', photo.file);
+        
+        // Add photo metadata as separate JSON string
+        const photoMetadata = {
           filename: photo.filename,
-          // Analysis and metadata (no URLs, backend will handle paths)
           ai_score: photo.ai_score || 0,
           basic_score: photo.basic_score,
           ml_score: photo.ml_score,
@@ -787,94 +815,53 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             face_retouch: false,
             ai_edit: false
           }
-        })),
-        metadata: {
-          user_id: 'user123',
-          culling_mode: cullingMode || 'fast',
-          analysis_complete: photos.some(p => p.ai_score > 0),
-          original_total_photos: photos.length,
-          album_photos_count: uniquePhotos.length,
-          selected_photos: selectedPhotos.length,
-          approved_photos: uniquePhotos.filter(p => p.approved || p.color_label === 'green').length,
-          backend_approved: uniquePhotos.filter(p => p.approved === true).length,
-          high_score_photos: uniquePhotos.filter(p => p.ai_score >= 7).length,
-          event_highlights: uniquePhotos.filter(p => p.blip_highlights && p.blip_highlights.length > 0).length,
-          faces_detected: uniquePhotos.filter(p => p.faces && p.faces.length > 0).length,
-          date_created: new Date().toISOString(),
-          date_updated: new Date().toISOString(),
-          creation_source: 'ailbums_web_app'
-        }
-      };
-      
-      console.log('Creating album with data:', {
-        title: albumData.title,
-        event_type: albumData.event_type,
-        photos_count: albumData.photos.length,
-        first_photo_filename: albumData.photos[0]?.filename,
-        sample_photo_metadata: {
-          filename: albumData.photos[0]?.filename,
-          ai_score: albumData.photos[0]?.ai_score,
-          approved: albumData.photos[0]?.approved,
-          tags: albumData.photos[0]?.tags?.length || 0,
-          highlights: albumData.photos[0]?.blip_highlights?.length || 0,
-          has_file: !!albumData.photos[0]?.file
-        },
-        metadata: albumData.metadata
-      });
-      
-      // Use FormData to send files to backend for local path storage
-      const formData = new FormData();
-      
-      // Add album metadata
-      formData.append('user_id', albumData.user_id);
-      formData.append('title', albumData.title);
-      formData.append('description', albumData.description);
-      formData.append('event_type', albumData.event_type);
-      formData.append('metadata', JSON.stringify(albumData.metadata));
-      
-      // Add photo files and their metadata
-      albumData.photos.forEach((photo, index) => {
-        // Add the actual file for backend to save locally
-        formData.append(`files`, photo.file);
-        
-        // Add photo metadata as JSON
-        const photoMetadata = {
-          filename: photo.filename,
-          ai_score: photo.ai_score,
-          basic_score: photo.basic_score,
-          ml_score: photo.ml_score,
-          score_type: photo.score_type,
-          blur_score: photo.blur_score,
-          approved: photo.approved,
-          color_label: photo.color_label,
-          tags: photo.tags,
-          blip_highlights: photo.blip_highlights,
-          blip_flags: photo.blip_flags,
-          faces: photo.faces,
-          caption: photo.caption,
-          face_summary: photo.face_summary,
-          deep_prompts: photo.deep_prompts,
-          ai_categories: photo.ai_categories,
-          clip_vector: photo.clip_vector,
-          phash: photo.phash,
-          dateCreated: photo.dateCreated,
-          edited_versions: photo.edited_versions
         };
+        
+        // Add as photo_metadata_0, photo_metadata_1, etc.
         formData.append(`photo_metadata_${index}`, JSON.stringify(photoMetadata));
       });
       
       console.log('Sending FormData to backend with:', {
-        files_count: albumData.photos.length,
-        metadata_keys: Object.keys(albumData.metadata),
-        first_file_name: albumData.photos[0]?.file?.name,
-        first_file_size: albumData.photos[0]?.file?.size
+        title: albumTitle_final,
+        event_type: eventType,
+        files_count: uniquePhotos.length,
+        metadata_keys: Object.keys(albumMetadata),
+        first_file_name: uniquePhotos[0]?.file?.name,
+        first_file_size: uniquePhotos[0]?.file?.size,
+        sample_photo_metadata: {
+          filename: uniquePhotos[0]?.filename,
+          ai_score: uniquePhotos[0]?.ai_score,
+          approved: uniquePhotos[0]?.approved || uniquePhotos[0]?.color_label === 'green',
+          tags_count: uniquePhotos[0]?.tags?.length || 0,
+          highlights_count: uniquePhotos[0]?.blip_highlights?.length || 0,
+          faces_count: uniquePhotos[0]?.faces?.length || 0
+        }
       });
       
-      // Call the save album API with FormData
-      const { saveAlbumWithFiles } = await import('../lib/api');
-      await saveAlbumWithFiles(formData);
+      // Send FormData to backend
+      const response = await fetch('https://ef7c29d73b11.ngrok-free.app/save-album', {
+        method: 'POST',
+        body: formData, // FormData automatically sets correct Content-Type
+        headers: {
+          'ngrok-skip-browser-warning': 'true'
+        },
+        mode: 'cors',
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Save album API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
+        throw new Error(errorText || 'Failed to save album');
+      }
       
-      showToast(`Άλμπουμ "${albumData.title}" αποθηκεύτηκε επιτυχώς με ${uniquePhotos.length} φωτογραφίες!`, 'success');
+      const result = await response.json();
+      console.log('Album saved successfully:', result);
+      
+      showToast(`Άλμπουμ "${albumTitle_final}" αποθηκεύτηκε επιτυχώς με ${uniquePhotos.length} φωτογραφίες!`, 'success');
       
       // Optional: Clear selections after successful save
       deselectAllPhotos();

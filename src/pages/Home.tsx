@@ -25,6 +25,9 @@ const Home: React.FC = () => {
     currentAlbumName,
     currentAlbumId,
     createNewAlbum,
+    currentAlbumName,
+    currentAlbumId,
+    createNewAlbum,
     duplicateClusters,
     personGroups,
     isLoading, 
@@ -100,70 +103,13 @@ const Home: React.FC = () => {
     setIsCreatingAlbum(true);
     
     try {
-      // Prepare FormData (backend expects form fields, not JSON)
-      const formData = new FormData();
-      formData.append('album_name', newAlbumName.trim());
-      formData.append('event_type', selectedEventType);
-      formData.append('user_id', 'user123'); // Replace with actual user ID from auth
+      // Use the context function to create album
+      const { albumId, albumName } = await createNewAlbum(newAlbumName.trim(), selectedEventType);
       
-      console.log('📤 Sending FormData to /create-album...', {
-        album_name: newAlbumName.trim(),
-        event_type: selectedEventType,
-        user_id: 'user123'
-      });
-      
-      // Make API request with FormData
-      const response = await fetch('https://ef7c29d73b11.ngrok-free.app/create-album', {
-        method: 'POST',
-        body: formData, // Send as FormData (multipart/form-data)
-        headers: {
-          'ngrok-skip-browser-warning': 'true'
-          // Don't set Content-Type - browser will set it automatically for FormData
-        },
-        mode: 'cors',
-      });
-
-      console.log('📥 Create album response:', {
-        status: response.status,
-        statusText: response.statusText,
-        url: response.url
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Create album API error:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorText: errorText.substring(0, 200)
-        });
-        
-        if (errorText.includes('<!DOCTYPE html>') || errorText.includes('<html>')) {
-          throw new Error(`Backend endpoint not found. Check if /create-album exists.`);
-        }
-        
-        throw new Error(`Failed to create album: ${response.status} ${errorText || response.statusText}`);
-      }
-
-      const responseText = await response.text();
-      console.log('📄 Create album response text:', responseText.substring(0, 500));
-      
-      let result;
-      try {
-        result = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('❌ Failed to parse response as JSON:', parseError);
-        throw new Error('Backend returned invalid JSON. Check backend implementation.');
-      }
-      
-      console.log('✅ Album created successfully:', result);
-      
-      // Update state with backend response
-      setCurrentAlbumName(newAlbumName.trim());
-      setCurrentAlbumId(result.album_id || `album-${Date.now()}`);
-      setEventType(selectedEventType);
+      console.log('✅ Album created via context:', { albumId, albumName });
       
       // Show success message
-      setCreateAlbumSuccess(`Album "${newAlbumName.trim()}" created successfully!`);
+      setCreateAlbumSuccess(`Album "${albumName}" created successfully!`);
       
       // Close modal after short delay
       setTimeout(() => {

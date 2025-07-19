@@ -8,6 +8,9 @@ interface PhotoContextType {
   currentAlbumName: string;
   currentAlbumId: string;
   createNewAlbum: (albumName: string, eventType: EventType) => Promise<{ albumId: string; albumName: string }>;
+  currentAlbumName: string;
+  currentAlbumId: string;
+  createNewAlbum: (albumName: string, eventType: EventType) => Promise<{ albumId: string; albumName: string }>;
   filteredPhotos: Photo[];
   duplicateClusters: DuplicateCluster[];
   personGroups: PersonGroup[];
@@ -81,6 +84,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [currentAlbumName, setCurrentAlbumName] = useState<string>('');
   const [currentAlbumId, setCurrentAlbumId] = useState<string>('');
+  const [currentAlbumName, setCurrentAlbumName] = useState<string>('');
+  const [currentAlbumId, setCurrentAlbumId] = useState<string>('');
   const [duplicateClusters, setDuplicateClusters] = useState<DuplicateCluster[]>([]);
   const [personGroups, setPersonGroups] = useState<PersonGroup[]>([]);
   const [albums, setAlbums] = useState<Album[]>([]);
@@ -104,6 +109,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const resetWorkflow = useCallback(() => {
     setPhotos([]);
+    setCurrentAlbumName('');
+    setCurrentAlbumId('');
     setCurrentAlbumName('');
     setCurrentAlbumId('');
     setDuplicateClusters([]);
@@ -219,7 +226,98 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   }, [photos, showToast]);
 
+  const createNewAlbum = useCallback(async (albumName: string, eventType: EventType) => {
+    console.log('🏗️ createNewAlbum called with:', { albumName, eventType });
+    
+    try {
+      const albumId = `album-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      console.log('📝 Generated album ID:', albumId);
+      
+      // Create album on backend first
+      console.log('📡 Sending POST request to /create-album...');
+      const formData = new FormData();
+      formData.append('album_name', albumName.trim());
+      formData.append('event_type', eventType);
+      formData.append('user_id', 'user123'); // Replace with actual user ID
+      formData.append('album_id', albumId);
+      
+      console.log('📤 FormData contents:', {
+        album_name: albumName.trim(),
+        event_type: eventType,
+        user_id: 'user123',
+        album_id: albumId
+      });
+      
+      const response = await fetch('https://ef7c29d73b11.ngrok-free.app/create-album', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'ngrok-skip-browser-warning': 'true'
+        },
+        mode: 'cors',
+      });
+
+      console.log('📥 Create album response:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: response.url
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Create album API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText: errorText.substring(0, 200)
+        });
+        
+        if (errorText.includes('<!DOCTYPE html>') || errorText.includes('<html>')) {
+          throw new Error(`Backend endpoint not found. Check if /create-album exists.`);
+        }
+        
+        throw new Error(`Failed to create album: ${response.status} ${errorText || response.statusText}`);
+      }
+
+      const responseText = await response.text();
+      console.log('📄 Create album response text:', responseText.substring(0, 500));
+      
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('❌ Failed to parse response as JSON:', parseError);
+        throw new Error('Backend returned invalid JSON. Check backend implementation.');
+      }
+      
+      console.log('✅ Create album successful:', result);
+      
+      // Update state with backend response
+      setCurrentAlbumName(albumName);
+      setCurrentAlbumId(result.album_id || albumId);
+      setEventType(eventType);
+      
+      console.log('✅ State updated successfully');
+      showToast(`Album "${albumName}" created successfully!`, 'success');
+      
+      return { albumId: result.album_id || albumId, albumName };
+    } catch (error: any) {
+      console.error('❌ createNewAlbum failed:', {
+        error: error.message || error,
+        stack: error.stack,
+        albumName,
+        eventType
+      });
+      showToast(error.message || 'Failed to create album', 'error');
+      throw error;
+    }
+  }, [showToast, setEventType]);
+
   const uploadPhotos = useCallback(async (files: File[]) => {
+    if (!currentAlbumName || !currentAlbumId) {
+      showToast('Please create an album first before uploading photos', 'error');
+      return;
+    }
+    
     if (!currentAlbumName || !currentAlbumId) {
       showToast('Please create an album first before uploading photos', 'error');
       return;
@@ -259,6 +357,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           filename: file.name,
           file: file,
           url: photoUrl,
+          albumId: currentAlbumId,
+          albumName: currentAlbumName,
           albumId: currentAlbumId,
           albumName: currentAlbumName,
           score: null,
@@ -1052,6 +1152,9 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const value: PhotoContextType = useMemo(() => ({
     photos,
+    currentAlbumName,
+    currentAlbumId,
+    createNewAlbum,
     filteredPhotos,
     duplicateClusters,
     personGroups,

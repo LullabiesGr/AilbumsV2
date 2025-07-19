@@ -17,7 +17,8 @@ import AlbumSelector from '../components/AlbumSelector';
 import AnalysisOverlay from '../components/AnalysisOverlay';
 import Sidebar from '../components/Sidebar';
 import FaceRetouchModal from '../components/FaceRetouchModal';
-import { Play, RotateCcw, Brain, Copy, Users, Grid, List, Sparkles, ArrowLeft, Wand2 } from 'lucide-react';
+import MyAilbumsTab from '../components/MyAilbumsTab';
+import { Play, RotateCcw, Brain, Copy, Users, Grid, List, Sparkles, ArrowLeft, Wand2, Folder } from 'lucide-react';
 
 const Home: React.FC = () => {
   const { 
@@ -40,7 +41,7 @@ const Home: React.FC = () => {
     resetWorkflow
   } = usePhoto();
   
-  const [activeTab, setActiveTab] = React.useState<'gallery' | 'duplicates' | 'people'>('gallery');
+  const [activeTab, setActiveTab] = React.useState<'gallery' | 'duplicates' | 'people' | 'albums'>('gallery');
 
   const [showFaceRetouchStep, setShowFaceRetouchStep] = React.useState(false);
 
@@ -525,6 +526,20 @@ const Home: React.FC = () => {
                       <span>People ({personGroups.length})</span>
                     </div>
                   </button>
+                  
+                  <button
+                    onClick={() => setActiveTab('albums')}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                      activeTab === 'albums'
+                        ? 'border-purple-500 text-purple-600 dark:text-purple-400'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Folder className="h-4 w-4" />
+                      <span>My Ailbums</span>
+                    </div>
+                  </button>
                 </nav>
               </div>
               
@@ -548,6 +563,8 @@ const Home: React.FC = () => {
                     <FacesGrid />
                   </div>
                 )}
+                
+                {activeTab === 'albums' && <MyAilbumsTab />}
               </div>
             </div>
           </div>

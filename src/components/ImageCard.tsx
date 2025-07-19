@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, Scissors, Edit, Trash2, X, CheckCheck, Wand2, Check, Lightbulb, Copy, Sparkles as SparklesIcon, Palette,
-         AlertCircle, Smile, EyeOff, Users, Sparkles, Flag, Heart, Frown, Meh, Crown, Baby, Camera, UserCheck } from 'lucide-react';
+         AlertCircle, Smile, EyeOff, Users, Sparkles, Flag, Heart, Frown, Meh, Crown, Baby, Camera, UserCheck, 
+         User, ArrowUp, ArrowDown, RotateCcw } from 'lucide-react';
 import { usePhoto } from '../context/PhotoContext';
 import ImageModal from './ImageModal';
 import StarRating from './StarRating';
@@ -110,6 +111,116 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
     }
   };
 
+  // Get headpose classification and styling
+  const getHeadposeInfo = (headpose?: { yaw: number; pitch: number; roll: number }) => {
+    if (!headpose) return null;
+    
+    const { yaw, pitch, roll } = headpose;
+    
+    // Classify headpose based on angles
+    if (Math.abs(yaw) <= 20 && Math.abs(pitch) <= 15) {
+      return {
+        type: 'frontal',
+        label: 'Frontal',
+        icon: <User className="h-3 w-3 text-green-500" />,
+        bgColor: 'bg-green-100 dark:bg-green-900/30',
+        textColor: 'text-green-700 dark:text-green-300',
+        description: 'Looking at camera'
+      };
+    } else if (Math.abs(yaw) > 45) {
+      return {
+        type: 'profile',
+        label: 'Profile',
+        icon: <RotateCcw className="h-3 w-3 text-yellow-500" />,
+        bgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
+        textColor: 'text-yellow-700 dark:text-yellow-300',
+        description: 'Side view'
+      };
+    } else if (pitch > 20) {
+      return {
+        type: 'down',
+        label: 'Looking Down',
+        icon: <ArrowDown className="h-3 w-3 text-gray-500" />,
+        bgColor: 'bg-gray-100 dark:bg-gray-700',
+        textColor: 'text-gray-600 dark:text-gray-400',
+        description: 'Looking down'
+      };
+    } else if (pitch < -20) {
+      return {
+        type: 'up',
+        label: 'Looking Up',
+        icon: <ArrowUp className="h-3 w-3 text-gray-500" />,
+        bgColor: 'bg-gray-100 dark:bg-gray-700',
+        textColor: 'text-gray-600 dark:text-gray-400',
+        description: 'Looking up'
+      };
+    } else {
+      return {
+        type: 'angled',
+        label: 'Angled',
+        icon: <RotateCcw className="h-3 w-3 text-yellow-500" />,
+        bgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
+        textColor: 'text-yellow-700 dark:text-yellow-300',
+        description: 'Angled view'
+      };
+    }
+  };
+
+  // Get headpose badges for all faces
+  const getHeadposeBadges = () => {
+    if (!photo.faces || photo.faces.length === 0) return null;
+    
+    const headposeInfo = photo.faces.map(face => getHeadposeInfo(face.headpose)).filter(Boolean);
+    
+    if (headposeInfo.length === 0) return null;
+    
+    // Check if all faces are non-frontal
+    const frontalFaces = headposeInfo.filter(info => info?.type === 'frontal');
+    const allNonFrontal = frontalFaces.length === 0 && headposeInfo.length > 0;
+    
+    const badges = [];
+    
+    // Group by headpose type and count
+    const headposeCounts: Record<string, { info: any; count: number }> = {};
+    headposeInfo.forEach(info => {
+      if (info) {
+        if (!headposeCounts[info.type]) {
+          headposeCounts[info.type] = { info, count: 0 };
+        }
+        headposeCounts[info.type].count++;
+      }
+    });
+    
+    // Create badges for each headpose type
+    Object.values(headposeCounts).forEach(({ info, count }) => {
+      badges.push(
+        <span 
+          key={info.type}
+          className={`px-2 py-1 ${info.bgColor} ${info.textColor} text-xs rounded-full font-medium flex items-center gap-1`}
+          title={`${count} face(s) ${info.description}`}
+        >
+          {info.icon}
+          {count > 1 ? `${count} ${info.label}` : info.label}
+        </span>
+      );
+    });
+    
+    // Add warning if all faces are non-frontal
+    if (allNonFrontal) {
+      badges.push(
+        <span 
+          key="warning"
+          className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-xs rounded-full font-medium flex items-center gap-1"
+          title="All faces are looking away from camera"
+        >
+          <AlertCircle className="h-3 w-3" />
+          All faces looking away
+        </span>
+      );
+    }
+    
+    return badges;
+  };
   const handleSelect = (e: React.MouseEvent) => {
     e.stopPropagation();
     togglePhotoSelection(photo.id);
@@ -590,6 +701,27 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
           <div className="mt-1 flex flex-wrap gap-1">
             {getFaceSummaryBadges()}
           </div>
+          
+          {/* Headpose Badges in compact view */}
+          {getHeadposeBadges() && getHeadposeBadges()!.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {getHeadposeBadges()}
+            </div>
+          )}
+          
+          {/* Headpose Badges */}
+          {getHeadposeBadges() && getHeadposeBadges()!.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {getHeadposeBadges()}
+            </div>
+          )}
+          
+          {/* Headpose Badges - Third row with visual separation */}
+          {getHeadposeBadges() && getHeadposeBadges()!.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {getHeadposeBadges()}
+            </div>
+          )}
         </div>
       </div>
       <div className="flex items-center pr-3 space-x-1">

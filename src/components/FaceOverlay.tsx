@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Face } from '../types';
-import { User, Eye, EyeOff, Smile, Frown, Meh, Heart, AlertCircle, Glasses, Shield } from 'lucide-react';
+import { User, Eye, EyeOff, Smile, Frown, Meh, Heart, AlertCircle, Glasses, Shield, ArrowUp, ArrowDown, RotateCcw } from 'lucide-react';
 
 interface FaceOverlayProps {
   faces: Face[];
@@ -172,6 +172,24 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
     }
   };
 
+  const getHeadposeIcon = (headpose?: { yaw: number; pitch: number; roll: number }) => {
+    if (!headpose) return null;
+    
+    const { yaw, pitch, roll } = headpose;
+    
+    // Classify headpose based on angles
+    if (Math.abs(yaw) <= 20 && Math.abs(pitch) <= 15) {
+      return <User className="h-3 w-3 text-green-500" title="Frontal view" />;
+    } else if (Math.abs(yaw) > 45) {
+      return <RotateCcw className="h-3 w-3 text-yellow-500" title="Profile view" />;
+    } else if (pitch > 20) {
+      return <ArrowDown className="h-3 w-3 text-gray-500" title="Looking down" />;
+    } else if (pitch < -20) {
+      return <ArrowUp className="h-3 w-3 text-gray-500" title="Looking up" />;
+    } else {
+      return <RotateCcw className="h-3 w-3 text-yellow-500" title="Angled view" />;
+    }
+  };
   const getQualityColor = (quality?: number) => {
     if (!quality) return 'text-gray-500';
     if (quality > 0.8) return 'text-green-500';
@@ -521,6 +539,7 @@ const FaceOverlay: React.FC<FaceOverlayProps> = ({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-1">
                       {face.emotion && getEmotionIcon(face.emotion)}
+                      {face.headpose && getHeadposeIcon(face.headpose)}
                       {face.age && <span>{Math.round(face.age)}y</span>}
                       {face.gender && <span className="capitalize">{face.gender}</span>}
                     </div>

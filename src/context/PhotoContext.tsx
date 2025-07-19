@@ -698,7 +698,59 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const saveAlbumAndTrainAI = useCallback(async (event: string) => {
     try {
-      // Get approved photos with their ratings
+      if (!eventType) {
+        throw new Error('Event type is required');
+      }
+
+      // Prepare complete album data
+      const albumData = {
+        user_id: 'user123', // Replace with actual user ID
+        title: `${eventType.charAt(0).toUpperCase() + eventType.slice(1)} Album - ${new Date().toLocaleDateString()}`,
+        event_type: eventType,
+        photos: photos.map(photo => ({
+          filename: photo.filename,
+          url: photo.url,
+          ai_score: photo.ai_score,
+          approved: photo.approved || photo.color_label === 'green',
+          color_label: photo.color_label,
+          tags: photo.tags || [],
+          blip_highlights: photo.blip_highlights || [],
+          blip_flags: photo.blip_flags || [],
+          faces: photo.faces || [],
+          caption: photo.caption,
+          face_summary: photo.face_summary,
+          deep_prompts: photo.deep_prompts || {},
+          ai_categories: photo.ai_categories || [],
+          edited_versions: {
+            // Store any edited versions if available
+          }
+        })),
+        metadata: {
+          user_id: 'user123',
+          culling_mode: cullingMode || 'fast',
+          analysis_complete: photos.some(p => p.ai_score > 0),
+          total_photos: photos.length,
+          approved_photos: photos.filter(p => p.approved || p.color_label === 'green').length,
+          date_created: new Date().toISOString(),
+          date_updated: new Date().toISOString()
+        }
+      };
+      
+      // Import the new save function
+      const { saveCompleteAlbum } = await import('../lib/api');
+      await saveCompleteAlbum(albumData);
+      
+      showToast(`Album "${albumData.title}" saved successfully!`, 'success');
+    } catch (error: any) {
+      console.error('Failed to save album:', error);
+      showToast(error.message || 'Failed to save album', 'error');
+    }
+  }, [photos, eventType, cullingMode, showToast]);
+
+  // Legacy function for backward compatibility
+  const saveAlbumAndTrainAILegacy = useCallback(async (event: string) => {
+    try {
+      // Get approved photos with their ratings  
       const approvedPhotos = photos.filter(photo => !photo.tags?.includes('culled'));
       
       if (approvedPhotos.length === 0) {
@@ -710,7 +762,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       console.error('Failed to save album and train AI:', error);
       showToast(error.message || 'Failed to save album', 'error');
     }
-  }, [photos, showToast]);
 
   const setStarRatingFilter = useCallback((min: number | null, max: number | null) => {
     setStarRatingFilterState({ min, max });

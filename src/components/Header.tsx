@@ -1,12 +1,14 @@
 import React from 'react';
 import { useState } from 'react';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, FolderOpen } from 'lucide-react';
 import Tutorial from './Tutorial';
+import MyAilbumsModal from './MyAilbumsModal';
 import UserMenu from './UserMenu';
 import { useAuth } from '../context/AuthContext';
 
 const Header: React.FC = () => {
   const [showTutorial, setShowTutorial] = useState(false);
+  const [showMyAilbums, setShowMyAilbums] = useState(false);
   const { isAuthenticated } = useAuth();
 
   return (
@@ -26,6 +28,19 @@ const Header: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-3">
+              {isAuthenticated && (
+                <button 
+                  onClick={() => setShowMyAilbums(true)}
+                  className="px-4 py-2 text-sm bg-gradient-to-r from-purple-600 to-pink-600 
+                           hover:from-purple-700 hover:to-pink-700 text-white rounded-md 
+                           transition-all duration-200 flex items-center space-x-2 font-medium
+                           shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <FolderOpen className="h-4 w-4" />
+                  <span>My Ailbums</span>
+                </button>
+              )}
+              
               <button 
                 onClick={() => setShowTutorial(true)}
                 className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white 
@@ -44,6 +59,11 @@ const Header: React.FC = () => {
       <Tutorial 
         isOpen={showTutorial} 
         onClose={() => setShowTutorial(false)} 
+      />
+      
+      <MyAilbumsModal 
+        isOpen={showMyAilbums} 
+        onClose={() => setShowMyAilbums(false)} 
       />
     </>
   );

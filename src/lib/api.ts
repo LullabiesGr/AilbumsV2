@@ -165,6 +165,57 @@ export const saveAlbumAndTrain = async (trainingData: AITrainingData): Promise<v
   }
 };
 
+// Save complete album with all data
+export const saveCompleteAlbum = async (albumData: {
+  user_id: string;
+  title: string;
+  event_type: string;
+  photos: any[];
+  metadata: any;
+}): Promise<void> => {
+  try {
+    const response = await fetch(`${API_URL}/save-album`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(albumData),
+      mode: 'cors',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Failed to save album');
+    }
+  } catch (error: any) {
+    console.error('Save complete album error:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};
+
+// Load user albums
+export const loadUserAlbums = async (userId: string): Promise<any[]> => {
+  try {
+    const response = await fetch(`${API_URL}/albums?user_id=${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      mode: 'cors',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Failed to load albums');
+    }
+
+    const albums = await response.json();
+    return albums || [];
+  } catch (error: any) {
+    console.error('Load albums error:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};
 export const analyzePhotos = async (photos: Photo[], userId: string, eventType: EventType, cullingMode: CullingMode): Promise<Photo[]> => {
   // This function is now replaced by analyzeSinglePhoto for better UX
   throw new Error('Use analyzeSinglePhoto instead for serial processing');

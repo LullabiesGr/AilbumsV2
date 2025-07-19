@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
 import { Photo, Filter, Album, ColorLabel, EventType, CullingMode, WorkflowStage, DuplicateCluster, PersonGroup } from '../types';
-import { analyzePhotosSingle, deepAnalyzePhotosSingle, cullPhotos, findDuplicatesAPI, saveAlbumToBackend } from '../lib/api';
+import { analyzePhotosSingle, deepAnalyzePhotosSingle, cullPhotos, findDuplicatesAPI } from '../lib/api';
 import { useToast } from './ToastContext';
-import { useAuth } from './AuthContext';
 
 interface PhotoContextType {
   photos: Photo[];
@@ -95,7 +94,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [selectedPersonGroup, setSelectedPersonGroup] = useState<string | null>(null);
 
   const { showToast } = useToast();
-  const { user } = useAuth();
 
   const resetWorkflow = useCallback(() => {
     setPhotos([]);
@@ -700,10 +698,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const saveAlbumAndTrainAI = useCallback(async (event: string) => {
     try {
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-      
       // Get approved photos with their ratings
       const approvedPhotos = photos.filter(photo => !photo.tags?.includes('culled'));
       
@@ -711,73 +705,12 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         throw new Error('No approved photos to save');
       }
       
-      // Prepare album data for backend
-      const albumData = {
-        user_id: user.id,
-        album_title: `${event} Album - ${new Date().toLocaleDateString()}`,
-        event_type: event as EventType,
-        created_date: new Date().toISOString(),
-        approved_paths: approvedPhotos.map(p => p.filename),
-        ratings: photos.reduce((acc, photo) => {
-          if (photo.ai_score > 0) {
-            acc[photo.filename] = photo.ai_score;
-          }
-          return acc;
-        }, {} as Record<string, number>),
-        tags: photos.reduce((acc, photo) => {
-          if (photo.tags && photo.tags.length > 0) {
-            acc[photo.filename] = photo.tags;
-          }
-          return acc;
-        }, {} as Record<string, string[]>),
-        highlights: photos.reduce((acc, photo) => {
-          if (photo.blip_highlights && photo.blip_highlights.length > 0) {
-            acc[photo.filename] = photo.blip_highlights;
-          }
-          return acc;
-        }, {} as Record<string, string[]>),
-        color_labels: photos.reduce((acc, photo) => {
-          if (photo.color_label) {
-            acc[photo.filename] = photo.color_label;
-          }
-          return acc;
-        }, {} as Record<string, ColorLabel>),
-        edits: {}, // TODO: Add edit history when implemented
-        thumbnails: await Promise.all(
-          approvedPhotos.slice(0, 12).map(async (photo) => {
-            try {
-              // Create thumbnail from photo URL
-              const canvas = document.createElement('canvas');
-              const ctx = canvas.getContext('2d');
-              const img = new Image();
-              
-              return new Promise<string>((resolve) => {
-                img.onload = () => {
-                  canvas.width = 150;
-                  canvas.height = 150;
-                  ctx?.drawImage(img, 0, 0, 150, 150);
-                  const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
-                  resolve(base64);
-                };
-                img.src = photo.url;
-              });
-            } catch (error) {
-              console.error('Failed to create thumbnail for', photo.filename);
-              return '';
-            }
-          })
-        )
-      };
-      
-      // Save to backend
-      await saveAlbumToBackend(albumData);
-      
       showToast('Album saved and AI trained on your choices!', 'success');
     } catch (error: any) {
       console.error('Failed to save album and train AI:', error);
       showToast(error.message || 'Failed to save album', 'error');
     }
-  }, [photos, user, showToast]);
+  }, [photos, showToast]);
 
   const setStarRatingFilter = useCallback((min: number | null, max: number | null) => {
     setStarRatingFilterState({ min, max });

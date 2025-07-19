@@ -161,33 +161,3 @@ export interface ColorLabelConfig {
   textColor: string;
   description: string;
 }
-
-export interface SavedAlbum {
-  id: string;
-  user_id: string;
-  album_title: string;
-  event_type: EventType;
-  created_date: string;
-  approved_count: number;
-  total_count: number;
-  thumbnails: string[]; // Base64 encoded thumbnails
-  tags: Record<string, string[]>; // filename -> tags
-  highlights: Record<string, string[]>; // filename -> highlights
-  ratings: Record<string, number>; // filename -> rating
-  color_labels: Record<string, ColorLabel>; // filename -> color label
-  edits: Record<string, any>; // filename -> edit history
-}
-
-export interface SaveAlbumData {
-  user_id: string;
-  album_title: string;
-  event_type: EventType;
-  created_date: string;
-  approved_paths: string[];
-  ratings: Record<string, number>;
-  tags: Record<string, string[]>;
-  highlights: Record<string, string[]>;
-  color_labels: Record<string, ColorLabel>;
-  edits: Record<string, any>;
-  thumbnails: string[];
-}

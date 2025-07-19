@@ -1032,7 +1032,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     togglePhotoSelection,
     selectAllPhotos,
     deselectAllPhotos,
-    selectedPhotos,
     updatePhotoScore,
     updatePhotoColorLabel,
     markPhotoAsKeep,

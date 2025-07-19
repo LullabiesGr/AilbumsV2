@@ -84,8 +84,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [currentAlbumName, setCurrentAlbumName] = useState<string>('');
   const [currentAlbumId, setCurrentAlbumId] = useState<string>('');
-  const [currentAlbumName, setCurrentAlbumName] = useState<string>('');
-  const [currentAlbumId, setCurrentAlbumId] = useState<string>('');
   const [duplicateClusters, setDuplicateClusters] = useState<DuplicateCluster[]>([]);
   const [personGroups, setPersonGroups] = useState<PersonGroup[]>([]);
   const [albums, setAlbums] = useState<Album[]>([]);

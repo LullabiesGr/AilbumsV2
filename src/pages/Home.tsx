@@ -49,6 +49,8 @@ const Home: React.FC = () => {
   const [showCreateAlbumModal, setShowCreateAlbumModal] = React.useState(false);
   const [newAlbumName, setNewAlbumName] = React.useState('');
   const [selectedEventType, setSelectedEventType] = React.useState<EventType | null>(null);
+  const [isCreatingAlbum, setIsCreatingAlbum] = React.useState(false);
+  const [createAlbumError, setCreateAlbumError] = React.useState<string | null>(null);
 
   const getEventTypeLabel = (type: EventType | null) => {
     const eventLabels = {
@@ -66,24 +68,51 @@ const Home: React.FC = () => {
   const hasAnalyzedPhotos = photos.some(p => p.ai_score > 0);
   
   const handleCreateAlbum = async () => {
+    console.log('🔥 CREATE ALBUM BUTTON CLICKED!', {
+      albumName: newAlbumName,
+      eventType: selectedEventType,
+      isCreatingAlbum,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Reset error state
+    setCreateAlbumError(null);
+    
+    // Validation with detailed logging
     if (!newAlbumName.trim()) {
-      showToast('Please enter album name', 'error');
+      const error = 'Please enter album name';
+      console.error('❌ Validation failed:', error);
+      setCreateAlbumError(error);
       return;
     }
     
     if (!selectedEventType) {
-      showToast('Please select event type', 'error');
+      const error = 'Please select event type';
+      console.error('❌ Validation failed:', error);
+      setCreateAlbumError(error);
       return;
     }
     
+    console.log('✅ Validation passed, starting album creation...');
+    setIsCreatingAlbum(true);
+    
     try {
+      console.log('📡 Calling createNewAlbum function...');
       await createNewAlbum(newAlbumName.trim(), selectedEventType);
+      
+      console.log('✅ Album created successfully!');
       setShowCreateAlbumModal(false);
       setNewAlbumName('');
       setSelectedEventType(null);
+      setCreateAlbumError(null);
       setWorkflowStage('configure');
     } catch (error) {
-      // Error already handled in createNewAlbum
+      console.error('❌ Album creation failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create album';
+      setCreateAlbumError(errorMessage);
+    } finally {
+      console.log('🏁 Album creation process finished');
+      setIsCreatingAlbum(false);
     }
   };
   
@@ -172,6 +201,15 @@ const Home: React.FC = () => {
                         No cloud storage is used.
                       </p>
                     </div>
+                    
+                    {/* Error Display */}
+                    {createAlbumError && (
+                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                        <p className="text-sm text-red-700 dark:text-red-300">
+                          <strong>Error:</strong> {createAlbumError}
+                        </p>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex justify-end gap-2 mt-6">
@@ -188,11 +226,14 @@ const Home: React.FC = () => {
                     </button>
                     <button
                       onClick={handleCreateAlbum}
-                      disabled={!newAlbumName.trim() || !selectedEventType}
+                      disabled={!newAlbumName.trim() || !selectedEventType || isCreatingAlbum}
                       className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 
-                               disabled:opacity-50 disabled:cursor-not-allowed"
+                               disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                     >
-                      Create Album
+                      {isCreatingAlbum && (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      )}
+                      <span>{isCreatingAlbum ? 'Creating...' : 'Create Album'}</span>
                     </button>
                   </div>
                 </div>

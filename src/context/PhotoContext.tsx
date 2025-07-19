@@ -298,42 +298,68 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, [showToast, workflowStage]);
 
   const createNewAlbum = useCallback(async (albumName: string, eventType: EventType) => {
+    console.log('🏗️ createNewAlbum called with:', { albumName, eventType });
+    
     try {
       const albumId = `album-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      console.log('📝 Generated album ID:', albumId);
       
       // Create album on backend first
+      console.log('📡 Sending POST request to /create-album...');
+      const requestData = {
+        user_id: 'user123', // Replace with actual user ID
+        album_id: albumId,
+        title: albumName,
+        event_type: eventType,
+        date_created: new Date().toISOString()
+      };
+      
+      console.log('📤 Request data:', requestData);
+      
       const response = await fetch('https://ef7c29d73b11.ngrok-free.app/create-album', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true'
         },
-        body: JSON.stringify({
-          user_id: 'user123', // Replace with actual user ID
-          album_id: albumId,
-          title: albumName,
-          event_type: eventType,
-          date_created: new Date().toISOString()
-        }),
+        body: JSON.stringify(requestData),
         mode: 'cors',
+      });
+
+      console.log('📥 Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
       });
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('❌ Backend error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        });
         throw new Error(errorText || 'Failed to create album');
       }
 
       const result = await response.json();
+      console.log('✅ Backend response:', result);
       
       setCurrentAlbumName(albumName);
       setCurrentAlbumId(albumId);
       setEventType(eventType);
       
+      console.log('✅ State updated successfully');
       showToast(`Album "${albumName}" created successfully!`, 'success');
       
       return { albumId, albumName };
     } catch (error: any) {
-      console.error('Failed to create album:', error);
+      console.error('❌ createNewAlbum failed:', {
+        error: error.message || error,
+        stack: error.stack,
+        albumName,
+        eventType
+      });
       showToast(error.message || 'Failed to create album', 'error');
       throw error;
     }

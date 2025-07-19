@@ -5,6 +5,101 @@ import { DuplicateCluster } from '../types';
 
 const API_URL = 'https://ef7c29d73b11.ngrok-free.app';
 
+// Test function to verify backend connectivity
+export const testBackendConnection = async (): Promise<boolean> => {
+  try {
+    console.log('🔍 Testing backend connection...');
+    const response = await fetch(`${API_URL}/health`, {
+      method: 'GET',
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      },
+      mode: 'cors',
+    });
+    
+    console.log('🔍 Health check response:', {
+      status: response.status,
+      statusText: response.statusText
+    });
+    
+    return response.ok;
+  } catch (error) {
+    console.error('❌ Backend connection test failed:', error);
+    return false;
+  }
+};
+
+// Enhanced create album function with debugging
+export const createAlbumAPI = async (albumData: {
+  user_id: string;
+  album_id: string;
+  title: string;
+  event_type: EventType;
+  date_created: string;
+}): Promise<any> => {
+  console.log('📡 createAlbumAPI called with:', albumData);
+  
+  try {
+    // Test connection first
+    const isConnected = await testBackendConnection();
+    if (!isConnected) {
+      throw new Error('Backend is not reachable. Please check if the server is running.');
+    }
+    
+    console.log('📤 Sending create album request...');
+    const response = await fetch(`${API_URL}/create-album`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
+      },
+      body: JSON.stringify(albumData),
+      mode: 'cors',
+    });
+
+    console.log('📥 Create album response:', {
+      status: response.status,
+      statusText: response.statusText,
+      url: response.url,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Create album API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText: errorText.substring(0, 200)
+      });
+      
+      if (errorText.includes('<!DOCTYPE html>') || errorText.includes('<html>')) {
+        throw new Error(`Create album endpoint returned HTML instead of JSON. Check if ${API_URL}/create-album endpoint exists.`);
+      }
+      
+      throw new Error(`Failed to create album: ${response.status} ${errorText || response.statusText}`);
+    }
+
+    const responseText = await response.text();
+    console.log('📄 Create album response text:', responseText.substring(0, 500));
+    
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('❌ Failed to parse create album response as JSON:', parseError);
+      console.error('Response was:', responseText.substring(0, 200));
+      throw new Error('Create album endpoint returned invalid JSON. Check backend implementation.');
+    }
+    
+    console.log('✅ Create album successful:', result);
+    return result;
+    
+  } catch (error: any) {
+    console.error('❌ createAlbumAPI failed:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};
+
 // Utility function to compute perceptual hash on frontend (basic implementation)
 export const computePerceptualHash = async (imageUrl: string): Promise<string> => {
   return new Promise((resolve, reject) => {

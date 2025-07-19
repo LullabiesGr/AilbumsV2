@@ -316,33 +316,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       
       console.log('📤 Request data:', requestData);
       
-      const response = await fetch('https://ef7c29d73b11.ngrok-free.app/create-album', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true'
-        },
-        body: JSON.stringify(requestData),
-        mode: 'cors',
-      });
-
-      console.log('📥 Response received:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries())
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Backend error:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorText
-        });
-        throw new Error(errorText || 'Failed to create album');
-      }
-
-      const result = await response.json();
+      // Use the enhanced API function
+      const result = await createAlbumAPI(requestData);
       console.log('✅ Backend response:', result);
       
       setCurrentAlbumName(albumName);

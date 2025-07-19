@@ -39,7 +39,18 @@ const ActionBar: React.FC = () => {
   };
 
   const handleSaveAndTrain = async () => {
-    setShowEventDialog(true);
+    if (!eventType) {
+      setShowEventDialog(true);
+      return;
+    }
+    
+    // If we already have event type, save directly
+    try {
+      await saveAlbumAndTrainAI(eventType);
+    } catch (error: any) {
+      console.error('Failed to save album:', error);
+      showToast(error.message || 'Failed to save album', 'error');
+    }
   };
 
   const handleBatchProcess = async (processor: 'autocorrect' | 'autofix') => {
@@ -231,6 +242,21 @@ const ActionBar: React.FC = () => {
               </button>
               <button
                 onClick={handleSaveAndTrain}
+                onClick={async () => {
+                  if (!eventType.trim()) {
+                    showToast('Please enter album title', 'error');
+                    return;
+                  }
+                  
+                  setShowEventDialog(false);
+                  
+                  try {
+                    await saveAlbumAndTrainAI(eventType.trim());
+                  } catch (error: any) {
+                    console.error('Failed to save album:', error);
+                    showToast(error.message || 'Failed to save album', 'error');
+                  }
+                }}
                 disabled={!eventType.trim()}
                 className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 
                          disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"

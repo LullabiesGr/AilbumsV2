@@ -702,29 +702,38 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const saveAlbumAndTrainAI = useCallback(async (albumTitle: string) => {
     try {
+      console.log('saveAlbumAndTrainAI called with title:', albumTitle);
+      console.log('Current photos:', photos.length);
+      console.log('Selected photos:', selectedPhotos.length);
+      console.log('Event type:', eventType);
+      
       if (!eventType) {
         throw new Error('Event type is required for album creation');
       }
 
       // Get all photos that should be included in the album
-      const photosToInclude = [];
+      let photosToInclude = [];
       
       // Priority 1: Selected photos
       if (selectedPhotos.length > 0) {
+        console.log('Using selected photos:', selectedPhotos.length);
         photosToInclude.push(...selectedPhotos);
       } else {
         // Priority 2: Green labeled photos (user approved)
         const greenPhotos = photos.filter(p => p.color_label === 'green');
         if (greenPhotos.length > 0) {
+          console.log('Using green labeled photos:', greenPhotos.length);
           photosToInclude.push(...greenPhotos);
         } else {
           // Priority 3: Backend approved photos
           const backendApproved = photos.filter(p => p.approved === true);
           if (backendApproved.length > 0) {
+            console.log('Using backend approved photos:', backendApproved.length);
             photosToInclude.push(...backendApproved);
           } else {
             // Fallback: All photos with AI score > 6
             const highScorePhotos = photos.filter(p => p.ai_score > 6);
+            console.log('Using high score photos:', highScorePhotos.length);
             photosToInclude.push(...highScorePhotos);
           }
         }
@@ -734,6 +743,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const uniquePhotos = photosToInclude.filter((photo, index, self) => 
         self.findIndex(p => p.id === photo.id) === index
       );
+      
+      console.log('Final photos to include:', uniquePhotos.length);
       
       if (uniquePhotos.length === 0) {
         throw new Error('No photos selected or approved for album creation');
@@ -801,6 +812,14 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         title: albumData.title,
         event_type: albumData.event_type,
         photos_count: albumData.photos.length,
+        first_photo: albumData.photos[0]?.filename,
+        sample_photo_data: {
+          filename: albumData.photos[0]?.filename,
+          ai_score: albumData.photos[0]?.ai_score,
+          approved: albumData.photos[0]?.approved,
+          tags: albumData.photos[0]?.tags,
+          highlights: albumData.photos[0]?.blip_highlights
+        },
         metadata: albumData.metadata
       });
       

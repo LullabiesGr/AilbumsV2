@@ -180,6 +180,14 @@ export const saveCompleteAlbum = async (albumData: {
       event_type: albumData.event_type,
       photos_count: albumData.photos.length,
       first_photo: albumData.photos[0]?.filename,
+      sample_photo_structure: albumData.photos[0] ? {
+        has_filename: !!albumData.photos[0].filename,
+        has_ai_score: !!albumData.photos[0].ai_score,
+        has_tags: !!albumData.photos[0].tags,
+        has_highlights: !!albumData.photos[0].blip_highlights,
+        has_faces: !!albumData.photos[0].faces,
+        keys: Object.keys(albumData.photos[0])
+      } : null,
       metadata_keys: Object.keys(albumData.metadata)
     });
     
@@ -198,7 +206,13 @@ export const saveCompleteAlbum = async (albumData: {
       console.error('Save album API error:', {
         status: response.status,
         statusText: response.statusText,
-        error: errorText
+        error: errorText,
+        request_data: {
+          title: albumData.title,
+          photos_count: albumData.photos.length,
+          has_photos_array: Array.isArray(albumData.photos),
+          first_photo_keys: albumData.photos[0] ? Object.keys(albumData.photos[0]) : null
+        }
       });
       throw new Error(errorText || 'Failed to save album');
     }

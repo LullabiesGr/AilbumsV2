@@ -100,29 +100,26 @@ const Home: React.FC = () => {
     setIsCreatingAlbum(true);
     
     try {
-      // Generate album ID
-      const albumId = `album-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      console.log('📝 Generated album ID:', albumId);
+      // Prepare FormData (backend expects form fields, not JSON)
+      const formData = new FormData();
+      formData.append('album_name', newAlbumName.trim());
+      formData.append('event_type', selectedEventType);
+      formData.append('user_id', 'user123'); // Replace with actual user ID from auth
       
-      // Prepare request data
-      const requestData = {
-        user_id: 'user123', // Replace with actual user ID from auth
-        album_id: albumId,
-        title: newAlbumName.trim(),
+      console.log('📤 Sending FormData to /create-album...', {
+        album_name: newAlbumName.trim(),
         event_type: selectedEventType,
-        date_created: new Date().toISOString()
-      };
+        user_id: 'user123'
+      });
       
-      console.log('📤 Sending POST request to /create-album...', requestData);
-      
-      // Make API request
+      // Make API request with FormData
       const response = await fetch('https://ef7c29d73b11.ngrok-free.app/create-album', {
         method: 'POST',
+        body: formData, // Send as FormData (multipart/form-data)
         headers: {
-          'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true'
+          // Don't set Content-Type - browser will set it automatically for FormData
         },
-        body: JSON.stringify(requestData),
         mode: 'cors',
       });
 
@@ -160,9 +157,9 @@ const Home: React.FC = () => {
       
       console.log('✅ Album created successfully:', result);
       
-      // Update state
+      // Update state with backend response
       setCurrentAlbumName(newAlbumName.trim());
-      setCurrentAlbumId(albumId);
+      setCurrentAlbumId(result.album_id || `album-${Date.now()}`);
       setEventType(selectedEventType);
       
       // Show success message

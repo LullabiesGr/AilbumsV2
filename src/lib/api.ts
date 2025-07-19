@@ -169,15 +169,25 @@ export const saveAlbumAndTrain = async (trainingData: AITrainingData): Promise<v
 export const saveCompleteAlbum = async (albumData: {
   user_id: string;
   title: string;
+  description?: string;
   event_type: string;
   photos: any[];
   metadata: any;
 }): Promise<void> => {
   try {
+    console.log('Sending album data to backend:', {
+      title: albumData.title,
+      event_type: albumData.event_type,
+      photos_count: albumData.photos.length,
+      first_photo: albumData.photos[0]?.filename,
+      metadata_keys: Object.keys(albumData.metadata)
+    });
+    
     const response = await fetch(`${API_URL}/save-album`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       },
       body: JSON.stringify(albumData),
       mode: 'cors',
@@ -185,8 +195,17 @@ export const saveCompleteAlbum = async (albumData: {
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('Save album API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
       throw new Error(errorText || 'Failed to save album');
     }
+    
+    const result = await response.json();
+    console.log('Album saved successfully:', result);
+    
   } catch (error: any) {
     console.error('Save complete album error:', error);
     throw error instanceof Error ? error : new Error(error.toString());

@@ -91,6 +91,18 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
       loadAlbums();
     }
   }, [isOpen, user]);
+  
+  // Refresh albums when modal opens (to show newly created albums)
+  useEffect(() => {
+    if (isOpen && user) {
+      // Small delay to ensure any pending saves are complete
+      const timer = setTimeout(() => {
+        loadAlbums();
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
   // Delete album
   const handleDeleteAlbum = async (albumId: string) => {

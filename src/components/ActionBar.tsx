@@ -39,18 +39,7 @@ const ActionBar: React.FC = () => {
   };
 
   const handleSaveAndTrain = async () => {
-    if (!eventType) {
-      setShowEventDialog(true);
-      return;
-    }
-    
-    try {
-      await saveAlbumAndTrainAI(eventType);
-      setShowEventDialog(false);
-      setEventType('');
-    } catch (error) {
-      // Error handling is done in context
-    }
+    setShowEventDialog(true);
   };
 
   const handleBatchProcess = async (processor: 'autocorrect' | 'autofix') => {
@@ -205,19 +194,32 @@ const ActionBar: React.FC = () => {
       {showEventDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-4">Select Event Type</h3>
-            <select
-              value={eventType}
-              onChange={(e) => setEventType(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-md mb-4"
-            >
-              <option value="">Select an event...</option>
-              <option value="wedding">Wedding</option>
-              <option value="baptism">Baptism</option>
-              <option value="portrait">Portrait</option>
-              <option value="event">General Event</option>
-              <option value="landscape">Landscape</option>
-            </select>
+            <h3 className="text-lg font-semibold mb-4">Δημιουργία Άλμπουμ</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Τίτλος Άλμπουμ</label>
+                <input
+                  type="text"
+                  value={eventType}
+                  onChange={(e) => setEventType(e.target.value)}
+                  placeholder="π.χ. Γάμος Μιχάλη & Άννας 2024"
+                  className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600"
+                />
+              </div>
+              
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">
+                  Φωτογραφίες προς Αποθήκευση:
+                </h4>
+                <div className="text-sm text-blue-700 dark:text-blue-300">
+                  <p>• Επιλεγμένες: {selectedPhotos.length}</p>
+                  <p>• Εγκεκριμένες (πράσινες): {photos.filter(p => p.color_label === 'green').length}</p>
+                  <p>• Backend Approved: {photos.filter(p => p.approved === true).length}</p>
+                  <p>• Σύνολο: {Math.max(selectedPhotos.length, photos.filter(p => p.color_label === 'green' || p.approved === true).length)} φωτογραφίες</p>
+                </div>
+              </div>
+            </div>
             
             <div className="flex justify-end gap-2">
               <button
@@ -229,12 +231,12 @@ const ActionBar: React.FC = () => {
               </button>
               <button
                 onClick={handleSaveAndTrain}
-                disabled={!eventType}
+                disabled={!eventType.trim()}
                 className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 
                          disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <Save className="h-4 w-4" />
-                Save & Train
+                Δημιουργία Άλμπουμ
               </button>
             </div>
           </div>

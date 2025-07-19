@@ -696,21 +696,60 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     showToast('Photos removed from album', 'success');
   }, [showToast]);
 
-  const saveAlbumAndTrainAI = useCallback(async (event: string) => {
+  const saveAlbumAndTrainAI = useCallback(async (albumTitle: string) => {
     try {
       if (!eventType) {
-        throw new Error('Event type is required');
+        throw new Error('Event type is required for album creation');
+      }
+
+      // Get all photos that should be included in the album
+      const photosToInclude = [];
+      
+      // Priority 1: Selected photos
+      if (selectedPhotos.length > 0) {
+        photosToInclude.push(...selectedPhotos);
+      } else {
+        // Priority 2: Green labeled photos (user approved)
+        const greenPhotos = photos.filter(p => p.color_label === 'green');
+        if (greenPhotos.length > 0) {
+          photosToInclude.push(...greenPhotos);
+        } else {
+          // Priority 3: Backend approved photos
+          const backendApproved = photos.filter(p => p.approved === true);
+          if (backendApproved.length > 0) {
+            photosToInclude.push(...backendApproved);
+          } else {
+            // Fallback: All photos with AI score > 6
+            const highScorePhotos = photos.filter(p => p.ai_score > 6);
+            photosToInclude.push(...highScorePhotos);
+          }
+        }
+      }
+      
+      // Remove duplicates by ID
+      const uniquePhotos = photosToInclude.filter((photo, index, self) => 
+        self.findIndex(p => p.id === photo.id) === index
+      );
+      
+      if (uniquePhotos.length === 0) {
+        throw new Error('No photos selected or approved for album creation');
       }
 
       // Prepare complete album data
       const albumData = {
         user_id: 'user123', // Replace with actual user ID
-        title: `${eventType.charAt(0).toUpperCase() + eventType.slice(1)} Album - ${new Date().toLocaleDateString()}`,
+        title: albumTitle.trim() || `${eventType.charAt(0).toUpperCase() + eventType.slice(1)} Album - ${new Date().toLocaleDateString()}`,
+        description: `Album created on ${new Date().toLocaleDateString()} with ${uniquePhotos.length} photos`,
         event_type: eventType,
-        photos: photos.map(photo => ({
+        photos: uniquePhotos.map(photo => ({
+          id: photo.id,
           filename: photo.filename,
           url: photo.url,
           ai_score: photo.ai_score,
+          basic_score: photo.basic_score,
+          ml_score: photo.ml_score,
+          score_type: photo.score_type,
+          blur_score: photo.blur_score,
           approved: photo.approved || photo.color_label === 'green',
           color_label: photo.color_label,
           tags: photo.tags || [],
@@ -721,31 +760,60 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           face_summary: photo.face_summary,
           deep_prompts: photo.deep_prompts || {},
           ai_categories: photo.ai_categories || [],
+          clip_vector: photo.clip_vector,
+          phash: photo.phash,
+          dateCreated: photo.dateCreated,
+          selected: photo.selected,
+          albumId: photo.albumId,
+          duplicateGroup: photo.duplicateGroup,
+          isDuplicate: photo.isDuplicate,
           edited_versions: {
-            // Store any edited versions if available
+            // Store any edited versions if available in the future
+            autocorrect_url: undefined,
+            autofix_url: undefined,
+            face_retouch_url: undefined,
+            ai_edit_url: undefined
           }
         })),
         metadata: {
           user_id: 'user123',
           culling_mode: cullingMode || 'fast',
           analysis_complete: photos.some(p => p.ai_score > 0),
-          total_photos: photos.length,
-          approved_photos: photos.filter(p => p.approved || p.color_label === 'green').length,
+          original_total_photos: photos.length,
+          album_photos_count: uniquePhotos.length,
+          selected_photos: selectedPhotos.length,
+          approved_photos: uniquePhotos.filter(p => p.approved || p.color_label === 'green').length,
+          backend_approved: uniquePhotos.filter(p => p.approved === true).length,
+          high_score_photos: uniquePhotos.filter(p => p.ai_score >= 7).length,
+          event_highlights: uniquePhotos.filter(p => p.blip_highlights && p.blip_highlights.length > 0).length,
+          faces_detected: uniquePhotos.filter(p => p.faces && p.faces.length > 0).length,
           date_created: new Date().toISOString(),
-          date_updated: new Date().toISOString()
+          date_updated: new Date().toISOString(),
+          creation_source: 'ailbums_web_app'
         }
       };
+      
+      console.log('Creating album with data:', {
+        title: albumData.title,
+        event_type: albumData.event_type,
+        photos_count: albumData.photos.length,
+        metadata: albumData.metadata
+      });
       
       // Import the new save function
       const { saveCompleteAlbum } = await import('../lib/api');
       await saveCompleteAlbum(albumData);
       
-      showToast(`Album "${albumData.title}" saved successfully!`, 'success');
+      showToast(`Άλμπουμ "${albumData.title}" αποθηκεύτηκε επιτυχώς με ${uniquePhotos.length} φωτογραφίες!`, 'success');
+      
+      // Optional: Clear selections after successful save
+      deselectAllPhotos();
+      
     } catch (error: any) {
       console.error('Failed to save album:', error);
-      showToast(error.message || 'Failed to save album', 'error');
+      showToast(error.message || 'Αποτυχία αποθήκευσης άλμπουμ', 'error');
     }
-  }, [photos, eventType, cullingMode, showToast]);
+  }, [photos, selectedPhotos, eventType, cullingMode, showToast, deselectAllPhotos]);
 
   // Legacy function for backward compatibility
   const saveAlbumAndTrainAILegacy = useCallback(async (event: string) => {

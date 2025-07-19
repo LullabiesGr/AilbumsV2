@@ -51,6 +51,7 @@ const Home: React.FC = () => {
   const [selectedEventType, setSelectedEventType] = React.useState<EventType | null>(null);
   const [isCreatingAlbum, setIsCreatingAlbum] = React.useState(false);
   const [createAlbumError, setCreateAlbumError] = React.useState<string | null>(null);
+  const [createAlbumSuccess, setCreateAlbumSuccess] = React.useState<string | null>(null);
 
   const getEventTypeLabel = (type: EventType | null) => {
     const eventLabels = {
@@ -67,18 +68,20 @@ const Home: React.FC = () => {
   
   const hasAnalyzedPhotos = photos.some(p => p.ai_score > 0);
   
-  const handleCreateAlbum = async () => {
-    console.log('🔥 CREATE ALBUM BUTTON CLICKED!', {
+  const handleCreateAlbumSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    console.log('🔥 CREATE ALBUM FORM SUBMITTED!', {
       albumName: newAlbumName,
       eventType: selectedEventType,
-      isCreatingAlbum,
       timestamp: new Date().toISOString()
     });
     
-    // Reset error state
+    // Reset states
     setCreateAlbumError(null);
+    setCreateAlbumSuccess(null);
     
-    // Validation with detailed logging
+    // Validation
     if (!newAlbumName.trim()) {
       const error = 'Please enter album name';
       console.error('❌ Validation failed:', error);
@@ -97,16 +100,85 @@ const Home: React.FC = () => {
     setIsCreatingAlbum(true);
     
     try {
-      console.log('📡 Calling createNewAlbum function...');
-      await createNewAlbum(newAlbumName.trim(), selectedEventType);
+      // Generate album ID
+      const albumId = `album-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      console.log('📝 Generated album ID:', albumId);
       
-      console.log('✅ Album created successfully!');
-      setShowCreateAlbumModal(false);
-      setNewAlbumName('');
-      setSelectedEventType(null);
-      setCreateAlbumError(null);
-      setWorkflowStage('configure');
-    } catch (error) {
+      // Prepare request data
+      const requestData = {
+        user_id: 'user123', // Replace with actual user ID from auth
+        album_id: albumId,
+        title: newAlbumName.trim(),
+        event_type: selectedEventType,
+        date_created: new Date().toISOString()
+      };
+      
+      console.log('📤 Sending POST request to /create-album...', requestData);
+      
+      // Make API request
+      const response = await fetch('https://ef7c29d73b11.ngrok-free.app/create-album', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
+        },
+        body: JSON.stringify(requestData),
+        mode: 'cors',
+      });
+
+      console.log('📥 Create album response:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: response.url
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Create album API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText: errorText.substring(0, 200)
+        });
+        
+        if (errorText.includes('<!DOCTYPE html>') || errorText.includes('<html>')) {
+          throw new Error(`Backend endpoint not found. Check if /create-album exists.`);
+        }
+        
+        throw new Error(`Failed to create album: ${response.status} ${errorText || response.statusText}`);
+      }
+
+      const responseText = await response.text();
+      console.log('📄 Create album response text:', responseText.substring(0, 500));
+      
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('❌ Failed to parse response as JSON:', parseError);
+        throw new Error('Backend returned invalid JSON. Check backend implementation.');
+      }
+      
+      console.log('✅ Album created successfully:', result);
+      
+      // Update state
+      setCurrentAlbumName(newAlbumName.trim());
+      setCurrentAlbumId(albumId);
+      setEventType(selectedEventType);
+      
+      // Show success message
+      setCreateAlbumSuccess(`Album "${newAlbumName.trim()}" created successfully!`);
+      
+      // Close modal after short delay
+      setTimeout(() => {
+        setShowCreateAlbumModal(false);
+        setNewAlbumName('');
+        setSelectedEventType(null);
+        setCreateAlbumError(null);
+        setCreateAlbumSuccess(null);
+        setWorkflowStage('configure');
+      }, 1500);
+      
+    } catch (error: any) {
       console.error('❌ Album creation failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to create album';
       setCreateAlbumError(errorMessage);
@@ -165,77 +237,93 @@ const Home: React.FC = () => {
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
                   <h3 className="text-lg font-semibold mb-4">Create New Album</h3>
                   
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Album Name *</label>
-                      <input
-                        type="text"
-                        value={newAlbumName}
-                        onChange={(e) => setNewAlbumName(e.target.value)}
-                        placeholder="e.g. Wedding of John & Mary 2024"
-                        className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Event Type *</label>
-                      <select
-                        value={selectedEventType || ''}
-                        onChange={(e) => setSelectedEventType(e.target.value as EventType)}
-                        className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600"
-                      >
-                        <option value="">Select event type...</option>
-                        <option value="wedding">Wedding</option>
-                        <option value="baptism">Baptism</option>
-                        <option value="portrait">Portrait</option>
-                        <option value="family">Family</option>
-                        <option value="corporate">Corporate</option>
-                        <option value="event">General Event</option>
-                        <option value="landscape">Landscape</option>
-                      </select>
-                    </div>
-                    
-                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                      <p className="text-sm text-blue-700 dark:text-blue-300">
-                        <strong>Note:</strong> All photos will be saved locally in this album. 
-                        No cloud storage is used.
-                      </p>
-                    </div>
-                    
-                    {/* Error Display */}
-                    {createAlbumError && (
-                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                        <p className="text-sm text-red-700 dark:text-red-300">
-                          <strong>Error:</strong> {createAlbumError}
+                  <form onSubmit={handleCreateAlbumSubmit}>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Album Name *</label>
+                        <input
+                          type="text"
+                          value={newAlbumName}
+                          onChange={(e) => setNewAlbumName(e.target.value)}
+                          placeholder="e.g. Wedding of John & Mary 2024"
+                          className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Event Type *</label>
+                        <select
+                          value={selectedEventType || ''}
+                          onChange={(e) => setSelectedEventType(e.target.value as EventType)}
+                          className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600"
+                          required
+                        >
+                          <option value="">Select event type...</option>
+                          <option value="wedding">Wedding</option>
+                          <option value="baptism">Baptism</option>
+                          <option value="portrait">Portrait</option>
+                          <option value="family">Family</option>
+                          <option value="corporate">Corporate</option>
+                          <option value="event">General Event</option>
+                          <option value="landscape">Landscape</option>
+                        </select>
+                      </div>
+                      
+                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                        <p className="text-sm text-blue-700 dark:text-blue-300">
+                          <strong>Note:</strong> All photos will be saved locally in this album. 
+                          No cloud storage is used.
                         </p>
                       </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex justify-end gap-2 mt-6">
-                    <button
-                      onClick={() => {
-                        setShowCreateAlbumModal(false);
-                        setNewAlbumName('');
-                        setSelectedEventType(null);
-                      }}
-                      className="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-300 
-                               dark:hover:text-white"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleCreateAlbum}
-                      disabled={!newAlbumName.trim() || !selectedEventType || isCreatingAlbum}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 
-                               disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                    >
-                      {isCreatingAlbum && (
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      
+                      {/* Error Display */}
+                      {createAlbumError && (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                          <p className="text-sm text-red-700 dark:text-red-300">
+                            <strong>Error:</strong> {createAlbumError}
+                          </p>
+                        </div>
                       )}
-                      <span>{isCreatingAlbum ? 'Creating...' : 'Create Album'}</span>
-                    </button>
-                  </div>
+                      
+                      {/* Success Display */}
+                      {createAlbumSuccess && (
+                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                          <p className="text-sm text-green-700 dark:text-green-300">
+                            <strong>Success:</strong> {createAlbumSuccess}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex justify-end gap-2 mt-6">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCreateAlbumModal(false);
+                          setNewAlbumName('');
+                          setSelectedEventType(null);
+                          setCreateAlbumError(null);
+                          setCreateAlbumSuccess(null);
+                        }}
+                        className="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-300 
+                                 dark:hover:text-white"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={!newAlbumName.trim() || !selectedEventType || isCreatingAlbum}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 
+                                 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                      >
+                        {isCreatingAlbum && (
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        )}
+                        <span>{isCreatingAlbum ? 'Creating...' : 'Create Album'}</span>
+                      </button>
+                    </div>
+                  </form>
                 </div>
               </div>
             )}

@@ -67,6 +67,8 @@ interface PhotoContextType {
 
 const PhotoContext = createContext<PhotoContextType | undefined>(undefined);
 
+export { PhotoContext };
+
 export const usePhoto = () => {
   const context = useContext(PhotoContext);
   if (context === undefined) {

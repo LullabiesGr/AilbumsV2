@@ -602,7 +602,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setPhotos(prev => prev.map(photo => 
       photo.id === id ? { ...photo, url: newUrl } : photo
     ));
-  }, [showToast]);
+  }, []);
 
   const togglePhotoSelection = useCallback((id: string) => {
     setPhotos(prev => prev.map(photo => 
@@ -762,6 +762,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       console.error('Failed to save album and train AI:', error);
       showToast(error.message || 'Failed to save album', 'error');
     }
+  }, [photos, showToast]);
 
   const setStarRatingFilter = useCallback((min: number | null, max: number | null) => {
     setStarRatingFilterState({ min, max });

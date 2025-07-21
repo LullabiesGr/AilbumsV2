@@ -35,7 +35,7 @@ interface PhotoContextType {
   uploadPhotos: (files: File[]) => void;
   setEventType: (eventType: EventType) => void;
   setCullingMode: (mode: CullingMode) => void;
-  startAnalysis: () => Promise<void>;
+  startAnalysis: (albumName?: string, eventType?: EventType) => Promise<void>;
   resetWorkflow: () => void;
   startBackgroundAnalysis: () => void;
   findDuplicates: () => Promise<void>;
@@ -222,16 +222,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, [photos, showToast]);
 
   const uploadPhotos = useCallback(async (files: File[]) => {
-    if (!currentAlbumName || !currentAlbumId) {
-      showToast('Please create an album first before uploading photos', 'error');
-      return;
-    }
-    
-    if (!currentAlbumName || !currentAlbumId) {
-      showToast('Please create an album first before uploading photos', 'error');
-      return;
-    }
-    
     setIsUploading(true);
     
     try {
@@ -266,10 +256,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           filename: file.name,
           file: file,
           url: photoUrl,
-          albumId: currentAlbumId,
-          albumName: currentAlbumName,
-          albumId: currentAlbumId,
-          albumName: currentAlbumName,
           score: null,
           ai_score: 0,
           score_type: 'base',
@@ -280,11 +266,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       }
       
       setPhotos((prev) => [...prev, ...newPhotos]);
-      
-      // Move to configure step after upload only if we're in upload stage
-      if (newPhotos.length > 0 && workflowStage === 'upload-photos') {
-        setWorkflowStage('configure');
-      }
       
       const rawCount = newPhotos.filter(p => p.tags?.includes('raw')).length;
       const standardCount = newPhotos.length - rawCount;
@@ -306,7 +287,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     } finally {
       setIsUploading(false);
     }
-  }, [showToast, workflowStage]);
+  }, [showToast]);
 
   const createNewAlbum = useCallback(async (albumName: string, eventType: EventType) => {
     console.log('🏗️ createNewAlbum called with:', { albumName, eventType });
@@ -395,11 +376,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, [showToast, setEventType]);
   
   const startBackgroundAnalysis = useCallback(() => {
-    if (!currentAlbumName || !currentAlbumId) {
-      showToast('Please create an album first', 'error');
-      return;
-    }
-    
     if (!cullingMode || photos.length === 0) {
       showToast('Please select culling mode', 'error');
       return;
@@ -443,7 +419,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               }
             },
             2, // Concurrency limit
-            currentAlbumId // Album ID
+            currentAlbumId || 'temp-album' // Album ID
           );
           
           setPhotos(analyzedPhotos);
@@ -469,7 +445,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               }
             },
             2, // Concurrency limit
-            currentAlbumId // Album ID
+            currentAlbumId || 'temp-album' // Album ID
           );
           
           setPhotos(analyzedPhotos);
@@ -502,12 +478,15 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     runAnalysis();
   }, [photos, eventType, cullingMode, showToast, groupPeopleByFaces]);
 
-  const startAnalysis = useCallback(async () => {
+  const startAnalysis = useCallback(async (albumName?: string, providedEventType?: EventType) => {
     if (!cullingMode || photos.length === 0) {
       showToast('Please select culling mode', 'error');
       return;
     }
 
+    // Use provided event type or fallback to context event type
+    const analysisEventType = providedEventType || eventType;
+    
     // For manual mode, skip analysis and go directly to review
     if (cullingMode === 'manual') {
       setWorkflowStage('review');
@@ -515,9 +494,58 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return;
     }
 
-    if (!eventType) {
+    if (!analysisEventType) {
       showToast('Please select event type for AI analysis', 'error');
       return;
+    }
+
+    // Create album with backend if album name provided
+    if (albumName && analysisEventType) {
+      try {
+        console.log('🏗️ Creating album before analysis:', { albumName, eventType: analysisEventType });
+        
+        // Create FormData for album creation
+        const formData = new FormData();
+        formData.append('album_name', albumName.trim());
+        formData.append('event_type', analysisEventType);
+        formData.append('user_id', 'user123');
+        
+        // Add all photos to FormData
+        photos.forEach((photo, index) => {
+          formData.append('files', photo.file);
+        });
+        
+        console.log('📤 Sending album + photos to /analyze endpoint...');
+        
+        const response = await fetch('https://a7b0ec6a0aa5.ngrok-free.app/analyze', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'ngrok-skip-browser-warning': 'true'
+          },
+          mode: 'cors',
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Backend analysis failed: ${response.status} ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log('✅ Album created and analysis started:', result);
+        
+        // Update context with album info
+        setCurrentAlbumName(albumName);
+        setCurrentAlbumId(result.album_id || `album-${Date.now()}`);
+        setEventType(analysisEventType);
+        
+        showToast(`Album "${albumName}" created and analysis started!`, 'success');
+        
+      } catch (error: any) {
+        console.error('❌ Failed to create album and start analysis:', error);
+        showToast(error.message || 'Failed to create album and start analysis', 'error');
+        return;
+      }
     }
 
     // Go directly to review interface and start background analysis
@@ -527,7 +555,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setTimeout(() => {
       startBackgroundAnalysis();
     }, 500);
-  }, [cullingMode, eventType, showToast, startBackgroundAnalysis]);
 
   const startAnalysisFromReview = useCallback(async () => {
     if (!cullingMode || photos.length === 0) {

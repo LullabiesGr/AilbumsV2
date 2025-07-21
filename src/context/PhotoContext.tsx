@@ -282,7 +282,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       setPhotos((prev) => [...prev, ...newPhotos]);
       
       // Move to configure step after upload only if we're in upload stage
-      if (newPhotos.length > 0 && workflowStage === 'upload') {
+      if (newPhotos.length > 0 && workflowStage === 'upload-photos') {
         setWorkflowStage('configure');
       }
       

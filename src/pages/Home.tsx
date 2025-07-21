@@ -245,6 +245,33 @@ const Home: React.FC = () => {
             </div>
         );
 
+      case 'upload-photos':
+        return (
+          <div className="space-y-6">
+            <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
+              <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2">
+                  Album Ready: "{currentAlbumName}"
+                </h4>
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  Event Type: {getEventTypeLabel(eventType)} • ID: {currentAlbumId.slice(-8)}
+                </p>
+              </div>
+              
+              <h3 className="text-xl font-semibold mb-4">Upload Photos to Album</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Upload your photos (JPEG, PNG, RAW formats) to "{currentAlbumName}"
+              </p>
+              <UploadButton />
+              <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+                <p className="font-medium mb-1">Supported formats:</p>
+                <p>Standard: JPEG, PNG, TIFF, WebP, BMP</p>
+                <p>RAW: CR2, CR3, NEF, ARW, DNG, ORF, RAF, PEF, and more</p>
+              </div>
+            </div>
+            </div>
+        );
+
       case 'configure':
         return (
           <div className="space-y-6">

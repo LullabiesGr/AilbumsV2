@@ -386,7 +386,7 @@ export const analyzeSinglePhoto = async (photo: Photo, userId: string, eventType
     }
 
     const results = await response.json();
-    const result = Array.isArray(results) ? results[0] : results;
+    const result = results.results && results.results.length > 0 ? results.results[0] : null;
     
     // Debug: Log the raw API response to see what we're getting
     console.log('Fast Analysis API Response for', photo.filename, ':', {
@@ -556,7 +556,7 @@ export const deepAnalyzeSinglePhoto = async (photo: Photo, userId: string, event
     }
 
     const results = await response.json();
-    const result = Array.isArray(results) ? results[0] : results;
+    const result = results.results && results.results.length > 0 ? results.results[0] : null;
     
     // Debug: Log the raw API response to see what we're getting
     console.log('Deep Analysis API Response for', photo.filename, ':', {

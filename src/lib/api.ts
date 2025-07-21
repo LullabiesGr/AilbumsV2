@@ -6,7 +6,7 @@ import { DuplicateCluster } from '../types';
 // Backend API Configuration
 // Update this with your active ngrok URL when backend is running
 const API_URL = process.env.NODE_ENV === 'development' 
-  ? 'http://localhost:8000'  // Local FastAPI development server
+  ? 'https://a7b0ec6a0aa5.ngrok-free.app'  // Local FastAPI development server
   : 'https://a7b0ec6a0aa5.ngrok-free.app'; // Production ngrok URL
 
 // Test function to verify backend connectivity

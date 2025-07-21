@@ -458,16 +458,18 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         
         showToast(
           cullingMode === 'deep' 
-            ? '✅ Deep analysis completed successfully' 
-            : '✅ Fast analysis completed successfully', 
+            ? 'Deep analysis completed successfully' 
+            : 'Fast analysis completed successfully', 
           'success'
         );
       } catch (error) {
-        console.error('❌ Analysis failed:', error);
         showToast(
-          error instanceof Error ? error.message : 'Analysis failed - check backend connection',
+          cullingMode === 'deep' 
+            ? 'Failed to perform deep analysis' 
+            : 'Failed to perform fast analysis', 
           'error'
         );
+        console.error('Analysis error:', error);
       } finally {
         setIsAnalyzing(false);
       }

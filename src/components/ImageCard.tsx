@@ -492,6 +492,14 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
           {getFaceSummaryBadges()}
         </div>
         
+        {/* Debug info - remove after testing */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Debug: AI Score: {photo.ai_score}, Tags: {photo.tags?.length || 0}, 
+            Highlights: {photo.blip_highlights?.length || 0}, Approved: {photo.approved ? 'Yes' : 'No'}
+          </div>
+        )}
+        
         {/* Event Highlights - Separate row with visual separation */}
         {(photo.blip_highlights && photo.blip_highlights.length > 0) && (
           <div className="mt-2 flex flex-wrap gap-1">

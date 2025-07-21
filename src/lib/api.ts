@@ -317,6 +317,38 @@ export const loadUserAlbums = async (userId: string): Promise<any[]> => {
     throw error instanceof Error ? error : new Error(error.toString());
   }
 };
+
+// Load album analysis results and update photos
+export const loadAlbumAnalysisResults = async (albumId: string): Promise<any[]> => {
+  try {
+    console.log('Loading analysis results for album:', albumId);
+    
+    const response = await fetch(`${API_URL}/album/${albumId}/results`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
+      },
+      mode: 'cors',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Analysis results API error:', {
+        status: response.status,
+        errorText: errorText.substring(0, 200)
+      });
+      throw new Error(`Failed to load analysis results: ${response.status}`);
+    }
+
+    const results = await response.json();
+    console.log('Analysis results loaded:', results);
+    return results || [];
+  } catch (error: any) {
+    console.error('Load analysis results error:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};
 export const analyzePhotos = async (photos: Photo[], userId: string, eventType: EventType, cullingMode: CullingMode): Promise<Photo[]> => {
   // This function is now replaced by analyzeSinglePhoto for better UX
   throw new Error('Use analyzeSinglePhoto instead for serial processing');

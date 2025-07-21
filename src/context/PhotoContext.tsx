@@ -531,30 +531,65 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           throw new Error(`Backend analysis failed: ${response.status} ${errorText}`);
         }
 
-        const result = await response.json();
-        console.log('✅ Album created and analysis started:', result);
+        const analysisResults = await response.json();
+        console.log('✅ Album created and analysis completed:', analysisResults);
+        
+        // Update photos with analysis results
+        if (Array.isArray(analysisResults)) {
+          setPhotos(prevPhotos => {
+            return prevPhotos.map(photo => {
+              const result = analysisResults.find(r => r.filename === photo.filename);
+              if (result) {
+                return {
+                  ...photo,
+                  ai_score: result.ai_score || 0,
+                  basic_score: result.basic_score,
+                  ml_score: result.ml_score,
+                  score_type: result.score_type || 'ai',
+                  blur_score: result.blur_score,
+                  tags: result.tags || [],
+                  faces: result.faces || [],
+                  face_summary: result.face_summary,
+                  caption: result.caption,
+                  blip_highlights: result.blip_highlights || [],
+                  blip_flags: result.blip_flags || [],
+                  approved: result.approved,
+                  color_label: result.color_label,
+                  clip_vector: result.clip_vector,
+                  phash: result.phash,
+                  deep_prompts: result.deep_prompts || {},
+                  ai_categories: result.ai_categories || []
+                };
+              }
+              return photo;
+            });
+          });
+        }
         
         // Update context with album info
         setCurrentAlbumName(albumName);
-        setCurrentAlbumId(result.album_id || `album-${Date.now()}`);
+        setCurrentAlbumId(analysisResults.album_id || `album-${Date.now()}`);
         setEventType(analysisEventType);
         
-        showToast(`Album "${albumName}" created and analysis started!`, 'success');
+        showToast(`Album "${albumName}" created and analysis completed!`, 'success');
+        
+        // Go to review stage
+        setWorkflowStage('review');
         
       } catch (error: any) {
         console.error('❌ Failed to create album and start analysis:', error);
         showToast(error.message || 'Failed to create album and start analysis', 'error');
         return;
       }
+    } else {
+      // Go directly to review interface and start background analysis
+      setWorkflowStage('review');
+      
+      // Start background analysis after a short delay
+      setTimeout(() => {
+        startBackgroundAnalysis();
+      }, 500);
     }
-
-    // Go directly to review interface and start background analysis
-    setWorkflowStage('review');
-    
-    // Start background analysis after a short delay
-    setTimeout(() => {
-      startBackgroundAnalysis();
-    }, 500);
   }, [cullingMode, photos, eventType, showToast, setWorkflowStage, startBackgroundAnalysis]);
 
   const startAnalysisFromReview = useCallback(async () => {

@@ -535,10 +535,12 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         console.log('✅ Album created and analysis completed:', analysisResults);
         
         // Update photos with analysis results
-        if (Array.isArray(analysisResults)) {
+        // Check if analysisResults is an object with a 'results' array
+        if (analysisResults && Array.isArray(analysisResults.results)) {
+          const photoAnalysisData = analysisResults.results;
           setPhotos(prevPhotos => {
             return prevPhotos.map(photo => {
-              const result = analysisResults.find(r => r.filename === photo.filename);
+              const result = photoAnalysisData.find(r => r.filename === photo.filename);
               if (result) {
                 return {
                   ...photo,

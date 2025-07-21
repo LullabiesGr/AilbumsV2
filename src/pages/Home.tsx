@@ -115,7 +115,7 @@ const Home: React.FC = () => {
         setSelectedEventType(null);
         setCreateAlbumError(null);
         setCreateAlbumSuccess(null);
-        setWorkflowStage('configure');
+        setWorkflowStage('upload-photos');
       }, 1500);
       
     } catch (error: any) {
@@ -133,43 +133,19 @@ const Home: React.FC = () => {
       case 'upload':
         return (
           <div className="space-y-6">
-            {!currentAlbumName ? (
-              <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
-                <h3 className="text-xl font-semibold mb-4">Create Your Album First</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  Before uploading photos, please create an album to organize your work
-                </p>
-                <button
-                  onClick={() => setShowCreateAlbumModal(true)}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg 
-                           flex items-center space-x-2 transition-colors duration-200 font-medium"
-                >
-                  <span>Create New Album</span>
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
-                <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                  <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2">
-                    Album Ready: "{currentAlbumName}"
-                  </h4>
-                  <p className="text-sm text-green-700 dark:text-green-300">
-                    Event Type: {getEventTypeLabel(eventType)} • ID: {currentAlbumId.slice(-8)}
-                  </p>
-                </div>
-                
-                <h3 className="text-xl font-semibold mb-4">Upload Photos to Album</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  Upload your photos (JPEG, PNG, RAW formats) to "{currentAlbumName}"
-                </p>
-                <UploadButton />
-                <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-                  <p className="font-medium mb-1">Supported formats:</p>
-                  <p>Standard: JPEG, PNG, TIFF, WebP, BMP</p>
-                  <p>RAW: CR2, CR3, NEF, ARW, DNG, ORF, RAF, PEF, and more</p>
-                </div>
-              </div>
-            )}
+            <div className="flex flex-col items-center justify-center h-64 bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
+              <h3 className="text-xl font-semibold mb-4">Create Album & Upload Photos</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                First create an album with name and event type, then upload your photos
+              </p>
+              <button
+                onClick={() => setShowCreateAlbumModal(true)}
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg 
+                         flex items-center space-x-2 transition-colors duration-200 font-medium"
+              >
+                <span>Create New Album</span>
+              </button>
+            </div>
             
             {/* Create Album Modal */}
             {showCreateAlbumModal && (
@@ -212,8 +188,7 @@ const Home: React.FC = () => {
                       
                       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                         <p className="text-sm text-blue-700 dark:text-blue-300">
-                          <strong>Note:</strong> All photos will be saved locally in this album. 
-                          No cloud storage is used.
+                          <strong>Next Step:</strong> After creating the album, you'll upload photos and they will be organized together with the album name and event type.
                         </p>
                       </div>
                       

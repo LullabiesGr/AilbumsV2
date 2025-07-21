@@ -3,7 +3,7 @@ import { findDuplicates } from './similarity';
 import { promisePoolWithProgress } from './promisePool';
 import { DuplicateCluster } from '../types';
 
-const API_URL = 'https://ef7c29d73b11.ngrok-free.app';
+const API_URL = 'https://a7b0ec6a0aa5.ngrok-free.app';
 
 // Test function to verify backend connectivity
 export const testBackendConnection = async (): Promise<boolean> => {

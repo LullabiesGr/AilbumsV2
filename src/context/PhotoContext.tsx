@@ -476,7 +476,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     runAnalysis();
-  }, [photos, eventType, cullingMode, showToast, groupPeopleByFaces]);
+  }, [photos, eventType, cullingMode, showToast, groupPeopleByFaces, currentAlbumId]);
 
   const startAnalysis = useCallback(async (albumName?: string, providedEventType?: EventType) => {
     if (!cullingMode || photos.length === 0) {
@@ -555,6 +555,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setTimeout(() => {
       startBackgroundAnalysis();
     }, 500);
+  }, [cullingMode, photos, eventType, showToast, setWorkflowStage, startBackgroundAnalysis]);
 
   const startAnalysisFromReview = useCallback(async () => {
     if (!cullingMode || photos.length === 0) {
@@ -1192,6 +1193,9 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     deleteDuplicateGroup
   }), [
     photos,
+    currentAlbumName,
+    currentAlbumId,
+    createNewAlbum,
     filteredPhotos,
     duplicateClusters,
     personGroups,

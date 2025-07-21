@@ -3,7 +3,11 @@ import { findDuplicates } from './similarity';
 import { promisePoolWithProgress } from './promisePool';
 import { DuplicateCluster } from '../types';
 
-const API_URL = 'https://a7b0ec6a0aa5.ngrok-free.app'; // Change this to your active ngrok URL when backend is running
+// Backend API Configuration
+// Update this with your active ngrok URL when backend is running
+const API_URL = process.env.NODE_ENV === 'development' 
+  ? 'http://localhost:8000'  // Local FastAPI development server
+  : 'https://a7b0ec6a0aa5.ngrok-free.app'; // Production ngrok URL
 
 // Test function to verify backend connectivity
 export const testBackendConnection = async (): Promise<boolean> => {
@@ -324,6 +328,9 @@ export const analyzePhotos = async (photos: Photo[], userId: string, eventType: 
 
 // New function to analyze a single photo for fast mode
 export const analyzeSinglePhoto = async (photo: Photo, userId: string, eventType: EventType, cullingMode: CullingMode, albumId?: string): Promise<Photo> => {
+  console.log('🔍 Starting fast analysis for:', photo.filename);
+  console.log('📡 API URL:', API_URL);
+  
   const formData = new FormData();
   formData.append('user_id', userId);
   formData.append('event', eventType);
@@ -334,15 +341,20 @@ export const analyzeSinglePhoto = async (photo: Photo, userId: string, eventType
   formData.append('files', photo.file);
 
   try {
+    console.log('📤 Sending request to:', `${API_URL}/analyze`);
+    
     const response = await fetch(`${API_URL}/analyze`, {
       method: 'POST',
       body: formData,
       headers: { 
         'Accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       },
       mode: 'cors',
     });
 
+    console.log('📥 Response status:', response.status, response.statusText);
+    
     if (!response.ok) {
       const errorData = await response.text();
       console.error('Fast Analysis API Error:', {
@@ -423,7 +435,13 @@ export const analyzeSinglePhoto = async (photo: Photo, userId: string, eventType
     
     return photo;
   } catch (error: any) {
-    console.error('Fast analysis fetch error:', error);
+    console.error('❌ Fast analysis fetch error for', photo.filename, ':', error);
+    
+    // Check if it's a network connectivity issue
+    if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+      throw new Error(`❌ Backend not reachable at ${API_URL}. Please check if FastAPI server is running and ngrok tunnel is active.`);
+    }
+    
     throw new Error(`Failed to analyze photo ${photo.filename}: ${error.message}`);
   }
 };
@@ -495,6 +513,9 @@ export const deepAnalyzePhotos = async (photos: Photo[], userId: string, eventTy
 
 // New function to analyze a single photo
 export const deepAnalyzeSinglePhoto = async (photo: Photo, userId: string, eventType: EventType, albumId?: string): Promise<Photo> => {
+  console.log('🔍 Starting deep analysis for:', photo.filename);
+  console.log('📡 API URL:', API_URL);
+  
   const formData = new FormData();
   formData.append('user_id', userId);
   formData.append('event', eventType);
@@ -504,15 +525,20 @@ export const deepAnalyzeSinglePhoto = async (photo: Photo, userId: string, event
   formData.append('files', photo.file);
 
   try {
+    console.log('📤 Sending request to:', `${API_URL}/deep-analyze`);
+    
     const response = await fetch(`${API_URL}/deep-analyze`, {
       method: 'POST',
       body: formData,
       headers: { 
         'Accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       },
       mode: 'cors',
     });
 
+    console.log('📥 Response status:', response.status, response.statusText);
+    
     if (!response.ok) {
       const errorData = await response.text();
       console.error('Deep Analysis API Error:', {
@@ -594,7 +620,13 @@ export const deepAnalyzeSinglePhoto = async (photo: Photo, userId: string, event
     
     return photo;
   } catch (error: any) {
-    console.error('Deep analysis fetch error:', error);
+    console.error('❌ Deep analysis fetch error for', photo.filename, ':', error);
+    
+    // Check if it's a network connectivity issue
+    if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+      throw new Error(`❌ Backend not reachable at ${API_URL}. Please check if FastAPI server is running and ngrok tunnel is active.`);
+    }
+    
     throw new Error(`Failed to deep analyze photo ${photo.filename}: ${error.message}`);
   }
 };

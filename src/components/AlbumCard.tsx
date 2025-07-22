@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
 import { Camera, Calendar, Tag, Star, Eye, MessageSquare, Users, Flag, Sparkles } from 'lucide-react';
 import { SavedAlbum, SavedPhoto } from './MyAilbumsModal'; // Import interfaces
-import { getAlbumFolder, API_URL } from './MyAilbumsModal'; // Import helper and API_URL
+import { getAlbumFolder } from './MyAilbumsModal'; // Import helper
 import { EventType } from '../types'; // Import EventType
+
+// API URL configuration
+export const API_URL =
+  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:8000"
+    : "https://a7b0ec6a0aa5.ngrok-free.app";
 
 interface AlbumCardProps {
   album: SavedAlbum;
@@ -41,18 +47,14 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) =>
   };
 
   const getPhotoUrl = (filename: string) => {
-    // Use different endpoints based on environment
-    const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    // Create album directory path
+    const albumDir = `albums/${userId}/${albumFolder}`;
     
-    if (isLocalhost) {
-      // localhost: use /photo/ endpoint
-      const photoPath = `albums/${userId}/${albumFolder}/${filename}`;
-      return `${API_URL}/photo/?photo_path=${encodeURIComponent(photoPath)}`;
-    } else {
-      // ngrok/production: use /album-photo endpoint
-      const albumDir = `albums/${userId}/${albumFolder}`;
-      return `${API_URL}/album-photo?album_dir=${encodeURIComponent(albumDir)}&filename=${encodeURIComponent(filename)}`;
-    }
+    // Fix Windows paths: replace backslashes with forward slashes
+    const normalizedAlbumDir = albumDir.replace(/\\/g, '/');
+    
+    // Create photo URL using album-photo endpoint
+    return `${API_URL}/album-photo?album_dir=${encodeURIComponent(normalizedAlbumDir)}&filename=${encodeURIComponent(filename)}`;
   };
 
   const getUniqueTags = (photos: SavedPhoto[]) => {
@@ -91,9 +93,15 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) =>
                   <img
                     src={getPhotoUrl(filename)}
                     alt={filename}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-opacity duration-200"
                     onError={(e) => {
-                      e.currentTarget.src = 'data:image/svg+base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90dGV4dD48L3N2Zz4=';
+                      console.warn('Failed to load image:', getPhotoUrl(filename));
+                      // Set a placeholder image
+                      e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';
+                      e.currentTarget.style.opacity = '0.7';
+                    }}
+                    onLoad={(e) => {
+                      e.currentTarget.style.opacity = '1';
                     }}
                   />
                   {hoveredPhoto && hoveredPhoto.filename === filename && (

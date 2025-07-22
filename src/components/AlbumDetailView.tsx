@@ -16,8 +16,9 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
   const [showPhotoModal, setShowPhotoModal] = useState(false);
 
   const getPhotoUrl = (filename: string) => {
-    const photoPath = `albums/${userId}/${albumFolder}/${filename}`;
-    return `${API_URL}/photo/?photo_path=${encodeURIComponent(photoPath)}`;
+    // Use the /album-photo endpoint with separate parameters
+    const albumDir = `albums/${userId}/${albumFolder}`;
+    return `${API_URL}/album-photo?album_dir=${encodeURIComponent(albumDir)}&filename=${encodeURIComponent(filename)}`;
   };
 
   const getTagIcon = (tag: string) => {

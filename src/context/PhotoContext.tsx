@@ -505,6 +505,10 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     
     // For manual mode, skip analysis and go directly to review
     if (cullingMode === 'manual') {
+      // Store album name even in manual mode
+      if (albumName && albumName.trim()) {
+        setCurrentAlbumName(albumName.trim());
+      }
       setWorkflowStage('review');
       showToast('Manual review mode activated. Start reviewing your photos!', 'success');
       return;
@@ -518,11 +522,18 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     // Create album with backend if album name provided
     if (albumName && analysisEventType) {
       try {
-        console.log('🏗️ Creating album before analysis:', { albumName, eventType: analysisEventType });
+        const trimmedAlbumName = albumName.trim();
+        if (!trimmedAlbumName) {
+          showToast('Album name cannot be empty', 'error');
+          return;
+        }
+        
+        console.log('🏗️ Creating album before analysis:', { albumName: trimmedAlbumName, eventType: analysisEventType });
         
         // Create FormData for album creation
         const formData = new FormData();
-        formData.append('album_name', albumName.trim());
+        formData.append('album_name', trimmedAlbumName);
+        formData.append('title', trimmedAlbumName); // Also send as title for backend compatibility
         formData.append('event_type', analysisEventType);
         formData.append('user_id', user.email);
         
@@ -585,11 +596,11 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }
         
         // Update context with album info
-        setCurrentAlbumName(albumName);
+        setCurrentAlbumName(trimmedAlbumName);
         setCurrentAlbumId(analysisResults.album_id || `album-${Date.now()}`);
         setEventType(analysisEventType);
         
-        showToast(`Album "${albumName}" created and analysis completed!`, 'success');
+        showToast(`Album "${trimmedAlbumName}" created and analysis completed!`, 'success');
         
         // Go to review stage
         setWorkflowStage('review');
@@ -906,6 +917,11 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const saveAlbumAndTrainAI = useCallback(async (albumTitle: string) => {
     try {
+      const trimmedAlbumTitle = albumTitle.trim();
+      if (!trimmedAlbumTitle) {
+        throw new Error('Album title cannot be empty');
+      }
+      
       console.log('saveAlbumAndTrainAI called with title:', albumTitle);
       console.log('Current photos:', photos.length);
       console.log('Selected photos:', selectedPhotos.length);
@@ -962,10 +978,11 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const formData = new FormData();
       
       // Add album basic info
-      const albumTitle_final = albumTitle.trim() || `${eventType.charAt(0).toUpperCase() + eventType.slice(1)} Album - ${new Date().toLocaleDateString()}`;
+      const albumTitle_final = trimmedAlbumTitle; // Use the user-provided title directly
       const albumDescription = `Album created on ${new Date().toLocaleDateString()} with ${uniquePhotos.length} photos`;
       
       formData.append('user_id', user.email);
+      formData.append('album_name', albumTitle_final); // Send as album_name
       formData.append('title', albumTitle_final);
       formData.append('description', albumDescription);
       formData.append('event_type', eventType);
@@ -973,6 +990,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       // Add album metadata as JSON
       const albumMetadata = {
         user_id: user.email,
+        name: albumTitle_final, // Store user-provided name in metadata
+        title: albumTitle_final, // Also store as title for compatibility
         culling_mode: cullingMode || 'fast',
         analysis_complete: photos.some(p => p.ai_score > 0),
         original_total_photos: photos.length,

@@ -41,14 +41,14 @@ const ActionBar: React.FC = () => {
   };
 
   const handleSaveAndTrain = async () => {
-    if (!eventType) {
+    if (!eventType || !eventType.trim()) {
       setShowEventDialog(true);
       return;
     }
     
     // If we already have event type, save directly
     try {
-      await saveAlbumAndTrainAI(eventType);
+      await saveAlbumAndTrainAI(eventType.trim());
     } catch (error: any) {
       console.error('Failed to save album:', error);
       showToast(error.message || 'Failed to save album', 'error');
@@ -218,6 +218,7 @@ const ActionBar: React.FC = () => {
                   onChange={(e) => setEventType(e.target.value)}
                   placeholder="π.χ. Γάμος Μιχάλη & Άννας 2024"
                   className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600"
+                  required
                 />
               </div>
               

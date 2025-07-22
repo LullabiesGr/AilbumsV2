@@ -73,7 +73,7 @@ const Home: React.FC = () => {
       errors.push('Please upload photos first');
     }
     
-    if (!albumName.trim()) {
+    if (!albumName || !albumName.trim()) {
       errors.push('Please enter album name');
     }
     
@@ -98,8 +98,8 @@ const Home: React.FC = () => {
     // Set event type in context
     setEventType(selectedEventType!);
     
-    // Start analysis with all data
-    await startAnalysis();
+    // Start analysis with album name and event type
+    await startAnalysis(albumName.trim(), selectedEventType!);
   };
   
   const renderWorkflowContent = () => {

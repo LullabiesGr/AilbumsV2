@@ -18,6 +18,7 @@ import AnalysisOverlay from '../components/AnalysisOverlay';
 import Sidebar from '../components/Sidebar';
 import FaceRetouchModal from '../components/FaceRetouchModal';
 import { Play, RotateCcw, Brain, Copy, Users, Grid, List, Sparkles, ArrowLeft, Wand2 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 const Home: React.FC = () => {
   const { 
@@ -39,6 +40,7 @@ const Home: React.FC = () => {
     startBackgroundAnalysis,
     resetWorkflow
   } = usePhoto();
+  const { t } = useLanguage();
   
   const [activeTab, setActiveTab] = React.useState<'gallery' | 'duplicates' | 'people'>('gallery');
   
@@ -110,25 +112,25 @@ const Home: React.FC = () => {
             {/* Step 1: Upload Photos */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
               <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold mb-2">Upload Photos</h2>
+                <h2 className="text-2xl font-bold mb-2">{t('upload.title')}</h2>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Start by uploading your photos. You'll set album details before analysis.
+                  {t('upload.description')}
                 </p>
               </div>
               
               <div className="flex flex-col items-center justify-center py-8">
                 <UploadButton />
                 <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
-                  <p className="font-medium mb-1">Supported formats:</p>
-                  <p>Standard: JPEG, PNG, TIFF, WebP, BMP</p>
-                  <p>RAW: CR2, CR3, NEF, ARW, DNG, ORF, RAF, PEF, and more</p>
+                  <p className="font-medium mb-1">{t('upload.supportedFormats')}</p>
+                  <p>{t('upload.standard')}</p>
+                  <p>{t('upload.raw')}</p>
                 </div>
               </div>
               
               {photos.length > 0 && (
                 <div className="mt-6">
                   <h3 className="text-lg font-semibold mb-4">
-                    Uploaded Photos ({photos.length})
+                    {t('upload.title')} ({photos.length})
                   </h3>
                   <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-2 max-h-48 overflow-y-auto">
                     {photos.map((photo) => (
@@ -149,9 +151,9 @@ const Home: React.FC = () => {
             {photos.length > 0 && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
                 <div className="text-center mb-6">
-                  <h2 className="text-2xl font-bold mb-2">Album Configuration</h2>
+                  <h2 className="text-2xl font-bold mb-2">{t('album.configuration')}</h2>
                   <p className="text-gray-600 dark:text-gray-400">
-                    Set album name and event type before analysis
+                    {t('album.configuration')}
                   </p>
                 </div>
                 
@@ -159,13 +161,13 @@ const Home: React.FC = () => {
                   {/* Album Name Input */}
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      Album Name *
+                      {t('album.name')} *
                     </label>
                     <input
                       type="text"
                       value={albumName}
                       onChange={(e) => setAlbumName(e.target.value)}
-                      placeholder="e.g. Wedding of John & Mary 2024"
+                      placeholder={t('album.namePlaceholder')}
                       className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-lg border 
                                border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 
                                focus:border-transparent"
@@ -175,7 +177,7 @@ const Home: React.FC = () => {
                   {/* Event Type Selector */}
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      Event Type *
+                      {t('album.eventType')} *
                     </label>
                     <select
                       value={selectedEventType || ''}
@@ -184,14 +186,14 @@ const Home: React.FC = () => {
                                border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 
                                focus:border-transparent"
                     >
-                      <option value="">Select event type...</option>
-                      <option value="wedding">Wedding</option>
-                      <option value="baptism">Baptism</option>
-                      <option value="portrait">Portrait</option>
-                      <option value="family">Family</option>
-                      <option value="corporate">Corporate</option>
-                      <option value="event">General Event</option>
-                      <option value="landscape">Landscape</option>
+                      <option value="">{t('album.selectEventType')}</option>
+                      <option value="wedding">{t('eventType.wedding')}</option>
+                      <option value="baptism">{t('eventType.baptism')}</option>
+                      <option value="portrait">{t('eventType.portrait')}</option>
+                      <option value="family">{t('eventType.family')}</option>
+                      <option value="corporate">{t('eventType.corporate')}</option>
+                      <option value="event">{t('eventType.event')}</option>
+                      <option value="landscape">{t('eventType.landscape')}</option>
                     </select>
                   </div>
                   
@@ -205,7 +207,7 @@ const Home: React.FC = () => {
                   {validationErrors.length > 0 && (
                     <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
                       <h4 className="font-medium text-red-800 dark:text-red-200 mb-2">
-                        Please fix the following issues:
+                        {t('message.error')}:
                       </h4>
                       <ul className="list-disc list-inside text-sm text-red-700 dark:text-red-300 space-y-1">
                         {validationErrors.map((error, index) => (
@@ -219,14 +221,14 @@ const Home: React.FC = () => {
                   {albumName.trim() && selectedEventType && (
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                       <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">
-                        Album Preview:
+                        {t('album.preview')}
                       </h4>
                       <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-                        <p><strong>Name:</strong> {albumName.trim()}</p>
-                        <p><strong>Event Type:</strong> {getEventTypeLabel(selectedEventType)}</p>
-                        <p><strong>Photos:</strong> {photos.length} files</p>
-                        <p><strong>Culling Mode:</strong> {cullingMode || 'Not selected'}</p>
-                        <p><strong>Backend Path:</strong> /albums/{albumName.trim().replace(/[^a-zA-Z0-9]/g, '_')}/</p>
+                        <p><strong>{t('album.name')}:</strong> {albumName.trim()}</p>
+                        <p><strong>{t('album.eventType')}:</strong> {getEventTypeLabel(selectedEventType)}</p>
+                        <p><strong>{t('album.photos')}:</strong> {photos.length} files</p>
+                        <p><strong>{t('album.cullingMode')}:</strong> {cullingMode || 'Not selected'}</p>
+                        <p><strong>{t('album.backendPath')}:</strong> /albums/{albumName.trim().replace(/[^a-zA-Z0-9]/g, '_')}/</p>
                       </div>
                     </div>
                   )}
@@ -245,8 +247,8 @@ const Home: React.FC = () => {
                       <Brain className="h-6 w-6" />
                       <span>
                         {isAnalyzing 
-                          ? 'Analyzing...' 
-                          : `Start Analysis (${photos.length} photos)`
+                          ? t('analysis.analyzing')
+                          : `${t('analysis.start')} (${photos.length} ${t('album.photos')})`
                         }
                       </span>
                     </button>
@@ -263,16 +265,16 @@ const Home: React.FC = () => {
             <WorkflowNavigation currentStage={workflowStage} onStageChange={setWorkflowStage} />
             
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold mb-2">Configure Analysis</h2>
+              <h2 className="text-2xl font-bold mb-2">{t('album.configuration')}</h2>
               <p className="text-gray-600 dark:text-gray-400">
-                {photos.length} photos uploaded. Configure your analysis settings below.
+                {photos.length} {t('album.photos')} uploaded. Configure your analysis settings below.
               </p>
             </div>
 
             {/* Show uploaded photos as thumbnails */}
             <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-6">
               <h3 className="text-lg font-semibold mb-4">
-                Album: "{albumName}" ({photos.length} photos)
+                {t('album.name')}: "{albumName}" ({photos.length} {t('album.photos')})
               </h3>
               <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-2 max-h-48 overflow-y-auto">
                 {photos.map((photo) => (
@@ -316,7 +318,7 @@ const Home: React.FC = () => {
                          flex items-center space-x-2 transition-colors duration-200"
               >
                 <RotateCcw className="h-5 w-5" />
-                <span>Start Over</span>
+                <span>{t('action.reset')}</span>
               </button>
               
               <button
@@ -329,10 +331,10 @@ const Home: React.FC = () => {
                 <Play className="h-5 w-5" />
                 <span>
                   {cullingMode === 'manual' 
-                    ? 'Start Manual Review' 
+                    ? t('culling.manual')
                     : hasAnalyzedPhotos 
-                      ? 'Re-analyze Photos' 
-                      : 'Start Analysis'
+                      ? 'Re-analyze Photos'
+                      : t('analysis.start')
                   }
                 </span>
               </button>
@@ -385,7 +387,7 @@ const Home: React.FC = () => {
                              text-white rounded-lg transition-colors duration-200"
                   >
                     <ArrowLeft className="h-4 w-4" />
-                    <span>Back to Review</span>
+                    <span>{t('action.back')} to Review</span>
                   </button>
                   
                   <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -575,7 +577,7 @@ const Home: React.FC = () => {
                              duration-200 font-medium disabled:cursor-not-allowed"
                   >
                     <Brain className="h-5 w-5" />
-                    <span>{isAnalyzing ? 'Analyzing...' : 'Start Analysis'}</span>
+                    <span>{isAnalyzing ? t('analysis.analyzing') : t('analysis.start')}</span>
                   </button>
                 </div>
               </div>

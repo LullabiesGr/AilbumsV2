@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useCallback, use
 import { Photo, Filter, Album, ColorLabel, EventType, CullingMode, WorkflowStage, DuplicateCluster, PersonGroup } from '../types';
 import { analyzePhotosSingle, deepAnalyzePhotosSingle, cullPhotos, findDuplicatesAPI } from '../lib/api';
 import { useToast } from './ToastContext';
+import { useAuth } from './AuthContext';
 
 interface PhotoContextType {
   photos: Photo[];
@@ -101,6 +102,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [selectedPersonGroup, setSelectedPersonGroup] = useState<string | null>(null);
 
   const { showToast } = useToast();
+  const { user } = useAuth();
 
   const resetWorkflow = useCallback(() => {
     setPhotos([]);
@@ -292,6 +294,10 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const createNewAlbum = useCallback(async (albumName: string, eventType: EventType) => {
     console.log('🏗️ createNewAlbum called with:', { albumName, eventType });
     
+    if (!user?.email) {
+      throw new Error('User email is required to create album');
+    }
+    
     try {
       const albumId = `album-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       console.log('📝 Generated album ID:', albumId);
@@ -301,13 +307,13 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const formData = new FormData();
       formData.append('album_name', albumName.trim());
       formData.append('event_type', eventType);
-      formData.append('user_id', 'user123'); // Replace with actual user ID
+      formData.append('user_id', user.email);
       formData.append('album_id', albumId);
       
       console.log('📤 FormData contents:', {
         album_name: albumName.trim(),
         event_type: eventType,
-        user_id: 'user123',
+        user_id: user.email,
         album_id: albumId
       });
       
@@ -373,7 +379,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       showToast(error.message || 'Failed to create album', 'error');
       throw error;
     }
-  }, [showToast, setEventType]);
+  }, [showToast, setEventType, user?.email]);
   
   const startBackgroundAnalysis = useCallback(() => {
     if (!cullingMode || photos.length === 0) {
@@ -392,6 +398,11 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return;
     }
 
+    if (!user?.email) {
+      showToast('User email is required for analysis', 'error');
+      return;
+    }
+
     setIsAnalyzing(true);
     setShowAnalysisOverlay(true);
     setAnalysisProgress({ processed: 0, total: photos.length, currentPhoto: '' });
@@ -402,7 +413,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           // Use parallel processing for deep analysis with real-time updates
           const analyzedPhotos = await deepAnalyzePhotosSingle(
             photos, 
-            'user123', 
+            user.email, 
             eventType,
             (processedCount, currentPhoto, updatedPhoto) => {
               setAnalysisProgress({
@@ -427,7 +438,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           // Use parallel processing for fast analysis with real-time updates
           const analyzedPhotos = await analyzePhotosSingle(
             photos, 
-            'user123', 
+            user.email, 
             eventType,
             cullingMode,
             (processedCount, currentPhoto, updatedPhoto) => {
@@ -476,11 +487,16 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     runAnalysis();
-  }, [photos, eventType, cullingMode, showToast, groupPeopleByFaces, currentAlbumId]);
+  }, [photos, eventType, cullingMode, showToast, groupPeopleByFaces, currentAlbumId, user?.email]);
 
   const startAnalysis = useCallback(async (albumName?: string, providedEventType?: EventType) => {
     if (!cullingMode || photos.length === 0) {
       showToast('Please select culling mode', 'error');
+      return;
+    }
+
+    if (!user?.email) {
+      showToast('User email is required for analysis', 'error');
       return;
     }
 
@@ -508,7 +524,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         const formData = new FormData();
         formData.append('album_name', albumName.trim());
         formData.append('event_type', analysisEventType);
-        formData.append('user_id', 'user123');
+        formData.append('user_id', user.email);
         
         // Add all photos to FormData
         photos.forEach((photo, index) => {
@@ -592,7 +608,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         startBackgroundAnalysis();
       }, 500);
     }
-  }, [cullingMode, photos, eventType, showToast, setWorkflowStage, startBackgroundAnalysis]);
+  }, [cullingMode, photos, eventType, showToast, setWorkflowStage, startBackgroundAnalysis, user?.email]);
 
   const startAnalysisFromReview = useCallback(async () => {
     if (!cullingMode || photos.length === 0) {
@@ -611,6 +627,11 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return;
     }
 
+    if (!user?.email) {
+      showToast('User email is required for analysis', 'error');
+      return;
+    }
+
     setIsAnalyzing(true);
     setShowAnalysisOverlay(true);
     setAnalysisProgress({ processed: 0, total: photos.length, currentPhoto: '' });
@@ -620,7 +641,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         // Use parallel processing for deep analysis with real-time updates
         const analyzedPhotos = await deepAnalyzePhotosSingle(
           photos, 
-          'user123', 
+          user.email, 
           eventType,
           (processedCount, currentPhoto, updatedPhoto) => {
             setAnalysisProgress({
@@ -644,7 +665,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         // Use parallel processing for fast analysis with real-time updates
         const analyzedPhotos = await analyzePhotosSingle(
           photos, 
-          'user123', 
+          user.email, 
           eventType,
           cullingMode,
           (processedCount, currentPhoto, updatedPhoto) => {
@@ -689,7 +710,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     } finally {
       setIsAnalyzing(false);
     }
-  }, [photos, eventType, cullingMode, showToast, groupPeopleByFaces]);
+  }, [photos, eventType, cullingMode, showToast, groupPeopleByFaces, user?.email]);
 
   // Re-analyze when event type changes
   const handleEventTypeChange = useCallback((newEventType: EventType) => {
@@ -890,6 +911,10 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       console.log('Selected photos:', selectedPhotos.length);
       console.log('Event type:', eventType);
       
+      if (!user?.email) {
+        throw new Error('User email is required for album creation');
+      }
+      
       if (!eventType) {
         throw new Error('Event type is required for album creation');
       }
@@ -940,14 +965,14 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const albumTitle_final = albumTitle.trim() || `${eventType.charAt(0).toUpperCase() + eventType.slice(1)} Album - ${new Date().toLocaleDateString()}`;
       const albumDescription = `Album created on ${new Date().toLocaleDateString()} with ${uniquePhotos.length} photos`;
       
-      formData.append('user_id', 'user123'); // Replace with actual user ID
+      formData.append('user_id', user.email);
       formData.append('title', albumTitle_final);
       formData.append('description', albumDescription);
       formData.append('event_type', eventType);
       
       // Add album metadata as JSON
       const albumMetadata = {
-        user_id: 'user123',
+        user_id: user.email,
         culling_mode: cullingMode || 'fast',
         analysis_complete: photos.some(p => p.ai_score > 0),
         original_total_photos: photos.length,
@@ -1053,7 +1078,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       console.error('Failed to save album:', error);
       showToast(error.message || 'Αποτυχία αποθήκευσης άλμπουμ', 'error');
     }
-  }, [photos, selectedPhotos, eventType, cullingMode, showToast, deselectAllPhotos]);
+  }, [photos, selectedPhotos, eventType, cullingMode, showToast, deselectAllPhotos, user?.email]);
 
   // Legacy function for backward compatibility
   const saveAlbumAndTrainAILegacy = useCallback(async (event: string) => {

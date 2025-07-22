@@ -9,6 +9,7 @@ import { Trash2, CheckSquare, Square } from 'lucide-react';
 import { batchAutocorrect, batchAutofix } from '../lib/api';
 import { useToast } from '../context/ToastContext';
 import UploadButton from './UploadButton';
+import { useAuth } from '../context/AuthContext';
 
 const ActionBar: React.FC = () => {
   const { 
@@ -25,6 +26,7 @@ const ActionBar: React.FC = () => {
     groupPeopleByFaces
   } = usePhoto();
   const { showToast } = useToast();
+  const { user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [showEventDialog, setShowEventDialog] = useState(false);
   const [eventType, setEventType] = useState('');
@@ -227,6 +229,7 @@ const ActionBar: React.FC = () => {
                   <p>• Επιλεγμένες: {selectedPhotos.length}</p>
                   <p>• Εγκεκριμένες (πράσινες): {photos.filter(p => p.color_label === 'green').length}</p>
                   <p>• Backend Approved: {photos.filter(p => p.approved === true).length}</p>
+                  <p>• User: {user?.email || 'Not logged in'}</p>
                   <p>• Σύνολο: {Math.max(selectedPhotos.length, photos.filter(p => p.color_label === 'green' || p.approved === true).length)} φωτογραφίες</p>
                 </div>
               </div>

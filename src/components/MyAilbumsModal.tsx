@@ -71,12 +71,12 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
 
   // Load albums from backend
   const loadAlbums = async () => {
-    if (!user) return;
+    if (!user?.email) return;
 
     setIsLoading(true);
     try {
-      console.log('🔄 Loading albums for user:', user.id);
-      const albumsData = await fetchAlbums(user.id); // Use fetchAlbums
+      console.log('🔄 Loading albums for user:', user.email);
+      const albumsData = await fetchAlbums(user.email); // Use fetchAlbums
       console.log('✅ Albums loaded successfully:', albumsData);
       setAlbums(albumsData);
     } catch (error: any) {
@@ -91,7 +91,7 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
 
   // Refresh albums when modal opens (to show newly created albums)
   useEffect(() => {
-    if (isOpen && user) {
+    if (isOpen && user?.email) {
       // Small delay to ensure any pending saves are complete
       const timer = setTimeout(() => {
         loadAlbums();
@@ -155,7 +155,7 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {albums.map((album) => ( // Pass userId to AlbumCard
-          <AlbumCard key={album.id} album={album} userId={user!.id} onViewDetail={handleViewAlbumDetail} />
+          <AlbumCard key={album.id} album={album} userId={user!.email} onViewDetail={handleViewAlbumDetail} />
         ))} 
       </div>
     );
@@ -197,7 +197,7 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
         {/* Content */}
         <div className="p-6 overflow-y-auto flex-1">
           {showAlbumDetail && selectedAlbum ? (
-            <AlbumDetailView album={selectedAlbum} userId={user!.id} onBack={handleBackToAlbums} />
+            <AlbumDetailView album={selectedAlbum} userId={user!.email} onBack={handleBackToAlbums} />
           ) : (
             renderAlbumGrid()
           )}

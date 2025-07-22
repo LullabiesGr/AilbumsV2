@@ -41,8 +41,8 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) =>
   };
 
   const getPhotoUrl = (filename: string) => {
-    const photoPath = \`albums/${userId}/${albumFolder}/${filename}`;
-    return \`${API_URL}/photo/?photo_path=${encodeURIComponent(photoPath)}`;
+    const photoPath = `albums/${userId}/${albumFolder}/${filename}`;
+    return `${API_URL}/photo/?photo_path=${encodeURIComponent(photoPath)}`;
   };
 
   const getUniqueTags = (photos: SavedPhoto[]) => {

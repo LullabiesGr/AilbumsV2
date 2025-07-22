@@ -210,7 +210,7 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
             <div className="aspect-video bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
               {album.photos.length > 0 ? (
                 <img
-                  src={`${API_URL}/photo/${encodeURIComponent(album.photos[0].path)}`}
+                  src={`${API_URL}/photo/?photo_path=${encodeURIComponent(album.photos[0].path)}`}
                   alt={album.title}
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -260,7 +260,7 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
                     {album.photos.slice(0, 4).map((photo, index) => (
                       <div key={index} className="aspect-square rounded overflow-hidden bg-gray-200 dark:bg-gray-700">
                         <img
-                          src={`${API_URL}/photo/${encodeURIComponent(photo.path)}`}
+                          src={`${API_URL}/photo/?photo_path=${encodeURIComponent(photo.path)}`}
                           alt={photo.filename}
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -399,7 +399,7 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
               <div key={index} className="relative group">
                 <div className="aspect-square rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700">
                   <img
-                    src={`${API_URL}/photo/${encodeURIComponent(photo.path)}`}
+                    src={`${API_URL}/photo/?photo_path=${encodeURIComponent(photo.path)}`}
                     alt={photo.filename}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                     onError={(e) => {

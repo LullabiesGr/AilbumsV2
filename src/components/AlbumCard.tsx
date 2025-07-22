@@ -41,7 +41,7 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) =>
   };
 
   const getPhotoUrl = (filename: string) => {
-    // Use the /photo/ endpoint with photo_path parameter
+    // Use the /photo/ endpoint with correct path format
     const photoPath = `albums/${userId}/${albumFolder}/${filename}`;
     return `${API_URL}/photo/?photo_path=${encodeURIComponent(photoPath)}`;
   };

@@ -49,7 +49,31 @@ interface MyAilbumsModalProps {
 }
 
 // Base URL for backend API
-export const API_URL = 'https://a7b0ec6a0aa5.ngrok-free.app';
+// Auto-detect API URL based on environment
+const getApiUrl = (): string => {
+  // Check for environment variable first
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Auto-detect based on current location
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    
+    // If running locally, use localhost backend
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:8000';
+    }
+    
+    // For production/deployed versions, use the ngrok or production URL
+    return 'https://a7b0ec6a0aa5.ngrok-free.app';
+  }
+  
+  // Fallback
+  return 'http://localhost:8000';
+};
+
+export const API_URL = getApiUrl();
 
 // Helper to construct album folder name (assuming format like event_type-deep_timestamp)
 // IMPORTANT: This assumes a specific naming convention for album folders.

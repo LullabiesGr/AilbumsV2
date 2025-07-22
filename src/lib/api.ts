@@ -3,7 +3,35 @@ import { findDuplicates } from './similarity';
 import { promisePoolWithProgress } from './promisePool'; // Keep this import
 import { DuplicateCluster } from '../types';
 
-const API_URL = 'https://a7b0ec6a0aa5.ngrok-free.app'; // Change this to your active ngrok URL when backend is running
+// Auto-detect API URL based on environment
+const getApiUrl = (): string => {
+  // Check for environment variable first
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Auto-detect based on current location
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    
+    // If running locally, use localhost backend
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:8000';
+    }
+    
+    // For production/deployed versions, use the ngrok or production URL
+    // You can set this in environment variables or update as needed
+    return 'https://a7b0ec6a0aa5.ngrok-free.app';
+  }
+  
+  // Fallback
+  return 'http://localhost:8000';
+};
+
+const API_URL = getApiUrl();
+
+// Log the API URL being used for debugging
+console.log('🌐 Using API URL:', API_URL);
 
 // Test function to verify backend connectivity
 export const testBackendConnection = async (): Promise<boolean> => {

@@ -1,6 +1,6 @@
 import { Photo } from '../types';
 import { findDuplicates } from './similarity';
-import { promisePoolWithProgress } from './promisePool';
+import { promisePoolWithProgress } from './promisePool'; // Keep this import
 import { DuplicateCluster } from '../types';
 
 const API_URL = 'https://a7b0ec6a0aa5.ngrok-free.app'; // Change this to your active ngrok URL when backend is running
@@ -261,7 +261,7 @@ export const saveAlbumAndTrain = async (trainingData: AITrainingData): Promise<v
 };
 
 // Load user albums
-export const loadUserAlbums = async (userId: string): Promise<any[]> => {
+export const fetchAlbums = async (userId: string): Promise<any[]> => {
   try {
     console.log('🔍 Loading albums for user:', userId);
     console.log('🌐 API URL:', `${API_URL}/albums?user_id=${userId}`);

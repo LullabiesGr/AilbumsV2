@@ -41,9 +41,18 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) =>
   };
 
   const getPhotoUrl = (filename: string) => {
-    // Use the /photo/ endpoint with correct path format
-    const photoPath = `albums/${userId}/${albumFolder}/${filename}`;
-    return `${API_URL}/photo/?photo_path=${encodeURIComponent(photoPath)}`;
+    // Use different endpoints based on environment
+    const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    
+    if (isLocalhost) {
+      // localhost: use /photo/ endpoint
+      const photoPath = `albums/${userId}/${albumFolder}/${filename}`;
+      return `${API_URL}/photo/?photo_path=${encodeURIComponent(photoPath)}`;
+    } else {
+      // ngrok/production: use /album-photo endpoint
+      const albumDir = `albums/${userId}/${albumFolder}`;
+      return `${API_URL}/album-photo?album_dir=${encodeURIComponent(albumDir)}&filename=${encodeURIComponent(filename)}`;
+    }
   };
 
   const getUniqueTags = (photos: SavedPhoto[]) => {

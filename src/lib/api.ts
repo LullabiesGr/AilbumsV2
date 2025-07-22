@@ -3,32 +3,11 @@ import { findDuplicates } from './similarity';
 import { promisePoolWithProgress } from './promisePool'; // Keep this import
 import { DuplicateCluster } from '../types';
 
-// Auto-detect API URL based on environment
-const getApiUrl = (): string => {
-  // Check for environment variable first
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-  
-  // Auto-detect based on current location
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    
-    // If running locally, use localhost backend
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'http://localhost:8000';
-    }
-    
-    // For production/deployed versions, use the ngrok or production URL
-    // You can set this in environment variables or update as needed
-    return 'https://a7b0ec6a0aa5.ngrok-free.app';
-  }
-  
-  // Fallback
-  return 'http://localhost:8000';
-};
-
-const API_URL = getApiUrl();
+// API URL configuration for different environments
+const API_URL =
+  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:8000"
+    : "https://a7b0ec6a0aa5.ngrok-free.app";
 
 // Log the API URL being used for debugging
 console.log('🌐 Using API URL:', API_URL);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Tag, MessageSquare, Star, Users, Flag, Sparkles, Eye, EyeOff, Smile, Frown, Meh, AlertCircle, Glasses, Shield, ArrowUp, ArrowDown, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Tag, MessageSquare, Star, Users, Flag, Sparkles, Eye, EyeOff, Smile, Frown, Meh, AlertCircle, Glasses, Shield, ArrowUp, ArrowDown, RotateCcw, X, Calendar, Heart, Baby, Briefcase, GraduationCap, Camera } from 'lucide-react';
 import { SavedAlbum, SavedPhoto } from './MyAilbumsModal'; // Import interfaces
 import { Photo, Face } from '../types'; // Import Photo and Face types for consistency
 
@@ -14,6 +14,24 @@ interface AlbumDetailViewProps {
   userId: string;
   onBack: () => void;
 }
+
+const getEventTypeIcon = (eventType: string) => {
+  switch (eventType?.toLowerCase()) {
+    case 'wedding':
+      return <Heart className="h-4 w-4 text-pink-500" />;
+    case 'birthday':
+      return <Calendar className="h-4 w-4 text-blue-500" />;
+    case 'baby':
+      return <Baby className="h-4 w-4 text-green-500" />;
+    case 'corporate':
+      return <Briefcase className="h-4 w-4 text-gray-600" />;
+    case 'graduation':
+      return <GraduationCap className="h-4 w-4 text-purple-500" />;
+    case 'event':
+    default:
+      return <Camera className="h-4 w-4 text-orange-500" />;
+  }
+};
 
 const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack }) => {
   const [selectedPhoto, setSelectedPhoto] = useState<SavedPhoto | null>(null);

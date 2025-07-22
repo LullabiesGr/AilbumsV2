@@ -26,11 +26,13 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
       return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk1pc3NpbmcgRGlyZWN0b3J5PC90ZXh0Pjwvc3ZnPg==';
     }
     
-    // Use exact album_dir from backend, normalize Windows paths
-    const normalizedAlbumDir = album.album_dir.replace(/\\/g, '/');
+    // Clean album_dir: remove albums/ or ./albums/ prefix, then normalize Windows paths
+    const cleanedAlbumDir = album.album_dir
+      .replace(/^(\.\/)?albums[\\/]/, '') // Remove albums/ or ./albums/ prefix
+      .replace(/\\/g, '/'); // Normalize Windows paths to forward slashes
     
-    // Create photo URL using backend's exact album_dir
-    return `${API_URL}/album-photo?album_dir=${encodeURIComponent(normalizedAlbumDir)}&filename=${encodeURIComponent(filename)}`;
+    // Create photo URL using cleaned album_dir (without albums/ prefix)
+    return `${API_URL}/album-photo?album_dir=${encodeURIComponent(cleanedAlbumDir)}&filename=${encodeURIComponent(filename)}`;
   };
 
   const getTagIcon = (tag: string) => {

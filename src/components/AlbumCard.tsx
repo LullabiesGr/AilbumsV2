@@ -1,4 +1,3 @@
-```tsx
 import React, { useState } from 'react';
 import { Camera, Calendar, Tag, Star, Eye, MessageSquare, Users, Flag, Sparkles } from 'lucide-react';
 import { SavedAlbum, SavedPhoto } from './MyAilbumsModal'; // Import interfaces
@@ -198,4 +197,3 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) =>
 };
 
 export default AlbumCard;
-```

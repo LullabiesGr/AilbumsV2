@@ -1,4 +1,3 @@
-```tsx
 import React, { useState } from 'react';
 import { ArrowLeft, Tag, MessageSquare, Star, Users, Flag, Sparkles, Eye, EyeOff, Smile, Frown, Meh, AlertCircle, Glasses, Shield, ArrowUp, ArrowDown, RotateCcw } from 'lucide-react';
 import { SavedAlbum, SavedPhoto } from './MyAilbumsModal'; // Import interfaces
@@ -313,4 +312,3 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
 };
 
 export default AlbumDetailView;
-```

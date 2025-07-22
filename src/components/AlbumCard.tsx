@@ -83,6 +83,38 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) =>
       {/* Cover Photo / Thumbnails */}
       <div className="aspect-video bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
         {album.photos.length > 0 ? (
+          <div className="w-full h-full relative">
+            {/* Main cover photo */}
+            <img
+              src={getPhotoUrl(album.photos[0])}
+              alt={album.photos[0]}
+              className="w-full h-full object-cover transition-opacity duration-200"
+              loading="lazy"
+              onError={(e) => {
+                console.warn('Failed to load cover image:', getPhotoUrl(album.photos[0]));
+                e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';
+                e.currentTarget.style.opacity = '0.7';
+              }}
+              onLoad={(e) => {
+                e.currentTarget.style.opacity = '1';
+              }}
+            />
+            
+            {/* Photo count overlay */}
+            {album.photos.length > 1 && (
+              <div className="absolute bottom-2 right-2 bg-black/75 text-white text-xs px-2 py-1 rounded-full">
+                +{album.photos.length - 1} more
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Camera className="h-12 w-12 text-gray-400" />
+          </div>
+        )}
+        
+        {/* Alternative grid view for multiple photos */}
+        {false && album.photos.length > 0 && (
           <div className="grid grid-cols-2 grid-rows-2 gap-0.5 h-full">
             {album.photos.slice(0, 4).map((filename, index) => {
               const photoData = album.results.find(r => r.filename === filename);
@@ -133,10 +165,6 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) =>
                 </div>
               );
             })}
-          </div>
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Camera className="h-12 w-12 text-gray-400" />
           </div>
         )}
 

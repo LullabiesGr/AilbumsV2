@@ -297,6 +297,7 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
                   src={getPhotoUrl(photo.filename)}
                   alt={photo.filename}
                   className="w-full h-full object-cover group-hover:scale-105 transition-all duration-200"
+                  loading="lazy"
                   onError={(e) => {
                     console.warn('Failed to load image in grid:', getPhotoUrl(photo.filename));
                     e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';

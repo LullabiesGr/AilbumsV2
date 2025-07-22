@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { X, FolderOpen, Plus } from 'lucide-react';
+import { X, FolderOpen, Plus, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { EventType, AnalysisResult, Face } from '../types';
 import { fetchAlbums } from '../lib/api'; // Renamed from loadUserAlbums
 import AlbumCard from './AlbumCard'; // New component
 import AlbumDetailView from './AlbumDetailView'; // New component
+import AlbumReviewInterface from './AlbumReviewInterface'; // New component for review mode
 
 // Define interfaces for the data coming from the backend
 export interface SavedPhoto extends AnalysisResult {
@@ -68,7 +69,7 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
   const [albums, setAlbums] = useState<SavedAlbum[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedAlbum, setSelectedAlbum] = useState<SavedAlbum | null>(null);
-  const [showAlbumDetail, setShowAlbumDetail] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'detail' | 'review'>('list');
   const { user } = useAuth();
   const { showToast } = useToast();
 
@@ -107,13 +108,19 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
   // Handle viewing album details
   const handleViewAlbumDetail = (album: SavedAlbum) => {
     setSelectedAlbum(album);
-    setShowAlbumDetail(true);
+    setViewMode('detail');
+  };
+
+  // Handle opening album in review mode
+  const handleOpenAlbumReview = (album: SavedAlbum) => {
+    setSelectedAlbum(album);
+    setViewMode('review');
   };
 
   // Handle back from detail view
   const handleBackToAlbums = () => {
     setSelectedAlbum(null);
-    setShowAlbumDetail(false);
+    setViewMode('list');
   };
 
   // Render album list/grid
@@ -183,7 +190,8 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
                   My Ailbums
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400">
-                  {showAlbumDetail ? 'Album Details' : `${albums.length} saved albums`}
+                  {viewMode === 'list' ? `${albums.length} saved albums` : 
+                   viewMode === 'detail' ? 'Album Details' : 'Album Review'}
                 </p>
               </div>
             </div>
@@ -199,8 +207,19 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
 
         {/* Content */}
         <div className="p-6 overflow-y-auto flex-1">
-          {showAlbumDetail && selectedAlbum ? (
-            <AlbumDetailView album={selectedAlbum} userId={user!.email} onBack={handleBackToAlbums} />
+          {viewMode === 'detail' && selectedAlbum ? (
+            <AlbumDetailView 
+              album={selectedAlbum} 
+              userId={user!.email} 
+              onBack={handleBackToAlbums}
+              onOpenReview={() => setViewMode('review')}
+            />
+          ) : viewMode === 'review' && selectedAlbum ? (
+            <AlbumReviewInterface 
+              album={selectedAlbum} 
+              userId={user!.email} 
+              onBack={handleBackToAlbums}
+            />
           ) : (
             renderAlbumGrid()
           )}

@@ -263,8 +263,8 @@ export const saveAlbumAndTrain = async (trainingData: AITrainingData): Promise<v
 // Load user albums
 export const loadUserAlbums = async (userId: string): Promise<any[]> => {
   try {
-    console.log('Loading albums for user:', userId);
-    console.log('API URL:', `${API_URL}/albums?user_id=${userId}`);
+    console.log('🔍 Loading albums for user:', userId);
+    console.log('🌐 API URL:', `${API_URL}/albums?user_id=${userId}`);
     
     const response = await fetch(`${API_URL}/albums?user_id=${userId}`, {
       method: 'GET',
@@ -275,45 +275,57 @@ export const loadUserAlbums = async (userId: string): Promise<any[]> => {
       mode: 'cors',
     });
 
-    console.log('Albums API Response:', {
+    console.log('📥 Albums API Response:', {
       status: response.status,
       statusText: response.statusText,
       url: response.url,
-      headers: Object.fromEntries(response.headers.entries())
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Albums API Error:', {
+      console.error('❌ Albums API Error:', {
         status: response.status,
         statusText: response.statusText,
-        errorText: errorText.substring(0, 200)
+        errorText: errorText.substring(0, 500)
       });
       
       // Check if we got HTML instead of JSON
       if (errorText.includes('<!DOCTYPE html>') || errorText.includes('<html>')) {
-        throw new Error(`Albums endpoint returned HTML instead of JSON. Backend may not have /albums endpoint implemented.`);
+        throw new Error(`Albums endpoint returned HTML instead of JSON. Check if ${API_URL}/albums endpoint exists.`);
       }
       
       throw new Error(`Albums API Error: ${response.status} ${errorText || response.statusText}`);
     }
 
     const responseText = await response.text();
-    console.log('Albums Response Text:', responseText.substring(0, 500));
+    console.log('📄 Albums Response Text (first 1000 chars):', responseText.substring(0, 1000));
     
     let albums;
     try {
       albums = JSON.parse(responseText);
     } catch (parseError) {
-      console.error('Failed to parse albums JSON:', parseError);
-      console.error('Response was:', responseText.substring(0, 200));
+      console.error('❌ Failed to parse albums JSON:', parseError);
+      console.error('📄 Full response was:', responseText);
       throw new Error('Albums endpoint returned invalid JSON');
     }
     
-    console.log('Loaded albums:', albums);
+    console.log('✅ Successfully loaded albums:', albums);
+    console.log('📊 Albums count:', Array.isArray(albums) ? albums.length : 'Not an array');
+    
+    // Ensure we return an array
+    if (Array.isArray(albums)) {
+      return albums;
+    } else if (albums && albums.albums && Array.isArray(albums.albums)) {
+      return albums.albums;
+    } else if (albums && albums.results && Array.isArray(albums.results)) {
+      return albums.results;
+    } else {
+      console.warn('⚠️ Unexpected albums response structure:', albums);
+      return [];
+    }
     return albums || [];
   } catch (error: any) {
-    console.error('Load albums error:', error);
+    console.error('❌ Load albums error:', error);
     throw error instanceof Error ? error : new Error(error.toString());
   }
 };

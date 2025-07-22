@@ -3,6 +3,7 @@ import { X, FolderOpen, Calendar, Camera, Star, Eye, Download, Trash2, Edit3, Pl
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { Photo, Album as AlbumType, EventType } from '../types';
+import { loadUserAlbums } from '../lib/api';
 
 interface SavedAlbum {
   id: string;
@@ -61,57 +62,12 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
     
     setIsLoading(true);
     try {
-      console.log('Loading albums for user:', user.id);
-      console.log('API URL:', `${API_URL}/albums?user_id=${user.id}`);
-      
-      const response = await fetch(`${API_URL}/albums?user_id=${user.id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true'
-        },
-        mode: 'cors',
-      });
-
-      console.log('Albums API Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
-        url: response.url
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Albums API Error:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorText: errorText.substring(0, 200) // First 200 chars to see if it's HTML
-        });
-        
-        // Check if we got HTML instead of JSON (common 404/error page issue)
-        if (errorText.includes('<!DOCTYPE html>') || errorText.includes('<html>')) {
-          throw new Error(`Albums endpoint returned HTML instead of JSON. Check if ${API_URL}/albums endpoint exists.`);
-        }
-        
-        throw new Error(`Failed to load albums: ${response.status} ${errorText || response.statusText}`);
-      }
-
-      const responseText = await response.text();
-      console.log('Albums API Response Text:', responseText.substring(0, 500));
-      
-      let albumsData;
-      try {
-        albumsData = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Failed to parse albums response as JSON:', parseError);
-        console.error('Response was:', responseText.substring(0, 200));
-        throw new Error('Albums endpoint returned invalid JSON. Check backend implementation.');
-      }
-      
-      console.log('Parsed albums data:', albumsData);
-      setAlbums(albumsData || []);
+      console.log('🔄 Loading albums for user:', user.id);
+      const albumsData = await loadUserAlbums(user.id);
+      console.log('✅ Albums loaded successfully:', albumsData);
+      setAlbums(albumsData);
     } catch (error: any) {
-      console.error('Failed to load albums:', error);
+      console.error('❌ Failed to load albums:', error);
       showToast(error.message || 'Failed to load albums', 'error');
       // Fallback to empty array
       setAlbums([]);

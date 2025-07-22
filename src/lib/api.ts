@@ -31,7 +31,7 @@ export const testBackendConnection = async (): Promise<boolean> => {
 
 // Enhanced create album function with debugging
 export const createAlbumAPI = async (albumData: {
-  user_id: string;
+  user_email: string;
   album_id: string;
   title: string;
   event_type: EventType;
@@ -236,9 +236,9 @@ export const getPhotoTip = async (file: File): Promise<string> => {
   }
 };
 
-export const saveAlbumAndTrain = async (trainingData: AITrainingData): Promise<void> => {
+export const saveAlbumAndTrain = async (trainingData: { user_email: string; event: string; approved_paths: string[]; ratings: number[] }): Promise<void> => {
   const formData = new FormData();
-  formData.append('user_id', trainingData.user_id);
+  formData.append('user_id', trainingData.user_email);
   formData.append('event', trainingData.event);
   formData.append('approved_paths', JSON.stringify(trainingData.approved_paths));
   formData.append('ratings', JSON.stringify(trainingData.ratings));
@@ -261,12 +261,12 @@ export const saveAlbumAndTrain = async (trainingData: AITrainingData): Promise<v
 };
 
 // Load user albums
-export const fetchAlbums = async (userId: string): Promise<any[]> => {
+export const fetchAlbums = async (userEmail: string): Promise<any[]> => {
   try {
-    console.log('🔍 Loading albums for user:', userId);
-    console.log('🌐 API URL:', `${API_URL}/albums?user_id=${userId}`);
+    console.log('🔍 Loading albums for user:', userEmail);
+    console.log('🌐 API URL:', `${API_URL}/albums?user_id=${userEmail}`);
     
-    const response = await fetch(`${API_URL}/albums?user_id=${userId}`, {
+    const response = await fetch(`${API_URL}/albums?user_id=${userEmail}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -331,11 +331,11 @@ export const fetchAlbums = async (userId: string): Promise<any[]> => {
 };
 
 // Load album analysis results and update photos
-export const loadAlbumAnalysisResults = async (albumId: string): Promise<any[]> => {
+export const loadAlbumAnalysisResults = async (albumId: string, userEmail: string): Promise<any[]> => {
   try {
     console.log('Loading analysis results for album:', albumId);
     
-    const response = await fetch(`${API_URL}/album/${albumId}/results`, {
+    const response = await fetch(`${API_URL}/album/${albumId}/results?user_id=${userEmail}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -361,15 +361,15 @@ export const loadAlbumAnalysisResults = async (albumId: string): Promise<any[]> 
     throw error instanceof Error ? error : new Error(error.toString());
   }
 };
-export const analyzePhotos = async (photos: Photo[], userId: string, eventType: EventType, cullingMode: CullingMode): Promise<Photo[]> => {
+export const analyzePhotos = async (photos: Photo[], userEmail: string, eventType: EventType, cullingMode: CullingMode): Promise<Photo[]> => {
   // This function is now replaced by analyzeSinglePhoto for better UX
   throw new Error('Use analyzeSinglePhoto instead for serial processing');
 };
 
 // New function to analyze a single photo for fast mode
-export const analyzeSinglePhoto = async (photo: Photo, userId: string, eventType: EventType, cullingMode: CullingMode, albumId?: string): Promise<Photo> => {
+export const analyzeSinglePhoto = async (photo: Photo, userEmail: string, eventType: EventType, cullingMode: CullingMode, albumId?: string): Promise<Photo> => {
   const formData = new FormData();
-  formData.append('user_id', userId);
+  formData.append('user_id', userEmail);
   formData.append('event', eventType);
   formData.append('culling_mode', cullingMode);
   if (albumId) {
@@ -475,7 +475,7 @@ export const analyzeSinglePhoto = async (photo: Photo, userId: string, eventType
 // Serial processing function for fast analysis with progress callback
 export const analyzePhotosSingle = async (
   photos: Photo[], 
-  userId: string, 
+  userEmail: string, 
   eventType: EventType,
   cullingMode: CullingMode,
   onProgress?: (processedCount: number, currentPhoto: string, updatedPhoto?: Photo) => void,
@@ -485,7 +485,7 @@ export const analyzePhotosSingle = async (
   // Create tasks for each photo
   const tasks = photos.map((photo, index) => async () => {
     try {
-      const analyzedPhoto = await analyzeSinglePhoto(photo, userId, eventType, cullingMode, albumId);
+      const analyzedPhoto = await analyzeSinglePhoto(photo, userEmail, eventType, cullingMode, albumId);
       
       // Call progress callback with the updated photo for real-time UI updates
       if (onProgress) {
@@ -532,15 +532,15 @@ export const analyzePhotosSingle = async (
   return analyzedPhotos;
 };
 
-export const deepAnalyzePhotos = async (photos: Photo[], userId: string, eventType: EventType): Promise<Photo[]> => {
+export const deepAnalyzePhotos = async (photos: Photo[], userEmail: string, eventType: EventType): Promise<Photo[]> => {
   // This function is now replaced by deepAnalyzePhotosSingle for better UX
   throw new Error('Use deepAnalyzePhotosSingle instead for serial processing');
 };
 
 // New function to analyze a single photo
-export const deepAnalyzeSinglePhoto = async (photo: Photo, userId: string, eventType: EventType, albumId?: string): Promise<Photo> => {
+export const deepAnalyzeSinglePhoto = async (photo: Photo, userEmail: string, eventType: EventType, albumId?: string): Promise<Photo> => {
   const formData = new FormData();
-  formData.append('user_id', userId);
+  formData.append('user_id', userEmail);
   formData.append('event', eventType);
   if (albumId) {
     formData.append('album_id', albumId);
@@ -646,7 +646,7 @@ export const deepAnalyzeSinglePhoto = async (photo: Photo, userId: string, event
 // Serial processing function with progress callback
 export const deepAnalyzePhotosSingle = async (
   photos: Photo[], 
-  userId: string, 
+  userEmail: string, 
   eventType: EventType,
   onProgress?: (processedCount: number, currentPhoto: string, updatedPhoto?: Photo) => void,
   concurrency = 2,
@@ -655,7 +655,7 @@ export const deepAnalyzePhotosSingle = async (
   // Create tasks for each photo
   const tasks = photos.map((photo, index) => async () => {
     try {
-      const analyzedPhoto = await deepAnalyzeSinglePhoto(photo, userId, eventType, albumId);
+      const analyzedPhoto = await deepAnalyzeSinglePhoto(photo, userEmail, eventType, albumId);
       
       // Call progress callback with the updated photo for real-time UI updates
       if (onProgress) {

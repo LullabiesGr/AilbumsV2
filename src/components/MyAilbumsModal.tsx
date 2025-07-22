@@ -10,7 +10,7 @@ import AlbumDetailView from './AlbumDetailView'; // New component
 // Define interfaces for the data coming from the backend
 export interface SavedPhoto extends AnalysisResult {
   filename: string;
-  path?: string; // Optional: if backend sends full path, otherwise we construct it
+  path?: string; // Full path from backend
   ai_score: number;
   approved: boolean;
   color_label?: string;
@@ -35,7 +35,7 @@ export interface SavedAlbum {
   user_id: string;
   photos: string[]; // List of filenames
   results: SavedPhoto[]; // List of analysis results for each photo
-  // If backend sends album_dir, add it here: album_dir?: string;
+  album_dir?: string; // Album directory from backend
   metadata?: { // Optional metadata from backend
     user_id: string;
     culling_mode: string;

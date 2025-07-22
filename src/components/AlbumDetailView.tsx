@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Tag, MessageSquare, Star, Users, Flag, Sparkles, Eye, EyeOff, Smile, Frown, Meh, AlertCircle, Glasses, Shield, ArrowUp, ArrowDown, RotateCcw } from 'lucide-react';
 import { SavedAlbum, SavedPhoto } from './MyAilbumsModal'; // Import interfaces
-import { getAlbumFolder } from './MyAilbumsModal'; // Import helper
 import { Photo, Face } from '../types'; // Import Photo and Face types for consistency
 
 // API URL configuration
@@ -17,18 +16,20 @@ interface AlbumDetailViewProps {
 }
 
 const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack }) => {
-  const albumFolder = getAlbumFolder(album.event_type, album.created_at);
   const [selectedPhoto, setSelectedPhoto] = useState<SavedPhoto | null>(null);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
 
   const getPhotoUrl = (filename: string) => {
-    // Create album directory path
-    const albumDir = `albums/${userId}/${albumFolder}`;
+    // Use exact album_dir from backend response
+    if (!album.album_dir) {
+      console.error('Album missing album_dir:', album);
+      return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk1pc3NpbmcgRGlyZWN0b3J5PC90ZXh0Pjwvc3ZnPg==';
+    }
     
-    // Fix Windows paths: replace backslashes with forward slashes
-    const normalizedAlbumDir = albumDir.replace(/\\/g, '/');
+    // Use exact album_dir from backend, normalize Windows paths
+    const normalizedAlbumDir = album.album_dir.replace(/\\/g, '/');
     
-    // Create photo URL using album-photo endpoint
+    // Create photo URL using backend's exact album_dir
     return `${API_URL}/album-photo?album_dir=${encodeURIComponent(normalizedAlbumDir)}&filename=${encodeURIComponent(filename)}`;
   };
 

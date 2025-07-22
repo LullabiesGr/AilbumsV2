@@ -33,9 +33,9 @@ export interface SavedAlbum {
   event_type: EventType;
   date_created: string;
   user_id: string;
+  album_dir: string; // Exact directory path from backend
   photos: string[]; // List of filenames
   results: SavedPhoto[]; // List of analysis results for each photo
-  // If backend sends album_dir, add it here: album_dir?: string;
   metadata?: { // Optional metadata from backend
     user_id: string;
     culling_mode: string;
@@ -56,13 +56,12 @@ export const API_URL =
     : "https://a7b0ec6a0aa5.ngrok-free.app";
 
 // Helper to construct album folder name (assuming format like event_type-deep_timestamp)
-// IMPORTANT: This assumes a specific naming convention for album folders.
-// If your backend uses a different convention, this function needs to be adjusted,
-// or the backend should return the 'album_dir' directly in the album object.
+// DEPRECATED: Use album.album_dir from backend instead
+// This function is kept for backward compatibility but should not be used
 export const getAlbumFolder = (eventType: EventType, createdAt: string): string => {
-  const timestamp = new Date(createdAt).getTime(); // Get Unix timestamp in milliseconds
-  // Example: wedding-deep_1753104570 (assuming 'deep' culling mode is part of folder name)
-  return `${eventType}-deep_${Math.floor(timestamp / 1000)}`; // Convert to seconds
+  console.warn('getAlbumFolder is deprecated. Use album.album_dir from backend instead.');
+  const timestamp = new Date(createdAt).getTime();
+  return `${eventType}-deep_${Math.floor(timestamp / 1000)}`;
 };
 
 const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {

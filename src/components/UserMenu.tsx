@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
-import { LogOut, User, Settings, ChevronDown, Monitor } from 'lucide-react';
+import { LogOut, User, Settings, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import SettingsModal from './SettingsModal';
 
 const UserMenu: React.FC = () => {
   const { user, logout } = useAuth();
   const { showToast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   
   // Check if user is a guest
   const isGuest = localStorage.getItem('is_guest') === 'true';
@@ -19,16 +17,10 @@ const UserMenu: React.FC = () => {
     setIsOpen(false);
   };
 
-  const handleOpenSettings = () => {
-    setShowSettings(true);
-    setIsOpen(false);
-  };
-
   if (!user) return null;
 
   return (
-    <>
-      <div className="relative">
+    <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 
@@ -105,13 +97,25 @@ const UserMenu: React.FC = () => {
             )}
 
             <div className="py-1">
+              {!isGuest && (
+                <button
+                  className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 
+                           dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 
+                           transition-colors duration-200"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Settings className="h-4 w-4" />
+                  <span>Settings</span>
+                </button>
+              )}
+              
               <button
                 className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 
                          dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 
                          transition-colors duration-200"
-                onClick={handleOpenSettings}
+                onClick={() => setIsOpen(false)}
               >
-                <Monitor className="h-4 w-4" />
+                <Settings className="h-4 w-4" />
                 <span>Settings</span>
               </button>
               
@@ -128,13 +132,7 @@ const UserMenu: React.FC = () => {
           </div>
         </>
       )}
-      </div>
-      
-      <SettingsModal 
-        isOpen={showSettings} 
-        onClose={() => setShowSettings(false)} 
-      />
-    </>
+    </div>
   );
 };
 

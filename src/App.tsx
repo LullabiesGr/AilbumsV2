@@ -3,7 +3,6 @@ import Home from './pages/Home';
 import { ToastProvider } from './context/ToastContext';
 import { PhotoProvider } from './context/PhotoContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { LanguageProvider } from './context/LanguageContext';
 import LoginScreen from './components/LoginScreen';
 
 const AppContent: React.FC = () => {
@@ -33,15 +32,13 @@ const AppContent: React.FC = () => {
 
 function App() {
   return (
-    <LanguageProvider>
-      <ToastProvider>
-        <AuthProvider>
-          <PhotoProvider>
-            <AppContent />
-          </PhotoProvider>
-        </AuthProvider>
-      </ToastProvider>
-    </LanguageProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <PhotoProvider>
+          <AppContent />
+        </PhotoProvider>
+      </AuthProvider>
+    </ToastProvider>
   );
 }
 

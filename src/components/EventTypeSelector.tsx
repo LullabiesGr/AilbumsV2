@@ -1,7 +1,6 @@
 import React from 'react';
 import { Camera, Heart, Baby, User, Building, Users, Briefcase } from 'lucide-react';
 import { EventType } from '../types';
-import { useLanguage } from '../context/LanguageContext';
 
 interface EventTypeSelectorProps {
   selectedType: EventType | null;
@@ -14,22 +13,20 @@ const EventTypeSelector: React.FC<EventTypeSelectorProps> = ({
   onSelect, 
   required = true 
 }) => {
-  const { t } = useLanguage();
-  
   const eventTypes = [
-    { id: 'wedding', label: t('eventType.wedding'), icon: Heart, description: 'Wedding ceremonies and receptions' },
-    { id: 'baptism', label: t('eventType.baptism'), icon: Baby, description: 'Religious ceremonies and celebrations' },
-    { id: 'portrait', label: t('eventType.portrait'), icon: User, description: 'Individual and group portraits' },
-    { id: 'family', label: t('eventType.family'), icon: Users, description: 'Family gatherings and events' },
-    { id: 'corporate', label: t('eventType.corporate'), icon: Briefcase, description: 'Business events and headshots' },
-    { id: 'event', label: t('eventType.event'), icon: Camera, description: 'Parties, celebrations, and gatherings' },
-    { id: 'landscape', label: t('eventType.landscape'), icon: Building, description: 'Nature and architectural photography' }
+    { id: 'wedding', label: 'Wedding', icon: Heart, description: 'Wedding ceremonies and receptions' },
+    { id: 'baptism', label: 'Baptism', icon: Baby, description: 'Religious ceremonies and celebrations' },
+    { id: 'portrait', label: 'Portrait', icon: User, description: 'Individual and group portraits' },
+    { id: 'family', label: 'Family', icon: Users, description: 'Family gatherings and events' },
+    { id: 'corporate', label: 'Corporate', icon: Briefcase, description: 'Business events and headshots' },
+    { id: 'event', label: 'General Event', icon: Camera, description: 'Parties, celebrations, and gatherings' },
+    { id: 'landscape', label: 'Landscape', icon: Building, description: 'Nature and architectural photography' }
   ];
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
       <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
-        {t('album.eventType')}
+        Select Event Type
       </h3>
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
         {required 

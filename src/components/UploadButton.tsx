@@ -2,7 +2,6 @@ import React, { useRef } from 'react';
 import { Upload } from 'lucide-react';
 import { usePhoto } from '../context/PhotoContext';
 import { useToast } from '../context/ToastContext';
-import { useLanguage } from '../context/LanguageContext';
 
 interface UploadButtonProps {
   variant?: 'primary' | 'secondary';
@@ -11,7 +10,6 @@ interface UploadButtonProps {
 const UploadButton: React.FC<UploadButtonProps> = ({ variant = 'primary' }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { uploadPhotos, isUploading } = usePhoto();
-  const { t } = useLanguage();
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -28,7 +26,7 @@ const UploadButton: React.FC<UploadButtonProps> = ({ variant = 'primary' }) => {
 
   const getButtonText = () => {
     if (isUploading) return 'Uploading...';
-    return variant === 'primary' ? t('upload.button') : t('upload.addMore');
+    return variant === 'primary' ? 'Upload Photos' : 'Add More Photos';
   };
   const buttonClasses = variant === 'primary'
     ? "px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md flex items-center space-x-2 transition-colors duration-200"

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Zap, Clock, Hand } from 'lucide-react';
 import { CullingMode } from '../types';
-import { useLanguage } from '../context/LanguageContext';
 
 interface CullingModeSelectorProps {
   selectedMode: CullingMode | null;
@@ -9,12 +8,10 @@ interface CullingModeSelectorProps {
 }
 
 const CullingModeSelector: React.FC<CullingModeSelectorProps> = ({ selectedMode, onSelect }) => {
-  const { t } = useLanguage();
-  
   const cullingModes = [
     {
       id: 'fast',
-      label: t('culling.fast'),
+      label: 'Fast Culling',
       icon: Zap,
       description: 'Quick analysis using basic analytics only',
       features: ['Basic blur detection', 'Exposure analysis', 'Face/eyes detection', 'Quick tagging', 'Real-time progress', '~30 seconds per 100 photos'],
@@ -22,7 +19,7 @@ const CullingModeSelector: React.FC<CullingModeSelectorProps> = ({ selectedMode,
     },
     {
       id: 'deep',
-      label: t('culling.deep'),
+      label: 'Deep Analysis',
       icon: Clock,
       description: 'Advanced AI analysis with event-specific prompts',
       features: ['All basic analytics', 'AI model scoring', 'Event-specific BLIP prompts', 'Smart color labeling', 'Advanced categorization', 'Real-time progress', '~3 minutes per 100 photos'],
@@ -30,7 +27,7 @@ const CullingModeSelector: React.FC<CullingModeSelectorProps> = ({ selectedMode,
     },
     {
       id: 'manual',
-      label: t('culling.manual'),
+      label: 'Manual Review',
       icon: Hand,
       description: 'Manual culling with optional AI suggestions',
       features: ['No auto-scoring', 'Manual keep/reject', 'Optional AI suggestions', 'Full user control'],
@@ -41,7 +38,7 @@ const CullingModeSelector: React.FC<CullingModeSelectorProps> = ({ selectedMode,
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
       <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
-        {t('album.cullingMode')}
+        Select Culling Mode
       </h3>
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
         Choose how you want to analyze and cull your photos.

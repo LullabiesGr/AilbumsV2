@@ -10,7 +10,6 @@ import { batchAutocorrect, batchAutofix } from '../lib/api';
 import { useToast } from '../context/ToastContext';
 import UploadButton from './UploadButton';
 import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
 
 const ActionBar: React.FC = () => {
   const { 
@@ -28,7 +27,6 @@ const ActionBar: React.FC = () => {
   } = usePhoto();
   const { showToast } = useToast();
   const { user } = useAuth();
-  const { t } = useLanguage();
   const [isProcessing, setIsProcessing] = useState(false);
   const [showEventDialog, setShowEventDialog] = useState(false);
   const [eventType, setEventType] = useState('');
@@ -117,7 +115,7 @@ const ActionBar: React.FC = () => {
           ) : (
             <Square className="h-4 w-4" />
           )}
-          <span>{selectedPhotos.length === photos.length ? t('gallery.deselectAll') : t('gallery.selectAll')}</span>
+          <span>{selectedPhotos.length === photos.length ? 'Deselect All' : 'Select All'}</span>
         </button>
         <div className="h-8 w-px bg-gray-300 dark:bg-gray-700 mx-1"></div>
         <ViewToggle />
@@ -127,7 +125,7 @@ const ActionBar: React.FC = () => {
       
       <div className="flex gap-3">
         <span className="text-sm font-medium py-2 px-3 bg-gray-200 dark:bg-gray-800 rounded-md">
-          {selectedPhotos.length} {t('gallery.selected')}
+          {selectedPhotos.length} selected
         </span>
 
         {/* Advanced Features */}
@@ -139,7 +137,7 @@ const ActionBar: React.FC = () => {
                    transition-colors duration-200 disabled:cursor-not-allowed"
         >
           <Copy className="h-5 w-5" />
-          <span>{isFindingDuplicates ? t('analysis.analyzing') : 'Find Duplicates'}</span>
+          <span>{isFindingDuplicates ? 'Finding...' : 'Find Duplicates'}</span>
         </button>
 
         <button
@@ -183,13 +181,13 @@ const ActionBar: React.FC = () => {
               onClick={handleSaveAndTrain}
             >
               <Brain className="h-5 w-5" />
-              <span>{t('action.save')} & Train AI</span>
+              <span>Save & Train AI</span>
             </button>
           </>
         )}
 
         <span className="text-sm font-medium py-2 px-3 bg-gray-200 dark:bg-gray-800 rounded-md">
-          {photos.length} {photos.length === 1 ? t('gallery.photo') : t('gallery.photos')}
+          {photos.length} photo{photos.length !== 1 ? 's' : ''}
         </span>
         
         {showAIFeatures && (
@@ -213,12 +211,12 @@ const ActionBar: React.FC = () => {
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">{t('album.name')}</label>
+                <label className="block text-sm font-medium mb-2">Τίτλος Άλμπουμ</label>
                 <input
                   type="text"
                   value={eventType}
                   onChange={(e) => setEventType(e.target.value)}
-                  placeholder={t('album.namePlaceholder')}
+                  placeholder="π.χ. Γάμος Μιχάλη & Άννας 2024"
                   className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600"
                   required
                 />
@@ -244,13 +242,13 @@ const ActionBar: React.FC = () => {
                 className="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-300 
                          dark:hover:text-white"
               >
-                {t('action.cancel')}
+                Cancel
               </button>
               <button
                 onClick={handleSaveAndTrain}
                 onClick={async () => {
                   if (!eventType.trim()) {
-                    showToast(t('album.name') + ' is required', 'error');
+                    showToast('Please enter album title', 'error');
                     return;
                   }
                   
@@ -268,7 +266,7 @@ const ActionBar: React.FC = () => {
                          disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <Save className="h-4 w-4" />
-                {t('action.save')} {t('album.name')}
+                Δημιουργία Άλμπουμ
               </button>
             </div>
           </div>

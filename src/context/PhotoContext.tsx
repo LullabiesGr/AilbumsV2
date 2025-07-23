@@ -544,7 +544,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         
         console.log('📤 Sending album + photos to /analyze endpoint...');
         
-        const response = await fetch('https://1a2a91471606.ngrok-free.app/analyze', {
+        const response = await fetch('https://a7b0ec6a0aa5.ngrok-free.app/analyze', {
           method: 'POST',
           body: formData,
           headers: {

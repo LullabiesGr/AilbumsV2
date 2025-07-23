@@ -375,6 +375,8 @@ export const analyzePhotos = async (photos: Photo[], userEmail: string, eventTyp
 
 // New function to analyze a single photo for fast mode
 export const analyzeSinglePhoto = async (photo: Photo, userEmail: string, eventType: EventType, cullingMode: CullingMode, albumId?: string): Promise<Photo> => {
+  console.log(`📡 Analyzing single photo: ${photo.filename} with ${cullingMode} mode`);
+  
   const formData = new FormData();
   formData.append('user_id', userEmail);
   formData.append('event', eventType);
@@ -385,30 +387,35 @@ export const analyzeSinglePhoto = async (photo: Photo, userEmail: string, eventT
   formData.append('files', photo.file);
 
   try {
-    const response = await fetch(`${API_URL}/analyze`, {
+    // Use the correct endpoint based on culling mode
+    const endpoint = cullingMode === 'deep' ? '/deep-analyze' : '/analyze';
+    console.log(`📤 Sending to ${endpoint} endpoint for ${photo.filename}`);
+    
+    const response = await fetch(`${API_URL}${endpoint}`, {
       method: 'POST',
       body: formData,
       headers: { 
         'Accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       },
       mode: 'cors',
     });
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('Fast Analysis API Error:', {
+      console.error(`${cullingMode} Analysis API Error:`, {
         status: response.status,
         statusText: response.statusText,
         data: errorData
       });
-      throw new Error(`Fast Analysis API Error: ${response.status} ${response.statusText}`);
+      throw new Error(`${cullingMode} Analysis API Error: ${response.status} ${response.statusText}`);
     }
 
     const results = await response.json();
     const result = results.results && results.results.length > 0 ? results.results[0] : null;
     
     // Debug: Log the raw API response to see what we're getting
-    console.log('Fast Analysis API Response for', photo.filename, ':', {
+    console.log(`${cullingMode} Analysis API Response for`, photo.filename, ':', {
       result,
       faces: result?.faces,
       firstFace: result?.faces?.[0],
@@ -474,8 +481,8 @@ export const analyzeSinglePhoto = async (photo: Photo, userEmail: string, eventT
     
     return photo;
   } catch (error: any) {
-    console.error('Fast analysis fetch error:', error);
-    throw new Error(`Failed to analyze photo ${photo.filename}: ${error.message}`);
+    console.error(`${cullingMode} analysis fetch error:`, error);
+    throw new Error(`Failed to ${cullingMode} analyze photo ${photo.filename}: ${error.message}`);
   }
 };
 
@@ -546,6 +553,8 @@ export const deepAnalyzePhotos = async (photos: Photo[], userEmail: string, even
 
 // New function to analyze a single photo
 export const deepAnalyzeSinglePhoto = async (photo: Photo, userEmail: string, eventType: EventType, albumId?: string): Promise<Photo> => {
+  console.log(`🧠 Deep analyzing single photo: ${photo.filename}`);
+  
   const formData = new FormData();
   formData.append('user_id', userEmail);
   formData.append('event', eventType);
@@ -555,11 +564,14 @@ export const deepAnalyzeSinglePhoto = async (photo: Photo, userEmail: string, ev
   formData.append('files', photo.file);
 
   try {
+    console.log(`📤 Sending to /deep-analyze endpoint for ${photo.filename}`);
+    
     const response = await fetch(`${API_URL}/deep-analyze`, {
       method: 'POST',
       body: formData,
       headers: { 
         'Accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       },
       mode: 'cors',
     });

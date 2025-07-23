@@ -519,105 +519,99 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return;
     }
 
-    // Create album with backend if album name provided
-    if (albumName && analysisEventType) {
-      try {
-        const trimmedAlbumName = albumName.trim();
-        if (!trimmedAlbumName) {
-          showToast('Album name cannot be empty', 'error');
-          return;
-        }
-        
-        console.log('🏗️ Creating album before analysis:', { albumName: trimmedAlbumName, eventType: analysisEventType });
-        
-        // Create FormData for album creation
-        const formData = new FormData();
-        formData.append('album_name', trimmedAlbumName);
-        formData.append('title', trimmedAlbumName); // Also send as title for backend compatibility
-        formData.append('event_type', analysisEventType);
-        formData.append('user_id', user.email);
-        
-        // Add all photos to FormData
-        photos.forEach((photo, index) => {
-          formData.append('files', photo.file);
-        });
-        
-        console.log('📤 Sending album + photos to /analyze endpoint...');
-        
-        const response = await fetch('https://1a2a91471606.ngrok-free.app/analyze', {
-          method: 'POST',
-          body: formData,
-          headers: {
-            'ngrok-skip-browser-warning': 'true'
-          },
-          mode: 'cors',
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Backend analysis failed: ${response.status} ${errorText}`);
-        }
-
-        const analysisResults = await response.json();
-        console.log('✅ Album created and analysis completed:', analysisResults);
-        
-        // Update photos with analysis results
-        // Check if analysisResults is an object with a 'results' array
-        if (analysisResults && Array.isArray(analysisResults.results)) {
-          const photoAnalysisData = analysisResults.results;
-          setPhotos(prevPhotos => {
-            return prevPhotos.map(photo => {
-              const result = photoAnalysisData.find(r => r.filename === photo.filename);
-              if (result) {
-                return {
-                  ...photo,
-                  ai_score: result.ai_score || 0,
-                  basic_score: result.basic_score,
-                  ml_score: result.ml_score,
-                  score_type: result.score_type || 'ai',
-                  blur_score: result.blur_score,
-                  tags: result.tags || [],
-                  faces: result.faces || [],
-                  face_summary: result.face_summary,
-                  caption: result.caption,
-                  blip_highlights: result.blip_highlights || [],
-                  blip_flags: result.blip_flags || [],
-                  approved: result.approved,
-                  color_label: result.color_label,
-                  clip_vector: result.clip_vector,
-                  phash: result.phash,
-                  deep_prompts: result.deep_prompts || {},
-                  ai_categories: result.ai_categories || []
-                };
-              }
-              return photo;
+    // Store album name if provided
+    if (albumName && albumName.trim()) {
+      setCurrentAlbumName(albumName.trim());
+      setCurrentAlbumId(`album-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+    }
+    
+    // Set event type
+    setEventType(analysisEventType);
+    
+    // Go to analyzing stage and start analysis
+    setWorkflowStage('analyzing');
+    setIsAnalyzing(true);
+    setShowAnalysisOverlay(true);
+    setAnalysisProgress({ processed: 0, total: photos.length, currentPhoto: '' });
+    
+    try {
+      if (cullingMode === 'deep') {
+        console.log('🧠 Starting deep analysis with real-time progress...');
+        // Use deep analysis with real-time updates
+        const analyzedPhotos = await deepAnalyzePhotosSingle(
+          photos, 
+          user.email, 
+          analysisEventType,
+          (processedCount, currentPhoto, updatedPhoto) => {
+            setAnalysisProgress({
+              processed: processedCount,
+              total: photos.length,
+              currentPhoto
             });
-          });
-        }
+            
+            // Update individual photo in real-time
+            if (updatedPhoto) {
+              setPhotos(prev => prev.map(p => 
+                p.id === updatedPhoto.id ? updatedPhoto : p
+              ));
+            }
+          },
+          2, // Concurrency limit
+          currentAlbumId || 'temp-album' // Album ID
+        );
         
-        // Update context with album info
-        setCurrentAlbumName(trimmedAlbumName);
-        setCurrentAlbumId(analysisResults.album_id || `album-${Date.now()}`);
-        setEventType(analysisEventType);
+        setPhotos(analyzedPhotos);
+        showToast('Deep analysis completed successfully!', 'success');
+      } else {
+        console.log('⚡ Starting fast analysis with real-time progress...');
+        // Use fast analysis with real-time updates
+        const analyzedPhotos = await analyzePhotosSingle(
+          photos, 
+          user.email, 
+          analysisEventType,
+          cullingMode,
+          (processedCount, currentPhoto, updatedPhoto) => {
+            setAnalysisProgress({
+              processed: processedCount,
+              total: photos.length,
+              currentPhoto
+            });
+            
+            // Update individual photo in real-time
+            if (updatedPhoto) {
+              setPhotos(prev => prev.map(p => 
+                p.id === updatedPhoto.id ? updatedPhoto : p
+              ));
+            }
+          },
+          2, // Concurrency limit
+          currentAlbumId || 'temp-album' // Album ID
+        );
         
-        showToast(`Album "${trimmedAlbumName}" created and analysis completed!`, 'success');
-        
-        // Go to review stage
-        setWorkflowStage('review');
-        
-      } catch (error: any) {
-        console.error('❌ Failed to create album and start analysis:', error);
-        showToast(error.message || 'Failed to create album and start analysis', 'error');
-        return;
+        setPhotos(analyzedPhotos);
+        showToast('Fast analysis completed successfully!', 'success');
       }
-    } else {
-      // Go directly to review interface and start background analysis
+      
+      // After analysis, automatically group people by faces
+      setTimeout(() => {
+        groupPeopleByFaces();
+      }, 500);
+      
+      // Go to review stage after completion
       setWorkflowStage('review');
       
-      // Start background analysis after a short delay
-      setTimeout(() => {
-        startBackgroundAnalysis();
-      }, 500);
+    } catch (error: any) {
+      console.error('❌ Analysis failed:', error);
+      showToast(
+        cullingMode === 'deep' 
+          ? 'Failed to perform deep analysis' 
+          : 'Failed to perform fast analysis', 
+        'error'
+      );
+      // Go back to upload stage on error
+      setWorkflowStage('upload');
+    } finally {
+      setIsAnalyzing(false);
     }
   }, [cullingMode, photos, eventType, showToast, setWorkflowStage, startBackgroundAnalysis, user?.email]);
 

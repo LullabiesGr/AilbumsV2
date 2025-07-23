@@ -544,7 +544,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         
         console.log('📤 Sending album + photos to /analyze endpoint...');
         
-        const response = await fetch('https://1a2a91471606.ngrok-free.app/analyze', {
+        const response = await fetch('https://a7b0ec6a0aa5.ngrok-free.app/analyze', {
           method: 'POST',
           body: formData,
           headers: {
@@ -1066,7 +1066,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       });
       
       // Send FormData to backend
-      const response = await fetch('https://ef7c29d73b11.ngrok-free.app/save-album', {
+      const response = await fetch('https://1a2a91471606.ngrok-free.app/save-album', {
         method: 'POST',
         body: formData, // FormData automatically sets correct Content-Type
         headers: {

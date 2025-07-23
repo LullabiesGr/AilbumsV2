@@ -245,7 +245,6 @@ const ActionBar: React.FC = () => {
                 Cancel
               </button>
               <button
-                onClick={handleSaveAndTrain}
                 onClick={async () => {
                   if (!eventType.trim()) {
                     showToast('Please enter album title', 'error');

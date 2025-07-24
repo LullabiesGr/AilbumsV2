@@ -30,7 +30,6 @@ const CopyLookInterface: React.FC = () => {
   const [processingProgress, setProcessingProgress] = useState('');
   const [previewMode, setPreviewMode] = useState<'side-by-side' | 'before' | 'after'>('side-by-side');
 
-  const targetPhotos = photos.filter(photo => copyLookTargets.has(photo.id));
   const targetPhotos = photos.filter(photo => copyLookTargets.some(target => target.id === photo.id));
 
   const handleSelectReference = (photo: Photo) => {
@@ -169,7 +168,7 @@ const CopyLookInterface: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {photos.map((photo) => {
           const isReference = referencePhoto?.id === photo.id;
-          const isTarget = copyLookTargets.has(photo.id);
+          const isTarget = copyLookTargets.some(target => target.id === photo.id);
           
           return (
             <div

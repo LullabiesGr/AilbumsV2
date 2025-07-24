@@ -662,6 +662,35 @@ const Home: React.FC = () => {
               </div>
             </div>
             
+            {/* Copy Look Step Button */}
+            <div className="bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/20 
+                          dark:to-yellow-900/20 border-2 border-dashed border-orange-300 
+                          dark:border-orange-700 rounded-lg p-6 text-center">
+              <div className="flex items-center justify-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-orange-600 to-yellow-600 rounded-full 
+                              flex items-center justify-center">
+                  <Copy className="h-6 w-6 text-white" />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                    Copy Look Available
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Transfer color grading and lighting style between photos
+                  </p>
+                </div>
+                <button
+                  onClick={() => setWorkflowStage('copy-look')}
+                  className="px-6 py-3 bg-gradient-to-r from-orange-600 to-yellow-600 
+                           hover:from-orange-700 hover:to-yellow-700 text-white rounded-lg 
+                           flex items-center space-x-2 transition-all duration-200 font-medium"
+                >
+                  <Copy className="h-5 w-5" />
+                  <span>Enter Copy Look Mode</span>
+                </button>
+              </div>
+            </div>
+            
             {/* Tab Navigation */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md">
               <div className="border-b border-gray-200 dark:border-gray-700">

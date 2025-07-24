@@ -140,7 +140,7 @@ const ActionBar: React.FC = () => {
             </span>
             <span className="text-sm font-medium py-2 px-3 bg-blue-100 dark:bg-blue-900/20 
                            text-blue-800 dark:text-blue-200 rounded-md">
-              Targets: {copyLookTargets.size}
+              Targets: {copyLookTargets.length}
             </span>
           </div>
         )}

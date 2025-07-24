@@ -38,7 +38,7 @@ const CopyLookInterface: React.FC = () => {
     } else {
       setReferencePhoto(photo);
       // Remove from targets if it was selected
-      if (copyLookTargets.has(photo.id)) {
+      if (copyLookTargets.some(target => target.id === photo.id)) {
         toggleCopyLookTarget(photo.id);
       }
     }
@@ -168,7 +168,7 @@ const CopyLookInterface: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {photos.map((photo) => {
           const isReference = referencePhoto?.id === photo.id;
-          const isTarget = copyLookTargets.some(target => target.id === photo.id);
+          const isTarget = copyLookTargets.has(photo.id);
           
           return (
             <div

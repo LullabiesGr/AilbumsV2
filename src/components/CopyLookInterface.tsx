@@ -31,6 +31,7 @@ const CopyLookInterface: React.FC = () => {
   const [previewMode, setPreviewMode] = useState<'side-by-side' | 'before' | 'after'>('side-by-side');
 
   const targetPhotos = photos.filter(photo => copyLookTargets.has(photo.id));
+  const targetPhotos = photos.filter(photo => copyLookTargets.some(target => target.id === photo.id));
 
   const handleSelectReference = (photo: Photo) => {
     if (referencePhoto?.id === photo.id) {

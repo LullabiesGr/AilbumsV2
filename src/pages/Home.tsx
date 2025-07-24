@@ -4,7 +4,7 @@ import Gallery from '../components/Gallery';
 import ActionBar from '../components/ActionBar';
 import UploadButton from '../components/UploadButton';
 import WorkflowSteps from '../components/WorkflowSteps';
-import CopyLookInterface from './components/CopyLookInterface';
+import CopyLookInterface from '../components/CopyLookInterface';
 import WorkflowNavigation from '../components/WorkflowNavigation';
 import EventTypeSelector from '../components/EventTypeSelector';
 import CullingModeSelector from '../components/CullingModeSelector';

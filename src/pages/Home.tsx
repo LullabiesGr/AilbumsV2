@@ -4,6 +4,7 @@ import Gallery from '../components/Gallery';
 import ActionBar from '../components/ActionBar';
 import UploadButton from '../components/UploadButton';
 import WorkflowSteps from '../components/WorkflowSteps';
+import CopyLookInterface from './components/CopyLookInterface';
 import WorkflowNavigation from '../components/WorkflowNavigation';
 import EventTypeSelector from '../components/EventTypeSelector';
 import CullingModeSelector from '../components/CullingModeSelector';
@@ -541,6 +542,67 @@ const Home: React.FC = () => {
                 <Gallery />
               )}
             </div>
+          </div>
+        );
+
+      case 'copy-look':
+        return (
+          <div className="space-y-6">
+            {/* Visual Separation */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-100 via-yellow-100 to-orange-100 
+                            dark:from-orange-900/20 dark:via-yellow-900/20 dark:to-orange-900/20 rounded-lg" />
+              <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg border-2 
+                            border-orange-200 dark:border-orange-800 p-6">
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-r from-orange-600 to-yellow-600 rounded-full 
+                                flex items-center justify-center mx-auto mb-4">
+                    <Copy className="h-8 w-8 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-orange-600 to-yellow-600 
+                               bg-clip-text text-transparent">
+                    Copy Look Studio
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                    Transfer color grading and lighting style from one photo to others. 
+                    Select a reference photo and apply its look to multiple target photos.
+                  </p>
+                </div>
+
+                {/* Navigation */}
+                <div className="flex items-center justify-between mb-6">
+                  <button
+                    onClick={() => setWorkflowStage('review')}
+                    className="flex items-center space-x-2 px-4 py-2 bg-gray-500 hover:bg-gray-600 
+                             text-white rounded-lg transition-colors duration-200"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Back to Review</span>
+                  </button>
+                  
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    {photos.length} photos available for color transfer
+                  </div>
+                </div>
+
+                {/* Instructions */}
+                <div className="bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/30 
+                              dark:to-yellow-900/30 border border-orange-200 dark:border-orange-700 
+                              rounded-lg p-4 mb-6">
+                  <h3 className="font-semibold text-orange-800 dark:text-orange-200 mb-2">
+                    How Copy Look Works:
+                  </h3>
+                  <ul className="text-sm text-orange-700 dark:text-orange-300 space-y-1">
+                    <li>• Select one reference photo with the desired look/style</li>
+                    <li>• Select multiple target photos to receive the new look</li>
+                    <li>• Click "Apply Look Transfer" to process the color transfer</li>
+                    <li>• Preview results side-by-side and download or update dashboard</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <CopyLookInterface />
           </div>
         );
 

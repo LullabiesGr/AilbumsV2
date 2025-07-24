@@ -29,17 +29,8 @@ const CopyLookInterface: React.FC = () => {
   const [showResults, setShowResults] = useState(false);
   const [processingProgress, setProcessingProgress] = useState('');
   const [previewMode, setPreviewMode] = useState<'side-by-side' | 'before' | 'after'>('side-by-side');
-  const [selectionMode, setSelectionMode] = useState<'reference' | 'targets'>('reference');
 
-  // Enable copy look mode when component mounts
-  React.useEffect(() => {
-    setCopyLookMode(true);
-    return () => {
-      setCopyLookMode(false);
-    };
-  }, [setCopyLookMode]);
-
-  const targetPhotos = copyLookTargets;
+  const targetPhotos = photos.filter(photo => copyLookTargets.some(target => target.id === photo.id));
 
   const handleSelectReference = (photo: Photo) => {
     if (referencePhoto?.id === photo.id) {
@@ -172,6 +163,93 @@ const CopyLookInterface: React.FC = () => {
     setProcessingProgress('');
   };
 
+  const renderPhotoGrid = () => {
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        {photos.map((photo) => {
+          const isReference = referencePhoto?.id === photo.id;
+          const isTarget = copyLookTargets.has(photo.id);
+          
+          return (
+            <div
+              key={photo.id}
+              className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer 
+                         transition-all duration-200 border-4 ${
+                isReference 
+                  ? 'border-orange-500 ring-2 ring-orange-300 shadow-lg scale-105' 
+                  : isTarget
+                  ? 'border-blue-500 ring-2 ring-blue-300 shadow-md'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+              }`}
+            >
+              <img
+                src={photo.url}
+                alt={photo.filename}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+              
+              {/* Reference Selection */}
+              <button
+                onClick={() => handleSelectReference(photo)}
+                className={`absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-medium 
+                           transition-all duration-200 ${
+                  isReference
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-black/50 text-white hover:bg-orange-500/80'
+                }`}
+              >
+                {isReference ? 'Reference' : 'Set as Ref'}
+              </button>
+              
+              {/* Target Selection */}
+              <button
+                onClick={() => handleToggleTarget(photo)}
+                disabled={isReference}
+                className={`absolute top-2 right-2 p-2 rounded-full transition-all duration-200 ${
+                  isTarget
+                    ? 'bg-blue-500 text-white'
+                    : isReference
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-black/50 text-white hover:bg-blue-500/80'
+                }`}
+              >
+                <Check className="h-4 w-4" />
+              </button>
+              
+              {/* Photo Info */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                <p className="text-white text-xs truncate font-medium">{photo.filename}</p>
+                {photo.ai_score > 0 && (
+                  <div className="flex items-center space-x-1 mt-1">
+                    <Star className="h-3 w-3 text-yellow-400" />
+                    <span className="text-white text-xs">{(photo.ai_score / 2).toFixed(1)}</span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Status Badges */}
+              {isReference && (
+                <div className="absolute inset-0 bg-orange-500/20 flex items-center justify-center">
+                  <div className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                    REFERENCE
+                  </div>
+                </div>
+              )}
+              
+              {isTarget && (
+                <div className="absolute top-12 left-2">
+                  <div className="bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+                    TARGET
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   const renderResults = () => {
     if (!showResults || results.length === 0) return null;
@@ -320,64 +398,18 @@ const CopyLookInterface: React.FC = () => {
               Copy Look Control Panel
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Step 1: Select reference photo | Step 2: Select target photos | Step 3: Apply transfer
+              Select one reference photo and multiple target photos to transfer the look
             </p>
           </div>
           
-          <div className="flex items-center space-x-3">
-            {/* Selection Mode Toggle */}
-            <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-              <button
-                onClick={() => setSelectionMode('reference')}
-                className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  selectionMode === 'reference' 
-                    ? 'bg-orange-500 text-white' 
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-                }`}
-              >
-                Select Reference
-              </button>
-              <button
-                onClick={() => setSelectionMode('targets')}
-                className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  selectionMode === 'targets' 
-                    ? 'bg-blue-500 text-white' 
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-                }`}
-              >
-                Select Targets
-              </button>
-            </div>
-            
-            <button
-              onClick={handleReset}
-              className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg 
-                       flex items-center space-x-2 transition-colors duration-200"
-            >
-              <RefreshCw className="h-4 w-4" />
-              <span>Reset</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Selection Instructions */}
-        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <div className="flex items-center space-x-2 mb-2">
-            <div className={`w-3 h-3 rounded-full ${
-              selectionMode === 'reference' ? 'bg-orange-500' : 'bg-blue-500'
-            }`} />
-            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-              {selectionMode === 'reference' 
-                ? 'Click on a photo to set it as reference (source of the look)' 
-                : 'Click on photos to select them as targets (will receive the new look)'
-              }
-            </span>
-          </div>
-          {selectionMode === 'targets' && !referencePhoto && (
-            <p className="text-xs text-amber-600 dark:text-amber-400">
-              ⚠️ Please select a reference photo first
-            </p>
-          )}
+          <button
+            onClick={handleReset}
+            className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg 
+                     flex items-center space-x-2 transition-colors duration-200"
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span>Reset</span>
+          </button>
         </div>
 
         {/* Selection Summary */}

@@ -233,25 +233,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
   };
   const handleSelect = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (copyLookMode) {
-      // In copy look mode, handle reference/target selection
-      if (referencePhoto?.id === photo.id) {
-        // Clicking on current reference - deselect it
-        setReferencePhoto(null);
-      } else if (copyLookTargets.some(target => target.id === photo.id)) {
-        // Clicking on current target - remove from targets
-        toggleCopyLookTarget(photo.id);
-      } else if (!referencePhoto) {
-        // No reference set - set this as reference
-        setReferencePhoto(photo);
-      } else {
-        // Reference exists - add this as target
-        toggleCopyLookTarget(photo.id);
-      }
-    } else {
-      // Normal selection mode
-      togglePhotoSelection(photo.id);
-    }
+    togglePhotoSelection(photo.id);
   };
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -843,7 +825,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             copyLookMode
               ? referencePhoto?.id === photo.id
                 ? 'bg-orange-500 text-white'
-                : copyLookTargets.some(target => target.id === photo.id)
+                : copyLookTargets.has(photo.id)
                 ? 'bg-blue-500 text-white'
                 : 'bg-black/50 text-white hover:bg-orange-500/80'
               : photo.selected
@@ -855,7 +837,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
           {copyLookMode ? (
             referencePhoto?.id === photo.id ? (
               <Copy className="h-3 w-3" />
-            ) : copyLookTargets.some(target => target.id === photo.id) ? (
+            ) : copyLookTargets.has(photo.id) ? (
               <Check className="h-3 w-3" />
             ) : (
               <div className="h-3 w-3 border border-white rounded" />

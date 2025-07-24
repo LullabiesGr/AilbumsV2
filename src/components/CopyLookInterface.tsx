@@ -320,18 +320,64 @@ const CopyLookInterface: React.FC = () => {
               Copy Look Control Panel
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Select one reference photo and multiple target photos to transfer the look
+              Step 1: Select reference photo | Step 2: Select target photos | Step 3: Apply transfer
             </p>
           </div>
           
-          <button
-            onClick={handleReset}
-            className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg 
-                     flex items-center space-x-2 transition-colors duration-200"
-          >
-            <RefreshCw className="h-4 w-4" />
-            <span>Reset</span>
-          </button>
+          <div className="flex items-center space-x-3">
+            {/* Selection Mode Toggle */}
+            <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+              <button
+                onClick={() => setSelectionMode('reference')}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  selectionMode === 'reference' 
+                    ? 'bg-orange-500 text-white' 
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                }`}
+              >
+                Select Reference
+              </button>
+              <button
+                onClick={() => setSelectionMode('targets')}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  selectionMode === 'targets' 
+                    ? 'bg-blue-500 text-white' 
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                }`}
+              >
+                Select Targets
+              </button>
+            </div>
+            
+            <button
+              onClick={handleReset}
+              className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg 
+                       flex items-center space-x-2 transition-colors duration-200"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span>Reset</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Selection Instructions */}
+        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <div className="flex items-center space-x-2 mb-2">
+            <div className={`w-3 h-3 rounded-full ${
+              selectionMode === 'reference' ? 'bg-orange-500' : 'bg-blue-500'
+            }`} />
+            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              {selectionMode === 'reference' 
+                ? 'Click on a photo to set it as reference (source of the look)' 
+                : 'Click on photos to select them as targets (will receive the new look)'
+              }
+            </span>
+          </div>
+          {selectionMode === 'targets' && !referencePhoto && (
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              ⚠️ Please select a reference photo first
+            </p>
+          )}
         </div>
 
         {/* Selection Summary */}

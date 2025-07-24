@@ -26,6 +26,17 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
   const [showFaceRetouchModal, setShowFaceRetouchModal] = useState(false);
   const [showAIEditModal, setShowAIEditModal] = useState(false);
   const { deletePhoto, cullPhoto, togglePhotoSelection, updatePhotoScore, updatePhotoUrl } = usePhoto();
+  const { 
+    deletePhoto, 
+    cullPhoto, 
+    togglePhotoSelection, 
+    updatePhotoScore, 
+    updatePhotoUrl,
+    copyLookMode,
+    referencePhoto,
+    copyLookTargets,
+    toggleCopyLookTarget
+  } = usePhoto();
   const { showToast } = useToast();
   const [showTip, setShowTip] = useState(false);
   const [tip, setTip] = useState<string | null>(null);

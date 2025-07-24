@@ -23,7 +23,10 @@ const ActionBar: React.FC = () => {
     updatePhotoUrl,
     findDuplicates,
     isFindingDuplicates,
-    groupPeopleByFaces
+    groupPeopleByFaces,
+    copyLookMode,
+    referencePhoto,
+    copyLookTargets
   } = usePhoto();
   const { showToast } = useToast();
   const { user } = useAuth();

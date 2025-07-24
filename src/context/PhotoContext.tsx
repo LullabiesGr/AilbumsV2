@@ -22,4 +22,3 @@ interface PhotoContextType {
   showAnalysisOverlay: boolean;
   setShowAnalysisOverlay: (show: boolean) => void;
   
-}

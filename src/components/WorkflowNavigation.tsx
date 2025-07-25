@@ -92,6 +92,24 @@ const WorkflowNavigation: React.FC<WorkflowNavigationProps> = ({
           </button>
         );
       
+      case 'copy-look':
+        return (
+          <button
+            onClick={() => {
+              if (onStageChange) {
+                onStageChange('review');
+              } else {
+                setWorkflowStage('review');
+              }
+            }}
+            className="flex items-center space-x-2 px-4 py-2 bg-gray-500 hover:bg-gray-600 
+                     text-white rounded-lg transition-colors duration-200"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back to Review</span>
+          </button>
+        );
+      
       default:
         return null;
     }

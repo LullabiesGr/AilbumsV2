@@ -154,7 +154,7 @@ export type CullingMode = 'fast' | 'slow' | 'manual';
 export type EventType = 'wedding' | 'baptism' | 'portrait' | 'event' | 'landscape' | 'family' | 'corporate';
 
 export type WorkflowStage = 'upload' | 'configure' | 'analyzing' | 'review' | 'face-retouch' | 'ai-edit';
-export type WorkflowStage = 'upload' | 'configure' | 'analyzing' | 'review' | 'face-retouch' | 'ai-edit';
+export type WorkflowStage = 'upload' | 'configure' | 'analyzing' | 'review' | 'face-retouch' | 'ai-edit' | 'copy-look';
 
 export interface ColorLabelConfig {
   color: ColorLabel;
@@ -162,4 +162,9 @@ export interface ColorLabelConfig {
   bgColor: string;
   textColor: string;
   description: string;
+}
+
+export interface ColorTransferResult {
+  filename: string;
+  result_base64: string;
 }

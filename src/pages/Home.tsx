@@ -17,7 +17,8 @@ import AlbumSelector from '../components/AlbumSelector';
 import AnalysisOverlay from '../components/AnalysisOverlay';
 import Sidebar from '../components/Sidebar';
 import FaceRetouchModal from '../components/FaceRetouchModal';
-import { Play, RotateCcw, Brain, Copy, Users, Grid, List, Sparkles, ArrowLeft, Wand2 } from 'lucide-react';
+import { Play, RotateCcw, Brain, Copy, Users, Grid, List, Sparkles, ArrowLeft, Wand2, Palette } from 'lucide-react';
+import CopyLookMode from '../components/CopyLookMode';
 
 const Home: React.FC = () => {
   const { 
@@ -442,6 +443,13 @@ const Home: React.FC = () => {
           </div>
         );
 
+      case 'copy-look':
+        return (
+          <div className="space-y-6">
+            <CopyLookMode onBack={() => setWorkflowStage('review')} />
+          </div>
+        );
+
       case 'ai-edit':
         return (
           <div className="space-y-6">
@@ -632,6 +640,35 @@ const Home: React.FC = () => {
                 </div>
               </div>
             )}
+            
+            {/* Copy Look Mode Button */}
+            <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 
+                          dark:to-red-900/20 border-2 border-dashed border-orange-300 
+                          dark:border-orange-700 rounded-lg p-6 text-center">
+              <div className="flex items-center justify-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-orange-600 to-red-600 rounded-full 
+                              flex items-center justify-center">
+                  <Palette className="h-6 w-6 text-white" />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                    Copy Look Available
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Transfer color grading and look from one photo to multiple targets
+                  </p>
+                </div>
+                <button
+                  onClick={() => setWorkflowStage('copy-look')}
+                  className="px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 
+                           hover:from-orange-700 hover:to-red-700 text-white rounded-lg 
+                           flex items-center space-x-2 transition-all duration-200 font-medium"
+                >
+                  <Palette className="h-5 w-5" />
+                  <span>Enter Copy Look Mode</span>
+                </button>
+              </div>
+            </div>
             
             {/* AI Edit & Relight Step Button */}
             <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 

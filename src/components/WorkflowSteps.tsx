@@ -9,11 +9,11 @@ interface WorkflowStepsProps {
 const WorkflowSteps: React.FC<WorkflowStepsProps> = ({ currentStage }) => {
   const steps = [
     { id: 'upload', label: 'Upload Photos', icon: Upload },
-    { id: 'upload', label: 'Upload & Configure', icon: Upload },
     { id: 'configure', label: 'Configure', icon: Settings },
     { id: 'analyzing', label: 'AI Analysis', icon: Brain },
     { id: 'review', label: 'Review & Cull', icon: Eye },
     { id: 'face-retouch', label: 'Face Retouch', icon: Sparkles, separated: true },
+    { id: 'copy-look', label: 'Copy Look', icon: Sparkles, separated: false },
     { id: 'ai-edit', label: 'Edit & Relight', icon: Sparkles, separated: false }
   ];
 

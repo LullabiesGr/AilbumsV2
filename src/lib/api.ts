@@ -845,7 +845,7 @@ export const inpaintPhoto = async (image: File, mask: File, prompt: string): Pro
     console.error('Inpainting error:', error);
     throw new Error(error.message || "Failed to process image");
   }
-}
+};
 
 export const autocorrectPhoto = async (file: File): Promise<Blob> => {
   const formData = new FormData();
@@ -899,28 +899,12 @@ export const getFocusMap = async (file: File): Promise<FocusMapResponse> => {
     console.error('Focus map error:', error);
     throw error instanceof Error ? error : new Error(error.toString());
   }
-}
+};
 
 export const autofixPhoto = async (file: File): Promise<Blob> => {
   const formData = new FormData();
   formData.append('file', file);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Failed to process color transfer');
-    }
-
-    const results = await response.json();
-    if (!Array.isArray(results)) {
-      throw new Error('Invalid response format from server');
-    }
-    
-    return results;
-  } catch (error: any) {
-    console.error('Color transfer error:', error);
-    throw error instanceof Error ? error : new Error(error.toString());
-  }
-};
   try {
     const response = await fetch(`${API_URL}/autofix`, {
       method: 'POST',
@@ -1089,3 +1073,20 @@ export const colorTransfer = async (referenceFile: File, targetFiles: File[]): P
       },
       mode: 'cors',
     });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Failed to process color transfer');
+    }
+
+    const results = await response.json();
+    if (!Array.isArray(results)) {
+      throw new Error('Invalid response format from server');
+    }
+    
+    return results;
+  } catch (error: any) {
+    console.error('Color transfer error:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};

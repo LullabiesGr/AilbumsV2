@@ -1135,6 +1135,11 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setCopyLookTargets([]);
   }, []);
 
+  // Add copyLookMode state and functions
+  const [copyLookMode, setCopyLookMode] = useState(false);
+  const [referencePhoto, setReferencePhoto] = useState<Photo | null>(null);
+  const [copyLookTargets, setCopyLookTargets] = useState<Photo[]>([]);
+
   const filteredPhotos = useMemo(() => {
     let filtered = currentAlbum
       ? photos.filter(photo => photo.albumId === currentAlbum.id)

@@ -166,5 +166,5 @@ export interface ColorLabelConfig {
 
 export interface ColorTransferResult {
   filename: string;
-  result_base64: string;
+  image_base64: string;
 }

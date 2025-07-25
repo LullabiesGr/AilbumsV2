@@ -16,7 +16,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
   const [referencePhoto, setReferencePhoto] = useState<Photo | null>(null);
   const [targetPhotos, setTargetPhotos] = useState<Set<string>>(new Set());
   const [isProcessing, setIsProcessing] = useState(false);
-  const [results, setResults] = useState<Map<string, ColorTransferResult>>(new Map());
+  const [results, setResults] = useState<ColorTransferResult[]>([]);
   const [showComparison, setShowComparison] = useState<Map<string, boolean>>(new Map());
 
   const handleReferenceSelect = (photo: Photo) => {
@@ -56,18 +56,12 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
         targets: targetPhotoObjects.map(p => p.filename)
       });
 
-      const transferResults = await colorTransfer(referencePhoto.file, targetFiles);
+      const response = await colorTransfer(referencePhoto.file, targetFiles);
       
-      // Map results by filename
-      const resultsMap = new Map<string, ColorTransferResult>();
-      transferResults.forEach(result => {
-        const targetPhoto = targetPhotoObjects.find(p => p.filename === result.filename);
-        if (targetPhoto) {
-          resultsMap.set(targetPhoto.id, result);
-        }
-      });
+      // Handle the backend response format: { results: [...] }
+      const transferResults = response.results || response;
       
-      setResults(resultsMap);
+      setResults(transferResults);
       showToast(`Color transfer completed for ${transferResults.length} photos!`, 'success');
     } catch (error: any) {
       console.error('Color transfer failed:', error);
@@ -77,12 +71,11 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
     }
   };
 
-  const handleDownload = (photoId: string, filename: string) => {
-    const result = results.get(photoId);
+  const handleDownload = (result: ColorTransferResult) => {
     if (!result) return;
 
     try {
-      const byteCharacters = atob(result.result_base64);
+      const byteCharacters = atob(result.image_base64);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
         byteNumbers[i] = byteCharacters.charCodeAt(i);
@@ -93,7 +86,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `copy_look_${filename}`;
+      a.download = `copy_look_${result.filename}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -109,13 +102,13 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
   const handleReset = () => {
     setReferencePhoto(null);
     setTargetPhotos(new Set());
-    setResults(new Map());
+    setResults([]);
     setShowComparison(new Map());
   };
 
-  const toggleComparison = (photoId: string) => {
+  const toggleComparison = (filename: string) => {
     const newComparison = new Map(showComparison);
-    newComparison.set(photoId, !newComparison.get(photoId));
+    newComparison.set(filename, !newComparison.get(filename));
     setShowComparison(newComparison);
   };
 
@@ -276,31 +269,39 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
       </div>
 
       {/* Results Section */}
-      {results.size > 0 && (
+      {results.length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Color Transfer Results ({results.size})
+            Color Transfer Results ({results.length})
           </h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from(results.entries()).map(([photoId, result]) => {
-              const photo = photos.find(p => p.id === photoId);
-              if (!photo) return null;
+            {results.map((result, index) => {
+              const originalPhoto = photos.find(p => p.filename === result.filename);
+              if (!originalPhoto) return null;
               
-              const showBefore = !showComparison.get(photoId);
+              const showBefore = !showComparison.get(result.filename);
               
               return (
-                <div key={photoId} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                <div key={`${result.filename}-${index}`} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                   <div className="aspect-square rounded-lg overflow-hidden mb-3 relative">
-                    <img
-                      src={showBefore ? photo.url : `data:image/jpeg;base64,${result.result_base64}`}
-                      alt={photo.filename}
-                      className="w-full h-full object-cover"
-                    />
+                    {showBefore ? (
+                      <img
+                        src={originalPhoto.url}
+                        alt={`Original ${result.filename}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <img
+                        src={`data:image/jpeg;base64,${result.image_base64}`}
+                        alt={`Copy Look Result ${result.filename}`}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
                     
                     {/* Before/After Toggle */}
                     <button
-                      onClick={() => toggleComparison(photoId)}
+                      onClick={() => toggleComparison(result.filename)}
                       className="absolute top-2 left-2 px-2 py-1 bg-black/75 text-white text-xs 
                                rounded hover:bg-black/90 transition-colors duration-200 flex items-center space-x-1"
                     >
@@ -315,13 +316,13 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
                   </div>
                   
                   <div className="space-y-3">
-                    <h4 className="font-medium text-gray-900 dark:text-gray-100 truncate" title={photo.filename}>
-                      {photo.filename}
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100 truncate" title={result.filename}>
+                      {result.filename}
                     </h4>
                     
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => toggleComparison(photoId)}
+                        onClick={() => toggleComparison(result.filename)}
                         className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white 
                                  text-sm rounded-md flex items-center justify-center space-x-1 
                                  transition-colors duration-200"
@@ -331,7 +332,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
                       </button>
                       
                       <button
-                        onClick={() => handleDownload(photoId, photo.filename)}
+                        onClick={() => handleDownload(result)}
                         className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white 
                                  text-sm rounded-md flex items-center justify-center space-x-1 
                                  transition-colors duration-200"
@@ -374,7 +375,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
             {photos.map((photo) => {
               const isReference = referencePhoto?.id === photo.id;
               const isTarget = targetPhotos.has(photo.id);
-              const hasResult = results.has(photo.id);
+              const hasResult = results.some(r => r.filename === photo.filename);
               
               return (
                 <div

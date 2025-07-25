@@ -30,7 +30,7 @@ const CopyLookInterface: React.FC = () => {
   const [processingProgress, setProcessingProgress] = useState('');
   const [previewMode, setPreviewMode] = useState<'side-by-side' | 'before' | 'after'>('side-by-side');
 
-  const targetPhotos = photos.filter(photo => copyLookTargets.some(target => target.id === photo.id));
+  const targetPhotos = photos.filter(photo => copyLookTargets.has(photo.id));
 
   const handleSelectReference = (photo: Photo) => {
     if (referencePhoto?.id === photo.id) {
@@ -38,7 +38,7 @@ const CopyLookInterface: React.FC = () => {
     } else {
       setReferencePhoto(photo);
       // Remove from targets if it was selected
-      if (copyLookTargets.some(target => target.id === photo.id)) {
+      if (copyLookTargets.has(photo.id)) {
         toggleCopyLookTarget(photo.id);
       }
     }

@@ -25,17 +25,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
   const [showInpaintModal, setShowInpaintModal] = useState(false);
   const [showFaceRetouchModal, setShowFaceRetouchModal] = useState(false);
   const [showAIEditModal, setShowAIEditModal] = useState(false);
-  const { 
-    deletePhoto, 
-    cullPhoto, 
-    togglePhotoSelection, 
-    updatePhotoScore, 
-    updatePhotoUrl,
-    copyLookMode,
-    referencePhoto,
-    copyLookTargets,
-    toggleCopyLookTarget
-  } = usePhoto();
+  const { deletePhoto, cullPhoto, togglePhotoSelection, updatePhotoScore, updatePhotoUrl } = usePhoto();
   const { showToast } = useToast();
   const [showTip, setShowTip] = useState(false);
   const [tip, setTip] = useState<string | null>(null);
@@ -825,7 +815,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
             copyLookMode
               ? referencePhoto?.id === photo.id
                 ? 'bg-orange-500 text-white'
-                : copyLookTargets.some(target => target.id === photo.id)
+                : copyLookTargets.has(photo.id)
                 ? 'bg-blue-500 text-white'
                 : 'bg-black/50 text-white hover:bg-orange-500/80'
               : photo.selected
@@ -837,7 +827,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
           {copyLookMode ? (
             referencePhoto?.id === photo.id ? (
               <Copy className="h-3 w-3" />
-            ) : copyLookTargets.some(target => target.id === photo.id) ? (
+            ) : copyLookTargets.has(photo.id) ? (
               <Check className="h-3 w-3" />
             ) : (
               <div className="h-3 w-3 border border-white rounded" />

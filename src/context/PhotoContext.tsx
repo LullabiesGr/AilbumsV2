@@ -100,9 +100,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [captionFilter, setCaptionFilter] = useState('');
   const [starRatingFilter, setStarRatingFilterState] = useState<{ min: number | null; max: number | null }>({ min: null, max: null });
   const [selectedPersonGroup, setSelectedPersonGroup] = useState<string | null>(null);
-  const [copyLookMode, setCopyLookMode] = useState(false);
-  const [referencePhoto, setReferencePhoto] = useState<Photo | null>(null);
-  const [copyLookTargets, setCopyLookTargets] = useState<Photo[]>([]);
 
   const { showToast } = useToast();
   const { user } = useAuth();
@@ -124,9 +121,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setStarRatingFilterState({ min: null, max: null });
     setSelectedPersonGroup(null);
     setAnalysisProgress({ processed: 0, total: 0, currentPhoto: '' });
-    setCopyLookMode(false);
-    setReferencePhoto(null);
-    setCopyLookTargets([]);
   }, []);
 
   // Group people by face embeddings and same_person_group
@@ -1120,21 +1114,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setStarRatingFilterState({ min, max });
   }, []);
 
-  const toggleCopyLookTarget = useCallback((photo: Photo) => {
-    setCopyLookTargets(prev => {
-      const exists = prev.find(p => p.id === photo.id);
-      if (exists) {
-        return prev.filter(p => p.id !== photo.id);
-      } else {
-        return [...prev, photo];
-      }
-    });
-  }, []);
-
-  const clearCopyLookTargets = useCallback(() => {
-    setCopyLookTargets([]);
-  }, []);
-
   const filteredPhotos = useMemo(() => {
     let filtered = currentAlbum
       ? photos.filter(photo => photo.albumId === currentAlbum.id)
@@ -1286,14 +1265,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     removePhotosFromAlbum,
     saveAlbumAndTrainAI,
     markDuplicateAsKeep,
-    deleteDuplicateGroup,
-    copyLookMode,
-    setCopyLookMode,
-    referencePhoto,
-    setReferencePhoto,
-    copyLookTargets,
-    toggleCopyLookTarget,
-    clearCopyLookTargets
+    deleteDuplicateGroup
   }), [
     photos,
     currentAlbumName,

@@ -127,20 +127,6 @@ const ActionBar: React.FC = () => {
         <span className="text-sm font-medium py-2 px-3 bg-gray-200 dark:bg-gray-800 rounded-md">
           {selectedPhotos.length} selected
         </span>
-        
-        {/* Copy Look Status */}
-        {copyLookMode && (
-          <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium py-2 px-3 bg-orange-100 dark:bg-orange-900/20 
-                           text-orange-800 dark:text-orange-200 rounded-md">
-              Reference: {referencePhoto ? '1' : '0'}
-            </span>
-            <span className="text-sm font-medium py-2 px-3 bg-blue-100 dark:bg-blue-900/20 
-                           text-blue-800 dark:text-blue-200 rounded-md">
-              Targets: {copyLookTargets.size}
-            </span>
-          </div>
-        )}
 
         {/* Advanced Features */}
         <button

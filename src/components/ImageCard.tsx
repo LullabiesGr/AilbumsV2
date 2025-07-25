@@ -321,29 +321,13 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
         <div className="absolute top-2 left-2 z-10">
           <button
             className={`p-1.5 rounded-full transition-colors ${
-              copyLookMode
-                ? referencePhoto?.id === photo.id
-                  ? 'bg-orange-500 text-white'
-                  : copyLookTargets.has(photo.id)
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-black/50 text-white hover:bg-orange-500/80'
-                : photo.selected
+              photo.selected
                 ? 'bg-blue-600 text-white'
                 : 'bg-black/50 text-white hover:bg-black/75'
             }`}
             onClick={handleSelect}
           >
-            {copyLookMode ? (
-              referencePhoto?.id === photo.id ? (
-                <Copy className="h-4 w-4" />
-              ) : copyLookTargets.has(photo.id) ? (
-                <Check className="h-4 w-4" />
-              ) : (
-                <div className="h-4 w-4 border border-white rounded" />
-              )
-            ) : (
-              <Check className="h-4 w-4" />
-            )}
+            <Check className="h-4 w-4" />
           </button>
         </div>
         
@@ -812,29 +796,13 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
       <div className="absolute top-1 left-1 z-10">
         <button
           className={`p-1 rounded transition-colors ${
-            copyLookMode
-              ? referencePhoto?.id === photo.id
-                ? 'bg-orange-500 text-white'
-                : copyLookTargets.has(photo.id)
-                ? 'bg-blue-500 text-white'
-                : 'bg-black/50 text-white hover:bg-orange-500/80'
-              : photo.selected
+            photo.selected
               ? 'bg-blue-600 text-white'
               : 'bg-black/50 text-white hover:bg-black/75'
           }`}
           onClick={handleSelect}
         >
-          {copyLookMode ? (
-            referencePhoto?.id === photo.id ? (
-              <Copy className="h-3 w-3" />
-            ) : copyLookTargets.has(photo.id) ? (
-              <Check className="h-3 w-3" />
-            ) : (
-              <div className="h-3 w-3 border border-white rounded" />
-            )
-          ) : (
-            <Check className="h-3 w-3" />
-          )}
+          <Check className="h-3 w-3" />
         </button>
       </div>
       <div className="aspect-square relative overflow-hidden">

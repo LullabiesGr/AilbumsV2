@@ -64,6 +64,13 @@ interface PhotoContextType {
   saveAlbumAndTrainAI: (event: string) => Promise<void>;
   markDuplicateAsKeep: (filename: string, duplicateGroup: string[]) => void;
   deleteDuplicateGroup: (duplicateGroup: string[]) => void;
+  copyLookMode: boolean;
+  setCopyLookMode: (mode: boolean) => void;
+  referencePhoto: Photo | null;
+  setReferencePhoto: (photo: Photo | null) => void;
+  copyLookTargets: Photo[];
+  toggleCopyLookTarget: (photo: Photo) => void;
+  clearCopyLookTargets: () => void;
 }
 
 const PhotoContext = createContext<PhotoContextType | undefined>(undefined);
@@ -1134,11 +1141,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const clearCopyLookTargets = useCallback(() => {
     setCopyLookTargets([]);
   }, []);
-
-  // Add copyLookMode state and functions
-  const [copyLookMode, setCopyLookMode] = useState(false);
-  const [referencePhoto, setReferencePhoto] = useState<Photo | null>(null);
-  const [copyLookTargets, setCopyLookTargets] = useState<Photo[]>([]);
 
   const filteredPhotos = useMemo(() => {
     let filtered = currentAlbum

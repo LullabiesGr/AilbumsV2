@@ -1,13 +1,13 @@
 import { Photo } from '../types';
 import { findDuplicates } from './similarity';
 import { promisePoolWithProgress } from './promisePool'; // Keep this import
-import { DuplicateCluster, LUTPreview, PhotoWithLUTs } from '../types';
+import { DuplicateCluster } from '../types';
 
 // API URL configuration for different environments
 const API_URL =
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:8000"
-    : "https://36f5ddfd52c2.ngrok-free.app";
+    : "https://1a2a91471606.ngrok-free.app";
 
 // Log the API URL being used for debugging
 console.log('🌐 Using API URL:', API_URL);
@@ -374,7 +374,7 @@ export const analyzePhotos = async (photos: Photo[], userEmail: string, eventTyp
 };
 
 // New function to analyze a single photo for fast mode
-export const analyzeSinglePhoto = async (photo: PhotoWithLUTs, userEmail: string, eventType: EventType, cullingMode: CullingMode, albumId?: string): Promise<PhotoWithLUTs> => {
+export const analyzeSinglePhoto = async (photo: Photo, userEmail: string, eventType: EventType, cullingMode: CullingMode, albumId?: string): Promise<Photo> => {
   console.log(`📡 Analyzing single photo: ${photo.filename} with ${cullingMode} mode`);
   
   const formData = new FormData();
@@ -477,9 +477,7 @@ export const analyzeSinglePhoto = async (photo: PhotoWithLUTs, userEmail: string
         blip_flags: result.blip_flags || [],
         blip_highlights: result.blip_highlights || [],
         deep_prompts: result.deep_prompts || {}, // Dynamic prompts from backend
-        approved: result.approved, // Backend-determined approval
-        lut_previews: result.lut_previews || [], // LUT previews from backend
-        selected_lut: photo.selected_lut // Preserve selected LUT
+        approved: result.approved // Backend-determined approval
       };
     }
     
@@ -492,14 +490,14 @@ export const analyzeSinglePhoto = async (photo: PhotoWithLUTs, userEmail: string
 
 // Serial processing function for fast analysis with progress callback
 export const analyzePhotosSingle = async (
-  photos: PhotoWithLUTs[], 
+  photos: Photo[], 
   userEmail: string, 
   eventType: EventType,
   cullingMode: CullingMode,
-  onProgress?: (processedCount: number, currentPhoto: string, updatedPhoto?: PhotoWithLUTs) => void,
+  onProgress?: (processedCount: number, currentPhoto: string, updatedPhoto?: Photo) => void,
   concurrency = 2,
   albumId?: string
-): Promise<PhotoWithLUTs[]> => {
+): Promise<Photo[]> => {
   // Create tasks for each photo
   const tasks = photos.map((photo, index) => async () => {
     try {
@@ -556,7 +554,7 @@ export const deepAnalyzePhotos = async (photos: Photo[], userEmail: string, even
 };
 
 // New function to analyze a single photo
-export const deepAnalyzeSinglePhoto = async (photo: PhotoWithLUTs, userEmail: string, eventType: EventType, albumId?: string): Promise<PhotoWithLUTs> => {
+export const deepAnalyzeSinglePhoto = async (photo: Photo, userEmail: string, eventType: EventType, albumId?: string): Promise<Photo> => {
   console.log(`🧠 Deep analyzing single photo: ${photo.filename}`);
   
   const formData = new FormData();
@@ -657,9 +655,7 @@ export const deepAnalyzeSinglePhoto = async (photo: PhotoWithLUTs, userEmail: st
         blip_highlights: result.blip_highlights || [],
         deep_prompts: result.deep_prompts || {}, // Dynamic prompts from backend
         approved: result.approved, // Backend-determined approval
-        ai_categories: result.ai_categories || [],
-        lut_previews: result.lut_previews || [], // LUT previews from backend
-        selected_lut: photo.selected_lut // Preserve selected LUT
+        ai_categories: result.ai_categories || []
       };
     }
     
@@ -672,13 +668,13 @@ export const deepAnalyzeSinglePhoto = async (photo: PhotoWithLUTs, userEmail: st
 
 // Serial processing function with progress callback
 export const deepAnalyzePhotosSingle = async (
-  photos: PhotoWithLUTs[], 
+  photos: Photo[], 
   userEmail: string, 
   eventType: EventType,
-  onProgress?: (processedCount: number, currentPhoto: string, updatedPhoto?: PhotoWithLUTs) => void,
+  onProgress?: (processedCount: number, currentPhoto: string, updatedPhoto?: Photo) => void,
   concurrency = 2,
   albumId?: string
-): Promise<PhotoWithLUTs[]> => {
+): Promise<Photo[]> => {
   // Create tasks for each photo
   const tasks = photos.map((photo, index) => async () => {
     try {
@@ -730,7 +726,7 @@ export const deepAnalyzePhotosSingle = async (
 };
 
 // Simulated culling (real logic is on the backend eventually)
-export const cullPhotos = async (photos: PhotoWithLUTs[]): Promise<PhotoWithLUTs[]> => {
+export const cullPhotos = async (photos: Photo[]): Promise<Photo[]> => {
   return new Promise(resolve => {
     setTimeout(() => {
       const culledPhotos = photos.map(photo => {
@@ -1098,112 +1094,6 @@ export const colorTransfer = async (referenceFile: File, targetFiles: File[]): P
     return { results };
   } catch (error: any) {
     console.error('Color transfer error:', error);
-    throw error instanceof Error ? error : new Error(error.toString());
-  }
-};
-
-// Apply LUT to photos
-export const applyLUT = async (files: File[], lutName: string): Promise<{ results: LUTApplyResult[] }> => {
-  const formData = new FormData();
-  
-  files.forEach(file => {
-    formData.append('files', file);
-  });
-  
-  formData.append('lut_name', lutName);
-
-  try {
-    const response = await fetch(`${API_URL}/apply-lut`, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'ngrok-skip-browser-warning': 'true'
-      },
-      mode: 'cors',
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Failed to apply LUT');
-    }
-
-    const data = await response.json();
-    
-    // Handle both response formats: { results: [...] } or direct array
-    const results = data.results || data;
-    if (!Array.isArray(results)) {
-      throw new Error('Invalid response format from server');
-    }
-    
-    return { results };
-  } catch (error: any) {
-    console.error('LUT apply error:', error);
-    throw error instanceof Error ? error : new Error(error.toString());
-  }
-};
-
-// Upload photo and generate LUT previews
-export const uploadPhotoForLUTPreviews = async (file: File, userEmail: string, albumName: string): Promise<{ lut_previews: LUTPreview[] }> => {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('user_id', userEmail);
-  formData.append('album_name', albumName);
-
-  try {
-    console.log(`📤 Calling POST /upload-photo for: ${file.name}`, {
-      filename: file.name,
-      fileSize: file.size,
-      userEmail,
-      albumName,
-      endpoint: `${API_URL}/upload-photo`
-    });
-    
-    const response = await fetch(`${API_URL}/upload-photo`, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'ngrok-skip-browser-warning': 'true'
-      },
-      mode: 'cors',
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Upload photo API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText
-      });
-      throw new Error(errorText || 'Failed to upload photo for LUT previews');
-    }
-
-    const data = await response.json();
-    console.log(`✅ POST /upload-photo response for ${file.name}:`, {
-      status: data.status,
-      album: data.album,
-      photo: data.photo,
-      previewsCount: data.previews?.length || 0,
-      previews: data.previews
-    });
-    
-    // Backend returns: { status, album, photo, path, previews: [...] }
-    // Convert to our expected format
-    return {
-      lut_previews: (data.previews || []).map((previewPath: string) => {
-        // Extract LUT name from preview path
-        // Example: "D:\mainv2\albums\user\album\previews\photo_lutname.jpg" -> "lutname"
-        const filename = previewPath.split(/[\\\/]/).pop() || '';
-        const lutName = filename.replace(new RegExp(`^${file.name.replace(/\.[^/.]+$/, '')}_`), '').replace(/\.[^/.]+$/, '');
-        
-        return {
-          lut_name: lutName,
-          preview_url: `${API_URL}/album-photo?album_dir=${encodeURIComponent(`${userEmail}/${albumName}`)}&filename=${encodeURIComponent(filename.split(/[\\\/]/).pop() || '')}`,
-          preview_path: previewPath
-        };
-      })
-    };
-  } catch (error: any) {
-    console.error('Upload photo for LUT previews error:', error);
     throw error instanceof Error ? error : new Error(error.toString());
   }
 };

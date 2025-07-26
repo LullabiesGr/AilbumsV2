@@ -1,15 +1,15 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
-import { Photo, PhotoWithLUTs, Filter, Album, ColorLabel, EventType, CullingMode, WorkflowStage, DuplicateCluster, PersonGroup } from '../types';
+import { Photo, Filter, Album, ColorLabel, EventType, CullingMode, WorkflowStage, DuplicateCluster, PersonGroup } from '../types';
 import { analyzePhotosSingle, deepAnalyzePhotosSingle, cullPhotos, findDuplicatesAPI } from '../lib/api';
 import { useToast } from './ToastContext';
 import { useAuth } from './AuthContext';
 
 interface PhotoContextType {
-  photos: PhotoWithLUTs[];
+  photos: Photo[];
   currentAlbumName: string;
   currentAlbumId: string;
   createNewAlbum: (albumName: string, eventType: EventType) => Promise<{ albumId: string; albumName: string }>;
-  filteredPhotos: PhotoWithLUTs[];
+  filteredPhotos: Photo[];
   duplicateClusters: DuplicateCluster[];
   personGroups: PersonGroup[];
   albums: Album[];
@@ -50,7 +50,7 @@ interface PhotoContextType {
   togglePhotoSelection: (id: string) => void;
   selectAllPhotos: () => void;
   deselectAllPhotos: () => void;
-  selectedPhotos: PhotoWithLUTs[];
+  selectedPhotos: Photo[];
   updatePhotoScore: (id: string, score: number) => void;
   updatePhotoColorLabel: (id: string, colorLabel: ColorLabel | undefined) => void;
   markPhotoAsKeep: (id: string) => void;
@@ -79,7 +79,7 @@ export const usePhoto = () => {
 };
 
 export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [photos, setPhotos] = useState<PhotoWithLUTs[]>([]);
+  const [photos, setPhotos] = useState<Photo[]>([]);
   const [currentAlbumName, setCurrentAlbumName] = useState<string>('');
   const [currentAlbumId, setCurrentAlbumId] = useState<string>('');
   const [duplicateClusters, setDuplicateClusters] = useState<DuplicateCluster[]>([]);
@@ -235,7 +235,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         '.mef', '.mos', '.nrw', '.pxn', '.r3d', '.rwz', '.srw'
       ];
       
-      const newPhotos: PhotoWithLUTs[] = [];
+      const newPhotos: Photo[] = [];
       
       for (const file of files) {
         const isRawFile = rawExtensions.some(ext => 
@@ -263,9 +263,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           score_type: 'base',
           tags: isRawFile ? ['raw'] : [],
           dateCreated: new Date().toISOString(),
-          selected: false,
-          lut_previews: [], // Will be populated when calling /upload-photo
-          selected_lut: undefined
+          selected: false
         });
       }
       
@@ -276,11 +274,11 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       
       let message = 'Photos uploaded successfully';
       if (rawCount > 0 && standardCount > 0) {
-        message = `${standardCount} standard and ${rawCount} RAW photos uploaded successfully. LUT previews will be generated during analysis.`;
+        message = `${standardCount} standard and ${rawCount} RAW photos uploaded successfully`;
       } else if (rawCount > 0) {
         message = `${rawCount} RAW photos uploaded successfully`;
       } else {
-        message = `${standardCount} photos uploaded successfully. LUT previews will be generated during analysis.`;
+        message = `${standardCount} photos uploaded successfully`;
       }
       
       showToast(message, 'success');
@@ -381,7 +379,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       showToast(error.message || 'Failed to create album', 'error');
       throw error;
     }
-  }, [showToast, setEventType, user?.email, currentAlbumName]);
+  }, [showToast, setEventType, user?.email]);
   
   const startBackgroundAnalysis = useCallback(() => {
     if (!cullingMode || photos.length === 0) {
@@ -405,43 +403,12 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return;
     }
 
-    // Step 1: Upload photos for LUT previews if not already done
-    const uploadPhotosForPreviews = async () => {
-      const albumNameForUpload = currentAlbumName || 'temp_album';
-      console.log(`📤 Background upload: Uploading ${photos.length} photos to album: "${albumNameForUpload}"`);
-      
-      const updatedPhotos = [...photos];
-      for (let i = 0; i < photos.length; i++) {
-        const photo = photos[i];
-        
-        // Skip if already has LUT previews or is RAW
-        if (photo.lut_previews?.length || photo.tags?.includes('raw')) {
-          continue;
-        }
-        
-        try {
-          const response = await uploadPhotoForLUTPreviews(photo.file, user.email, albumNameForUpload);
-          updatedPhotos[i] = {
-            ...photo,
-            lut_previews: response.lut_previews || []
-          };
-        } catch (error) {
-          console.warn(`Failed to generate LUT previews for ${photo.filename}:`, error);
-        }
-      }
-      
-      setPhotos(updatedPhotos);
-    };
-
     setIsAnalyzing(true);
     setShowAnalysisOverlay(true);
     setAnalysisProgress({ processed: 0, total: photos.length, currentPhoto: '' });
     
     const runAnalysis = async () => {
       try {
-        // Upload photos for LUT previews first
-        await uploadPhotosForPreviews();
-        
         if (cullingMode === 'deep') {
           // Use parallel processing for deep analysis with real-time updates
           const analyzedPhotos = await deepAnalyzePhotosSingle(
@@ -463,7 +430,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               }
             },
             2, // Concurrency limit
-            currentAlbumName || 'temp-album' // Album name
+            currentAlbumId || 'temp-album' // Album ID
           );
           
           setPhotos(analyzedPhotos);
@@ -489,7 +456,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               }
             },
             2, // Concurrency limit
-            currentAlbumName || 'temp_album'
+            currentAlbumId || albumName?.trim() || 'temp_album'
           );
           
           setPhotos(analyzedPhotos);
@@ -520,7 +487,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     runAnalysis();
-  }, [cullingMode, photos, eventType, showToast, user?.email, currentAlbumName, groupPeopleByFaces]);
+  }, [photos, eventType, cullingMode, showToast, groupPeopleByFaces, currentAlbumId, user?.email]);
 
   const startAnalysis = useCallback(async (albumName?: string, providedEventType?: EventType) => {
     if (!cullingMode || photos.length === 0) {
@@ -562,53 +529,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     // Set event type
     setEventType(analysisEventType);
     
-    // Step 1: Upload photos to backend for LUT preview generation
-    console.log('🔄 Step 1: Uploading photos for LUT preview generation...');
-    try {
-      const albumNameForUpload = albumName?.trim() || currentAlbumName || 'temp_album';
-      console.log(`📤 Uploading ${photos.length} photos to album: "${albumNameForUpload}"`);
-      
-      // Upload each photo to generate LUT previews
-      const updatedPhotos = [...photos];
-      for (let i = 0; i < photos.length; i++) {
-        const photo = photos[i];
-        
-        // Skip RAW files for now (they'll be converted during analysis)
-        if (photo.tags?.includes('raw')) {
-          console.log(`⏭️ Skipping RAW file for LUT previews: ${photo.filename}`);
-          continue;
-        }
-        
-        try {
-          console.log(`📤 Uploading photo ${i + 1}/${photos.length}: ${photo.filename}`);
-          const response = await uploadPhotoForLUTPreviews(photo.file, user.email, albumNameForUpload);
-          
-          // Update photo with LUT previews
-          updatedPhotos[i] = {
-            ...photo,
-            lut_previews: response.lut_previews || []
-          };
-          
-          console.log(`✅ LUT previews generated for ${photo.filename}: ${response.lut_previews?.length || 0} previews`);
-        } catch (error) {
-          console.warn(`⚠️ Failed to generate LUT previews for ${photo.filename}:`, error);
-          // Continue with other photos even if one fails
-        }
-      }
-      
-      // Update photos with LUT previews
-      setPhotos(updatedPhotos);
-      
-      const totalPreviews = updatedPhotos.reduce((sum, p) => sum + (p.lut_previews?.length || 0), 0);
-      showToast(`LUT previews generated: ${totalPreviews} total previews for ${photos.length} photos`, 'success');
-      
-    } catch (error: any) {
-      console.error('❌ Failed to upload photos for LUT previews:', error);
-      showToast('Warning: LUT previews generation failed, continuing with analysis...', 'warning');
-    }
-    
-    // Step 2: Start AI Analysis
-    console.log('🔄 Step 2: Starting AI analysis...');
     // Go to analyzing stage and start analysis
     setWorkflowStage('analyzing');
     setIsAnalyzing(true);
@@ -638,7 +558,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             }
           },
           2, // Concurrency limit
-          albumName?.trim() || currentAlbumName || 'temp_album'
+          albumName?.trim() || currentAlbumId || 'temp_album'
         );
         
         setPhotos(analyzedPhotos);
@@ -666,7 +586,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             }
           },
           2, // Concurrency limit
-          albumName?.trim() || currentAlbumName || 'temp_album'
+          albumName?.trim() || currentAlbumId || 'temp_album'
         );
         
         setPhotos(analyzedPhotos);
@@ -694,7 +614,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     } finally {
       setIsAnalyzing(false);
     }
-  }, [cullingMode, photos, eventType, showToast, setWorkflowStage, startBackgroundAnalysis, user?.email, currentAlbumName, groupPeopleByFaces]);
+  }, [cullingMode, photos, eventType, showToast, setWorkflowStage, startBackgroundAnalysis, user?.email]);
 
   const startAnalysisFromReview = useCallback(async () => {
     if (!cullingMode || photos.length === 0) {

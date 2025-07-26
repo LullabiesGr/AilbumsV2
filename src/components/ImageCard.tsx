@@ -10,13 +10,12 @@ import FaceRetouchModal from './FaceRetouchModal';
 import AIEditModal from './AIEditModal';
 import ColorLabelIndicator from './ColorLabelIndicator';
 import FaceOverlay from './FaceOverlay';
-import { Photo, PhotoWithLUTs } from '../types';
+import { Photo } from '../types';
 import { getPhotoTip } from '../lib/api';
 import { useToast } from '../context/ToastContext';
-import LUTPreviewGrid from './LUTPreviewGrid';
 
 interface ImageCardProps {
-  photo: PhotoWithLUTs;
+  photo: Photo;
   viewMode: 'grid' | 'list' | 'compact';
 }
 
@@ -279,12 +278,6 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
     // Update the photo URL with the edited version in the dashboard
     updatePhotoUrl(photo.id, editedImageUrl);
     showToast('AI edited photo updated in dashboard!', 'success');
-  };
-
-  const handleLUTSelect = (lutName: string) => {
-    // Update photo's selected LUT
-    console.log('LUT selected for photo:', photo.filename, 'LUT:', lutName);
-    // You can add state management here if needed
   };
 
   // Get face summary badges
@@ -571,15 +564,6 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
           )}
         </div>
       </div>
-      
-      {/* LUT Previews - Only show in grid view to avoid clutter */}
-      {viewMode === 'grid' && (
-        <LUTPreviewGrid 
-          photo={photo} 
-          onLUTSelect={handleLUTSelect}
-          onPhotoUpdate={updatePhotoUrl}
-        />
-      )}
     </>
   );
 
@@ -800,13 +784,6 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
           {tip}
         </div>
       )}
-      
-      {/* LUT Previews for List View */}
-      <LUTPreviewGrid 
-        photo={photo} 
-        onLUTSelect={handleLUTSelect}
-        onPhotoUpdate={updatePhotoUrl}
-      />
     </div>
   );
 
@@ -981,8 +958,6 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
           </button>
         </div>
       )}
-      
-      {/* No LUT previews in compact view to save space */}
       {showModal && <ImageModal photo={photo} onClose={() => setShowModal(false)} />}
       {showInpaintModal && <InpaintModal photo={photo} onClose={() => setShowInpaintModal(false)} />}
       {showFaceRetouchModal && (

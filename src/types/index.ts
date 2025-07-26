@@ -154,7 +154,7 @@ export type CullingMode = 'fast' | 'slow' | 'manual';
 export type EventType = 'wedding' | 'baptism' | 'portrait' | 'event' | 'landscape' | 'family' | 'corporate';
 
 export type WorkflowStage = 'upload' | 'configure' | 'analyzing' | 'review' | 'face-retouch' | 'ai-edit';
-export type WorkflowStage = 'upload' | 'configure' | 'analyzing' | 'review' | 'face-retouch' | 'ai-edit' | 'copy-look' | 'lut-mode';
+export type WorkflowStage = 'upload' | 'configure' | 'analyzing' | 'review' | 'face-retouch' | 'ai-edit' | 'copy-look';
 
 export interface ColorLabelConfig {
   color: ColorLabel;
@@ -167,21 +167,4 @@ export interface ColorLabelConfig {
 export interface ColorTransferResult {
   filename: string;
   image_base64: string;
-}
-
-export interface LUTPreview {
-  lut_name: string;
-  preview_url: string;
-  preview_path: string;
-}
-
-export interface LUTApplyResult {
-  filename: string;
-  lut_name: string;
-  image_base64: string;
-}
-
-export interface PhotoWithLUTs extends Photo {
-  lut_previews?: LUTPreview[];
-  selected_lut?: string;
 }

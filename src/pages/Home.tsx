@@ -19,7 +19,6 @@ import Sidebar from '../components/Sidebar';
 import FaceRetouchModal from '../components/FaceRetouchModal';
 import { Play, RotateCcw, Brain, Copy, Users, Grid, List, Sparkles, ArrowLeft, Wand2, Palette } from 'lucide-react';
 import CopyLookMode from '../components/CopyLookMode';
-import LUTModeSelector from '../components/LUTModeSelector';
 
 const Home: React.FC = () => {
   const { 
@@ -451,13 +450,6 @@ const Home: React.FC = () => {
           </div>
         );
 
-      case 'lut-mode':
-        return (
-          <div className="space-y-6">
-            <LUTModeSelector onBack={() => setWorkflowStage('review')} />
-          </div>
-        );
-
       case 'ai-edit':
         return (
           <div className="space-y-6">
@@ -674,35 +666,6 @@ const Home: React.FC = () => {
                 >
                   <Palette className="h-5 w-5" />
                   <span>Enter Copy Look Mode</span>
-                </button>
-              </div>
-            </div>
-            
-            {/* LUT Mode Button */}
-            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 
-                          dark:to-indigo-900/20 border-2 border-dashed border-purple-300 
-                          dark:border-purple-700 rounded-lg p-6 text-center">
-              <div className="flex items-center justify-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full 
-                              flex items-center justify-center">
-                  <Palette className="h-6 w-6 text-white" />
-                </div>
-                <div className="text-left">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                    LUT Color Grading Available
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Apply professional color grading LUTs with real-time previews
-                  </p>
-                </div>
-                <button
-                  onClick={() => setWorkflowStage('lut-mode')}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 
-                           hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg 
-                           flex items-center space-x-2 transition-all duration-200 font-medium"
-                >
-                  <Palette className="h-5 w-5" />
-                  <span>Enter LUT Mode</span>
                 </button>
               </div>
             </div>

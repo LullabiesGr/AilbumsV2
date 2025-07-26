@@ -459,7 +459,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               }
             },
             2, // Concurrency limit
-            currentAlbumId || 'temp-album' // Album ID
+            currentAlbumId || albumName?.trim() || `temp_album_${Date.now()}` // Use user's album name
           );
           
           setPhotos(analyzedPhotos);
@@ -592,7 +592,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             }
           },
           2, // Concurrency limit
-          currentAlbumId || albumName?.trim() || `temp_album_${Date.now()}` // Use user's album name
+          currentAlbumId || `temp_album_${Date.now()}` // Album ID with user name
         );
         
         setPhotos(analyzedPhotos);

@@ -1,15 +1,15 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
-import { Photo, Filter, Album, ColorLabel, EventType, CullingMode, WorkflowStage, DuplicateCluster, PersonGroup } from '../types';
+import { Photo, PhotoWithLUTs, Filter, Album, ColorLabel, EventType, CullingMode, WorkflowStage, DuplicateCluster, PersonGroup } from '../types';
 import { analyzePhotosSingle, deepAnalyzePhotosSingle, cullPhotos, findDuplicatesAPI } from '../lib/api';
 import { useToast } from './ToastContext';
 import { useAuth } from './AuthContext';
 
 interface PhotoContextType {
-  photos: Photo[];
+  photos: PhotoWithLUTs[];
   currentAlbumName: string;
   currentAlbumId: string;
   createNewAlbum: (albumName: string, eventType: EventType) => Promise<{ albumId: string; albumName: string }>;
-  filteredPhotos: Photo[];
+  filteredPhotos: PhotoWithLUTs[];
   duplicateClusters: DuplicateCluster[];
   personGroups: PersonGroup[];
   albums: Album[];
@@ -50,7 +50,7 @@ interface PhotoContextType {
   togglePhotoSelection: (id: string) => void;
   selectAllPhotos: () => void;
   deselectAllPhotos: () => void;
-  selectedPhotos: Photo[];
+  selectedPhotos: PhotoWithLUTs[];
   updatePhotoScore: (id: string, score: number) => void;
   updatePhotoColorLabel: (id: string, colorLabel: ColorLabel | undefined) => void;
   markPhotoAsKeep: (id: string) => void;
@@ -79,7 +79,7 @@ export const usePhoto = () => {
 };
 
 export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [photos, setPhotos] = useState<PhotoWithLUTs[]>([]);
   const [currentAlbumName, setCurrentAlbumName] = useState<string>('');
   const [currentAlbumId, setCurrentAlbumId] = useState<string>('');
   const [duplicateClusters, setDuplicateClusters] = useState<DuplicateCluster[]>([]);
@@ -235,7 +235,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         '.mef', '.mos', '.nrw', '.pxn', '.r3d', '.rwz', '.srw'
       ];
       
-      const newPhotos: Photo[] = [];
+      const newPhotos: PhotoWithLUTs[] = [];
       
       for (const file of files) {
         const isRawFile = rawExtensions.some(ext => 
@@ -263,7 +263,9 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           score_type: 'base',
           tags: isRawFile ? ['raw'] : [],
           dateCreated: new Date().toISOString(),
-          selected: false
+          selected: false,
+          lut_previews: [], // Will be populated by backend
+          selected_lut: undefined
         });
       }
       

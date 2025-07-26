@@ -1,7 +1,7 @@
 import { Photo } from '../types';
 import { findDuplicates } from './similarity';
 import { promisePoolWithProgress } from './promisePool'; // Keep this import
-import { DuplicateCluster } from '../types';
+import { DuplicateCluster, LUTPreview, PhotoWithLUTs } from '../types';
 
 // API URL configuration for different environments
 const API_URL =
@@ -374,7 +374,7 @@ export const analyzePhotos = async (photos: Photo[], userEmail: string, eventTyp
 };
 
 // New function to analyze a single photo for fast mode
-export const analyzeSinglePhoto = async (photo: Photo, userEmail: string, eventType: EventType, cullingMode: CullingMode, albumId?: string): Promise<Photo> => {
+export const analyzeSinglePhoto = async (photo: PhotoWithLUTs, userEmail: string, eventType: EventType, cullingMode: CullingMode, albumId?: string): Promise<PhotoWithLUTs> => {
   console.log(`📡 Analyzing single photo: ${photo.filename} with ${cullingMode} mode`);
   
   const formData = new FormData();
@@ -477,7 +477,9 @@ export const analyzeSinglePhoto = async (photo: Photo, userEmail: string, eventT
         blip_flags: result.blip_flags || [],
         blip_highlights: result.blip_highlights || [],
         deep_prompts: result.deep_prompts || {}, // Dynamic prompts from backend
-        approved: result.approved // Backend-determined approval
+        approved: result.approved, // Backend-determined approval
+        lut_previews: result.lut_previews || [], // LUT previews from backend
+        selected_lut: photo.selected_lut // Preserve selected LUT
       };
     }
     
@@ -490,14 +492,14 @@ export const analyzeSinglePhoto = async (photo: Photo, userEmail: string, eventT
 
 // Serial processing function for fast analysis with progress callback
 export const analyzePhotosSingle = async (
-  photos: Photo[], 
+  photos: PhotoWithLUTs[], 
   userEmail: string, 
   eventType: EventType,
   cullingMode: CullingMode,
-  onProgress?: (processedCount: number, currentPhoto: string, updatedPhoto?: Photo) => void,
+  onProgress?: (processedCount: number, currentPhoto: string, updatedPhoto?: PhotoWithLUTs) => void,
   concurrency = 2,
   albumId?: string
-): Promise<Photo[]> => {
+): Promise<PhotoWithLUTs[]> => {
   // Create tasks for each photo
   const tasks = photos.map((photo, index) => async () => {
     try {
@@ -554,7 +556,7 @@ export const deepAnalyzePhotos = async (photos: Photo[], userEmail: string, even
 };
 
 // New function to analyze a single photo
-export const deepAnalyzeSinglePhoto = async (photo: Photo, userEmail: string, eventType: EventType, albumId?: string): Promise<Photo> => {
+export const deepAnalyzeSinglePhoto = async (photo: PhotoWithLUTs, userEmail: string, eventType: EventType, albumId?: string): Promise<PhotoWithLUTs> => {
   console.log(`🧠 Deep analyzing single photo: ${photo.filename}`);
   
   const formData = new FormData();
@@ -655,7 +657,9 @@ export const deepAnalyzeSinglePhoto = async (photo: Photo, userEmail: string, ev
         blip_highlights: result.blip_highlights || [],
         deep_prompts: result.deep_prompts || {}, // Dynamic prompts from backend
         approved: result.approved, // Backend-determined approval
-        ai_categories: result.ai_categories || []
+        ai_categories: result.ai_categories || [],
+        lut_previews: result.lut_previews || [], // LUT previews from backend
+        selected_lut: photo.selected_lut // Preserve selected LUT
       };
     }
     
@@ -668,13 +672,13 @@ export const deepAnalyzeSinglePhoto = async (photo: Photo, userEmail: string, ev
 
 // Serial processing function with progress callback
 export const deepAnalyzePhotosSingle = async (
-  photos: Photo[], 
+  photos: PhotoWithLUTs[], 
   userEmail: string, 
   eventType: EventType,
-  onProgress?: (processedCount: number, currentPhoto: string, updatedPhoto?: Photo) => void,
+  onProgress?: (processedCount: number, currentPhoto: string, updatedPhoto?: PhotoWithLUTs) => void,
   concurrency = 2,
   albumId?: string
-): Promise<Photo[]> => {
+): Promise<PhotoWithLUTs[]> => {
   // Create tasks for each photo
   const tasks = photos.map((photo, index) => async () => {
     try {
@@ -726,7 +730,7 @@ export const deepAnalyzePhotosSingle = async (
 };
 
 // Simulated culling (real logic is on the backend eventually)
-export const cullPhotos = async (photos: Photo[]): Promise<Photo[]> => {
+export const cullPhotos = async (photos: PhotoWithLUTs[]): Promise<PhotoWithLUTs[]> => {
   return new Promise(resolve => {
     setTimeout(() => {
       const culledPhotos = photos.map(photo => {

@@ -2,6 +2,8 @@ import { Photo } from '../types';
 import { findDuplicates } from './similarity';
 import { promisePoolWithProgress } from './promisePool'; // Keep this import
 import { DuplicateCluster, LUTPreview, PhotoWithLUTs } from '../types';
+// Import the new upload function
+import { uploadPhotoWithPreviews } from './api';
 
 // API URL configuration for different environments
 const API_URL =
@@ -216,6 +218,51 @@ export const convertRawFile = async (file: File): Promise<Blob> => {
     return blob;
   } catch (error: any) {
     console.error('RAW conversion error:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};
+
+// Upload photo and get LUT previews
+export const uploadPhotoWithPreviews = async (file: File, userEmail: string, albumName: string): Promise<{
+  filename: string;
+  lut_previews: LUTPreview[];
+}> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('user_id', userEmail);
+  formData.append('album_name', albumName);
+
+  try {
+    console.log(`📤 Uploading photo: ${file.name} to album: ${albumName}`);
+    
+    const response = await fetch(`${API_URL}/upload-photo`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      },
+      mode: 'cors',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Upload photo API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`Failed to upload photo: ${response.status} ${errorText || response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log(`✅ Photo uploaded successfully:`, {
+      filename: result.filename,
+      previewsCount: result.lut_previews?.length || 0
+    });
+    
+    return result;
+  } catch (error: any) {
+    console.error('Upload photo error:', error);
     throw error instanceof Error ? error : new Error(error.toString());
   }
 };

@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { Upload } from 'lucide-react';
 import { usePhoto } from '../context/PhotoContext';
 import { useToast } from '../context/ToastContext';
+import { useToast } from '../context/ToastContext';
 
 interface UploadButtonProps {
   variant?: 'primary' | 'secondary';

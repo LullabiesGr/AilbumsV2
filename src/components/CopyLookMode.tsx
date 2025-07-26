@@ -127,7 +127,9 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
 
     setIsUploadingForLuts(true);
     try {
-      const albumName = `lut_preview_${Date.now()}`;
+      // Create a meaningful album name with timestamp
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+      const albumName = `copy_look_${timestamp}`;
       
       for (const file of files) {
         const response = await uploadPhotoWithLuts(file, albumName, user.email);

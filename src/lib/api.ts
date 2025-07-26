@@ -382,8 +382,9 @@ export const analyzeSinglePhoto = async (photo: Photo, userEmail: string, eventT
   formData.append('event', eventType);
   formData.append('culling_mode', cullingMode);
   if (albumId) {
-    console.log(`📁 Using album ID for analysis: ${albumId}`);
-    formData.append('album_id', albumId);
+    console.log(`📁 Using album name for analysis: ${albumId}`);
+    formData.append('album_id', albumId); // This should be the user's album name
+    formData.append('album_name', albumId); // Send as both fields
   }
   formData.append('files', photo.file);
 
@@ -560,8 +561,9 @@ export const deepAnalyzeSinglePhoto = async (photo: Photo, userEmail: string, ev
   formData.append('user_id', userEmail);
   formData.append('event', eventType);
   if (albumId) {
-    console.log(`📁 Using album ID for deep analysis: ${albumId}`);
-    formData.append('album_id', albumId);
+    console.log(`📁 Using album name for deep analysis: ${albumId}`);
+    formData.append('album_id', albumId); // This should be the user's album name
+    formData.append('album_name', albumId); // Send as both fields
   }
   formData.append('files', photo.file);
 

@@ -146,16 +146,16 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               groups[face.same_person_group].photo_count++;
             }
             
-            groups[face.same_person_group].faces.push(face);
+    formData.append('album_name', albumName.trim()); // This should be the folder name
+    formData.append('album_id', albumName.trim()); // Also send as album_id
             
             // Set representative face (highest quality)
-            if (!groups[face.same_person_group].representative_face || 
                 (face.face_quality && face.face_quality > (groups[face.same_person_group].representative_face?.face_quality || 0))) {
               groups[face.same_person_group].representative_face = face;
             }
           }
         });
-      }
+      album_id: albumName.trim()
     });
     
     setPersonGroups(Object.values(groups));
@@ -510,9 +510,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       // Store album name even in manual mode
       if (albumName && albumName.trim()) {
         setCurrentAlbumName(albumName.trim());
-        // Create album ID from user-provided name
-        const sanitizedName = albumName.trim().replace(/[^a-zA-Z0-9]/g, '_');
-        setCurrentAlbumId(`${sanitizedName}_${Date.now()}`);
+        // Use the exact album name as ID (backend will handle folder creation)
+        setCurrentAlbumId(albumName.trim());
       }
       setWorkflowStage('review');
       showToast('Manual review mode activated. Start reviewing your photos!', 'success');

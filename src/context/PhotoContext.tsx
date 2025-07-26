@@ -264,7 +264,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           tags: isRawFile ? ['raw'] : [],
           dateCreated: new Date().toISOString(),
           selected: false,
-          lut_previews: [], // Will be populated when calling /upload-photo
+          lut_previews: [], // Will be populated by backend
           selected_lut: undefined
         });
       }
@@ -273,14 +273,15 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       
       const rawCount = newPhotos.filter(p => p.tags?.includes('raw')).length;
       const standardCount = newPhotos.length - rawCount;
+      const lutPreviewCount = newPhotos.reduce((sum, p) => sum + (p.lut_previews?.length || 0), 0);
       
       let message = 'Photos uploaded successfully';
       if (rawCount > 0 && standardCount > 0) {
-        message = `${standardCount} standard and ${rawCount} RAW photos uploaded successfully. LUT previews will be generated during analysis.`;
+        message = `${standardCount} standard and ${rawCount} RAW photos uploaded successfully. Generated ${lutPreviewCount} LUT previews.`;
       } else if (rawCount > 0) {
         message = `${rawCount} RAW photos uploaded successfully`;
       } else {
-        message = `${standardCount} photos uploaded successfully. LUT previews will be generated during analysis.`;
+        message = `${standardCount} photos uploaded successfully. Generated ${lutPreviewCount} LUT previews.`;
       }
       
       showToast(message, 'success');
@@ -520,6 +521,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     runAnalysis();
+  }, [cullingMode, photos, eventType, showToast, user?.email, currentAlbumName, groupPeopleByFaces]);
 
   const startAnalysis = useCallback(async (albumName?: string, providedEventType?: EventType) => {
     if (!cullingMode || photos.length === 0) {
@@ -693,7 +695,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     } finally {
       setIsAnalyzing(false);
     }
-  }, [cullingMode, photos, eventType, showToast, setWorkflowStage, startBackgroundAnalysis, user?.email]);
+  }, [cullingMode, photos, eventType, showToast, setWorkflowStage, user?.email, currentAlbumName, groupPeopleByFaces]);
 
   const startAnalysisFromReview = useCallback(async () => {
     if (!cullingMode || photos.length === 0) {

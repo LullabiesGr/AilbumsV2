@@ -1141,3 +1141,45 @@ export const applyLUT = async (files: File[], lutName: string): Promise<{ result
     throw error instanceof Error ? error : new Error(error.toString());
   }
 };
+
+// Upload photo and generate LUT previews
+export const uploadPhotoForLUTPreviews = async (file: File, userEmail: string, albumName: string): Promise<{ lut_previews: LUTPreview[] }> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('user_id', userEmail);
+  formData.append('album_name', albumName);
+
+  try {
+    console.log(`📤 Uploading photo for LUT previews: ${file.name}`);
+    
+    const response = await fetch(`${API_URL}/upload-photo`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      },
+      mode: 'cors',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Upload photo API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(errorText || 'Failed to upload photo for LUT previews');
+    }
+
+    const data = await response.json();
+    console.log(`✅ LUT previews generated for ${file.name}:`, data);
+    
+    // Expected response format: { lut_previews: [...] }
+    return {
+      lut_previews: data.lut_previews || []
+    };
+  } catch (error: any) {
+    console.error('Upload photo for LUT previews error:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};

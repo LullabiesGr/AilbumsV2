@@ -243,6 +243,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         );
         
         let photoUrl: string;
+        let lutPreviews: LUTPreview[] = [];
         
         if (isRawFile) {
           // For RAW files, create a placeholder and let the backend handle conversion
@@ -251,6 +252,19 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         } else {
           // For standard image files, create URL directly
           photoUrl = URL.createObjectURL(file);
+          
+          // Generate LUT previews for standard images
+          if (user?.email && currentAlbumName) {
+            try {
+              console.log(`🎨 Generating LUT previews for ${file.name}`);
+              const lutResponse = await uploadPhotoForLUTPreviews(file, user.email, currentAlbumName);
+              lutPreviews = lutResponse.lut_previews;
+              console.log(`✅ Generated ${lutPreviews.length} LUT previews for ${file.name}`);
+            } catch (error) {
+              console.warn(`⚠️ Failed to generate LUT previews for ${file.name}:`, error);
+              // Continue without LUT previews - don't fail the upload
+            }
+          }
         }
         
         newPhotos.push({
@@ -264,7 +278,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           tags: isRawFile ? ['raw'] : [],
           dateCreated: new Date().toISOString(),
           selected: false,
-          lut_previews: [], // Will be populated by backend
+          lut_previews: lutPreviews, // Populated from backend
           selected_lut: undefined
         });
       }
@@ -273,14 +287,15 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       
       const rawCount = newPhotos.filter(p => p.tags?.includes('raw')).length;
       const standardCount = newPhotos.length - rawCount;
+      const lutPreviewCount = newPhotos.reduce((sum, p) => sum + (p.lut_previews?.length || 0), 0);
       
       let message = 'Photos uploaded successfully';
       if (rawCount > 0 && standardCount > 0) {
-        message = `${standardCount} standard and ${rawCount} RAW photos uploaded successfully`;
+        message = `${standardCount} standard and ${rawCount} RAW photos uploaded successfully. ${lutPreviewCount} LUT previews generated.`;
       } else if (rawCount > 0) {
         message = `${rawCount} RAW photos uploaded successfully`;
       } else {
-        message = `${standardCount} photos uploaded successfully`;
+        message = `${standardCount} photos uploaded successfully. ${lutPreviewCount} LUT previews generated.`;
       }
       
       showToast(message, 'success');

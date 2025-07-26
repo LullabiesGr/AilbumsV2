@@ -7,7 +7,7 @@ import { EventType } from '../types'; // Import EventType
 export const API_URL =
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:8000"
-    : "https://1a2a91471606.ngrok-free.app";
+    : "https://36f5ddfd52c2.ngrok-free.app";
 
 interface AlbumCardProps {
   album: SavedAlbum;

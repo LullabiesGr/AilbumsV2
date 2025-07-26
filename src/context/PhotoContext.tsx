@@ -624,6 +624,28 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       // Go to review stage after completion
       setWorkflowStage('review');
       
+      // Upload photos for LUT previews after analysis completes
+      if (albumName && albumName.trim()) {
+        try {
+          console.log('📤 Starting LUT preview generation after analysis...');
+          const uploadPromises = photos.map(photo => 
+            uploadPhotoForLUTPreviews(photo.file, albumName.trim(), user.email)
+              .catch(error => {
+                console.warn(`Failed to upload ${photo.filename} for LUT previews:`, error);
+                return null;
+              })
+          );
+          
+          Promise.all(uploadPromises).then(results => {
+            const successCount = results.filter(r => r !== null).length;
+            console.log(`✅ LUT preview generation complete: ${successCount}/${photos.length} photos uploaded`);
+            showToast(`LUT previews generated for ${successCount} photos`, 'success');
+          });
+        } catch (error) {
+          console.warn('LUT preview generation failed:', error);
+        }
+      }
+      
     } catch (error: any) {
       console.error('❌ Analysis failed:', error);
       showToast(

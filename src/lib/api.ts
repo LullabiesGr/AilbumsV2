@@ -9,6 +9,102 @@ const API_URL =
     ? "http://localhost:8000"
     : "https://36f5ddfd52c2.ngrok-free.app";
 
+// Upload photo for LUT previews
+export const uploadPhotoForLUTPreviews = async (
+  file: File, 
+  albumName: string, 
+  userEmail: string
+): Promise<{ status: string; album: string; photo: string; path: string; previews: string[] }> => {
+  console.log('📤 Uploading photo for LUT previews:', {
+    filename: file.name,
+    albumName,
+    userEmail,
+    fileSize: file.size
+  });
+  
+  const formData = new FormData();
+  formData.append('album_name', albumName);
+  formData.append('user_id', userEmail);
+  formData.append('file', file);
+
+  try {
+    const response = await fetch(`${API_URL}/upload-photo`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      },
+      mode: 'cors',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Upload photo API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`Upload photo failed: ${response.status} ${errorText || response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ Photo uploaded for LUT previews:', result);
+    return result;
+  } catch (error: any) {
+    console.error('❌ Upload photo for LUT previews failed:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};
+
+// Apply LUT to full resolution photo
+export const applyLUTFull = async (
+  userEmail: string,
+  albumName: string, 
+  photoFilename: string,
+  lutName: string
+): Promise<void> => {
+  console.log('🎨 Applying LUT to full resolution:', {
+    userEmail,
+    albumName,
+    photoFilename,
+    lutName
+  });
+  
+  const formData = new URLSearchParams();
+  formData.append('user_id', userEmail);
+  formData.append('album_name', albumName);
+  formData.append('photo_filename', photoFilename);
+  formData.append('lut_name', lutName);
+
+  try {
+    const response = await fetch(`${API_URL}/apply-lut-full`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'ngrok-skip-browser-warning': 'true'
+      },
+      mode: 'cors',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Apply LUT API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`Apply LUT failed: ${response.status} ${errorText || response.statusText}`);
+    }
+
+    const result = await response.text();
+    console.log('✅ LUT applied successfully:', result);
+  } catch (error: any) {
+    console.error('❌ Apply LUT failed:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};
+
 // Log the API URL being used for debugging
 console.log('🌐 Using API URL:', API_URL);
 

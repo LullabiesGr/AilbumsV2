@@ -168,3 +168,19 @@ export interface ColorTransferResult {
   filename: string;
   image_base64: string;
 }
+
+export interface LutPreview {
+  lut_name: string;
+  preview_path: string;
+  preview_url?: string;
+}
+
+export interface PhotoWithLuts extends Photo {
+  lut_previews?: LutPreview[];
+}
+
+export interface LutApplicationResult {
+  filename: string;
+  lut_name: string;
+  image_base64: string;
+}

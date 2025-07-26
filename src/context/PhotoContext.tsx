@@ -299,7 +299,9 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
     
     try {
-      const albumId = `album-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      // Create album ID from user-provided name for better backend organization
+      const sanitizedName = albumName.trim().replace(/[^a-zA-Z0-9]/g, '_');
+      const albumId = `${sanitizedName}_${Date.now()}`;
       console.log('📝 Generated album ID:', albumId);
       
       // Create FormData for backend
@@ -508,6 +510,9 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       // Store album name even in manual mode
       if (albumName && albumName.trim()) {
         setCurrentAlbumName(albumName.trim());
+        // Create album ID from user-provided name
+        const sanitizedName = albumName.trim().replace(/[^a-zA-Z0-9]/g, '_');
+        setCurrentAlbumId(`${sanitizedName}_${Date.now()}`);
       }
       setWorkflowStage('review');
       showToast('Manual review mode activated. Start reviewing your photos!', 'success');
@@ -522,7 +527,9 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     // Store album name if provided
     if (albumName && albumName.trim()) {
       setCurrentAlbumName(albumName.trim());
-      setCurrentAlbumId(`album-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+      // Create album ID from user-provided name for better backend organization
+      const sanitizedName = albumName.trim().replace(/[^a-zA-Z0-9]/g, '_');
+      setCurrentAlbumId(`${sanitizedName}_${Date.now()}`);
     }
     
     // Set event type
@@ -557,7 +564,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             }
           },
           2, // Concurrency limit
-          currentAlbumId || 'temp-album' // Album ID
+          currentAlbumId || `temp_album_${Date.now()}` // Album ID with user name
         );
         
         setPhotos(analyzedPhotos);
@@ -585,7 +592,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             }
           },
           2, // Concurrency limit
-          currentAlbumId || 'temp-album' // Album ID
+          currentAlbumId || `temp_album_${Date.now()}` // Album ID with user name
         );
         
         setPhotos(analyzedPhotos);

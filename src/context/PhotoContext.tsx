@@ -511,9 +511,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       // Store album name even in manual mode
       if (albumName && albumName.trim()) {
         setCurrentAlbumName(albumName.trim());
-        // Create album ID from user-provided name
-        const sanitizedName = albumName.trim().replace(/[^a-zA-Z0-9]/g, '_');
-        setCurrentAlbumId(`${sanitizedName}_${Date.now()}`);
+        // Use the exact album name as ID (backend will handle folder creation)
+        setCurrentAlbumId(albumName.trim());
       }
       setWorkflowStage('review');
       showToast('Manual review mode activated. Start reviewing your photos!', 'success');

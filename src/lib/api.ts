@@ -1093,3 +1093,104 @@ export const colorTransfer = async (referenceFile: File, targetFiles: File[]): P
     throw error instanceof Error ? error : new Error(error.toString());
   }
 };
+
+// Upload photo and generate LUT previews
+export const uploadPhotoWithLuts = async (
+  file: File, 
+  albumName: string, 
+  userId: string
+): Promise<{
+  status: string;
+  album: string;
+  photo: string;
+  path: string;
+  previews: string[];
+}> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('album_name', albumName);
+  formData.append('user_id', userId);
+
+  try {
+    const response = await fetch(`${API_URL}/upload-photo`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      },
+      mode: 'cors',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Failed to upload photo');
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error: any) {
+    console.error('Upload photo with LUTs error:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};
+
+// Apply specific LUT to selected photos
+export const applyLutToPhotos = async (
+  lutName: string,
+  targetFiles: File[]
+): Promise<{ results: LutApplicationResult[] }> => {
+  const formData = new FormData();
+  formData.append('lut_name', lutName);
+  
+  targetFiles.forEach(file => {
+    formData.append('photos', file);
+  });
+
+  try {
+    const response = await fetch(`${API_URL}/apply-lut`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      },
+      mode: 'cors',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Failed to apply LUT');
+    }
+
+    const data = await response.json();
+    
+    // Handle response format
+    const results = data.results || data;
+    if (!Array.isArray(results)) {
+      throw new Error('Invalid response format from server');
+    }
+    
+    return { results };
+  } catch (error: any) {
+    console.error('Apply LUT error:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};
+
+// Get LUT preview URL from backend path
+export const getLutPreviewUrl = (previewPath: string): string => {
+  // Convert backend path to URL
+  // Example: "./albums/nikos/album1/previews/myphoto_Colorist_Factory_Severn_LUT.jpg"
+  // becomes: "/album-photo?album_dir=nikos/album1&filename=previews/myphoto_Colorist_Factory_Severn_LUT.jpg"
+  
+  const pathParts = previewPath.replace(/^\.\/albums\//, '').split('/');
+  if (pathParts.length < 3) {
+    console.error('Invalid preview path format:', previewPath);
+    return '';
+  }
+  
+  const userId = pathParts[0];
+  const albumName = pathParts[1];
+  const filename = pathParts.slice(2).join('/'); // Handle nested paths like "previews/filename.jpg"
+  
+  return `${API_URL}/album-photo?album_dir=${encodeURIComponent(userId + '/' + albumName)}&filename=${encodeURIComponent(filename)}`;
+};

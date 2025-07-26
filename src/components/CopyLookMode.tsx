@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Copy, Download, RotateCcw, Eye, EyeOff, Check, X, Palette } from 'lucide-react';
-import { Photo, ColorTransferResult } from '../types';
+import { ArrowLeft, Copy, Download, RotateCcw, Eye, EyeOff, Check, X, Palette, Sparkles, Upload } from 'lucide-react';
+import { Photo, LutPreview, LutApplicationResult, PhotoWithLuts } from '../types';
 import { usePhoto } from '../context/PhotoContext';
 import { useToast } from '../context/ToastContext';
-import { colorTransfer } from '../lib/api';
+import { applyLutToPhotos, getLutPreviewUrl, uploadPhotoWithLuts } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 
 interface CopyLookModeProps {
   onBack: () => void;
@@ -12,24 +13,35 @@ interface CopyLookModeProps {
 const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
   const { photos } = usePhoto();
   const { showToast } = useToast();
+  const { user } = useAuth();
   
-  const [referencePhoto, setReferencePhoto] = useState<Photo | null>(null);
+  const [selectedLut, setSelectedLut] = useState<{ lutName: string; previewUrl: string; sourcePhoto: Photo } | null>(null);
   const [targetPhotos, setTargetPhotos] = useState<Set<string>>(new Set());
   const [isProcessing, setIsProcessing] = useState(false);
-  const [results, setResults] = useState<ColorTransferResult[]>([]);
+  const [results, setResults] = useState<LutApplicationResult[]>([]);
   const [showComparison, setShowComparison] = useState<Map<string, boolean>>(new Map());
+  const [photosWithLuts, setPhotosWithLuts] = useState<PhotoWithLuts[]>([]);
+  const [isUploadingForLuts, setIsUploadingForLuts] = useState(false);
 
-  const handleReferenceSelect = (photo: Photo) => {
-    setReferencePhoto(photo);
-    // Remove from targets if it was selected
-    const newTargets = new Set(targetPhotos);
-    newTargets.delete(photo.id);
-    setTargetPhotos(newTargets);
+  // Convert photos to PhotoWithLuts format (assuming they already have LUT previews from upload)
+  React.useEffect(() => {
+    const convertedPhotos: PhotoWithLuts[] = photos.map(photo => ({
+      ...photo,
+      lut_previews: (photo as any).lut_previews || []
+    }));
+    setPhotosWithLuts(convertedPhotos);
+  }, [photos]);
+
+  const handleLutSelect = (lutName: string, previewUrl: string, sourcePhoto: Photo) => {
+    setSelectedLut({ lutName, previewUrl, sourcePhoto });
+    // Clear target photos when selecting new LUT
+    setTargetPhotos(new Set());
+    setResults([]);
   };
 
   const handleTargetToggle = (photo: Photo) => {
-    // Can't select reference as target
-    if (referencePhoto?.id === photo.id) return;
+    // Can't select the source photo of the selected LUT as target
+    if (selectedLut && selectedLut.sourcePhoto.id === photo.id) return;
     
     const newTargets = new Set(targetPhotos);
     if (newTargets.has(photo.id)) {
@@ -40,40 +52,35 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
     setTargetPhotos(newTargets);
   };
 
-  const handleApplyCopyLook = async () => {
-    if (!referencePhoto || targetPhotos.size === 0) {
-      showToast('Please select a reference photo and target photos', 'warning');
+  const handleApplyLut = async () => {
+    if (!selectedLut || targetPhotos.size === 0) {
+      showToast('Please select a LUT and target photos', 'warning');
       return;
     }
 
     setIsProcessing(true);
     try {
-      const targetPhotoObjects = photos.filter(p => targetPhotos.has(p.id));
+      const targetPhotoObjects = photosWithLuts.filter(p => targetPhotos.has(p.id));
       const targetFiles = targetPhotoObjects.map(p => p.file);
       
-      console.log('Starting color transfer:', {
-        reference: referencePhoto.filename,
+      console.log('Applying LUT:', {
+        lutName: selectedLut.lutName,
         targets: targetPhotoObjects.map(p => p.filename)
       });
 
-      const response = await colorTransfer(referencePhoto.file, targetFiles);
+      const response = await applyLutToPhotos(selectedLut.lutName, targetFiles);
       
-      // Handle the backend response format: { results: [...] }
-      const transferResults = response.results || response;
-      
-      setResults(transferResults);
-      showToast(`Color transfer completed for ${transferResults.length} photos!`, 'success');
+      setResults(response.results);
+      showToast(`LUT "${selectedLut.lutName}" applied to ${response.results.length} photos!`, 'success');
     } catch (error: any) {
-      console.error('Color transfer failed:', error);
-      showToast(error.message || 'Color transfer failed', 'error');
+      console.error('LUT application failed:', error);
+      showToast(error.message || 'LUT application failed', 'error');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleDownload = (result: ColorTransferResult) => {
-    if (!result) return;
-
+  const handleDownload = (result: LutApplicationResult) => {
     try {
       const byteCharacters = atob(result.image_base64);
       const byteNumbers = new Array(byteCharacters.length);
@@ -86,7 +93,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `copy_look_${result.filename}`;
+      a.download = `${selectedLut?.lutName}_${result.filename}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -100,7 +107,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
   };
 
   const handleReset = () => {
-    setReferencePhoto(null);
+    setSelectedLut(null);
     setTargetPhotos(new Set());
     setResults([]);
     setShowComparison(new Map());
@@ -112,7 +119,66 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
     setShowComparison(newComparison);
   };
 
-  const canApply = referencePhoto && targetPhotos.size > 0 && !isProcessing;
+  const handleUploadForLuts = async (files: File[]) => {
+    if (!user?.email) {
+      showToast('User authentication required', 'error');
+      return;
+    }
+
+    setIsUploadingForLuts(true);
+    try {
+      const albumName = `lut_preview_${Date.now()}`;
+      
+      for (const file of files) {
+        const response = await uploadPhotoWithLuts(file, albumName, user.email);
+        
+        // Parse LUT previews from response
+        const lutPreviews: LutPreview[] = response.previews.map(previewPath => {
+          const filename = previewPath.split('/').pop() || '';
+          const lutName = filename.replace(`${file.name.split('.')[0]}_`, '').replace('.jpg', '');
+          
+          return {
+            lut_name: lutName,
+            preview_path: previewPath,
+            preview_url: getLutPreviewUrl(previewPath)
+          };
+        });
+
+        // Add photo with LUT previews to state
+        const newPhoto: PhotoWithLuts = {
+          id: Math.random().toString(36).substring(2, 11),
+          filename: file.name,
+          file: file,
+          url: URL.createObjectURL(file),
+          score: null,
+          ai_score: 0,
+          score_type: 'base',
+          dateCreated: new Date().toISOString(),
+          selected: false,
+          lut_previews: lutPreviews
+        };
+
+        setPhotosWithLuts(prev => [...prev, newPhoto]);
+      }
+      
+      showToast(`Uploaded ${files.length} photos with LUT previews!`, 'success');
+    } catch (error: any) {
+      console.error('Upload with LUTs failed:', error);
+      showToast(error.message || 'Failed to upload photos', 'error');
+    } finally {
+      setIsUploadingForLuts(false);
+    }
+  };
+
+  const canApply = selectedLut && targetPhotos.size > 0 && !isProcessing;
+
+  // Get all unique LUT names from all photos
+  const allLutNames = new Set<string>();
+  photosWithLuts.forEach(photo => {
+    photo.lut_previews?.forEach(preview => {
+      allLutNames.add(preview.lut_name);
+    });
+  });
 
   return (
     <div className="space-y-6">
@@ -129,11 +195,11 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
             </div>
             <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-orange-600 to-red-600 
                          bg-clip-text text-transparent">
-              Copy Look Mode
+              LUT Copy Look Mode
             </h2>
             <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              Transfer the color grading and look from one photo to multiple target photos. 
-              Select a reference photo and then choose which photos should receive its look.
+              Browse LUT previews from your photos, select the look you like, and apply it to other photos. 
+              Each photo shows previews with all available LUTs from your collection.
             </p>
           </div>
 
@@ -149,7 +215,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
             </button>
             
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              {photos.length} photos available for color transfer
+              {photosWithLuts.length} photos • {allLutNames.size} LUTs available
             </div>
           </div>
 
@@ -158,126 +224,169 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
                         dark:to-red-900/30 border border-orange-200 dark:border-orange-700 
                         rounded-lg p-4 mb-6">
             <h3 className="font-semibold text-orange-800 dark:text-orange-200 mb-2">
-              How Copy Look Works:
+              How LUT Copy Look Works:
             </h3>
             <ul className="text-sm text-orange-700 dark:text-orange-300 space-y-1">
-              <li>• Click on one photo to set it as the <strong>reference</strong> (source of the look)</li>
-              <li>• Click on multiple photos to select them as <strong>targets</strong> (will receive the look)</li>
-              <li>• Click "Apply Copy Look" to transfer the color grading</li>
-              <li>• View before/after comparisons and download the results</li>
+              <li>• Browse LUT previews for each photo (generated automatically on upload)</li>
+              <li>• Click on a LUT preview to select that <strong>look/style</strong></li>
+              <li>• Select target photos where you want to apply the same LUT</li>
+              <li>• Click "Apply LUT" to process the selected photos</li>
+              <li>• View before/after results and download the processed images</li>
             </ul>
           </div>
         </div>
       </div>
 
-      {/* Selection Summary */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Selection Summary
+      {/* Upload Section for LUT Generation */}
+      {photosWithLuts.length === 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            Upload Photos for LUT Previews
           </h3>
-          <div className="flex items-center space-x-3">
-            {canApply && (
-              <button
-                onClick={handleApplyCopyLook}
-                disabled={isProcessing}
-                className="px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 
-                         hover:from-orange-700 hover:to-red-700 disabled:from-gray-400 
-                         disabled:to-gray-400 disabled:cursor-not-allowed text-white rounded-lg 
-                         flex items-center space-x-2 transition-all duration-200 font-medium"
-              >
-                <Copy className="h-5 w-5" />
-                <span>{isProcessing ? 'Processing...' : 'Apply Copy Look'}</span>
-              </button>
-            )}
-            <button
-              onClick={handleReset}
-              className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg 
-                       flex items-center space-x-2 transition-colors duration-200"
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            Upload photos to automatically generate LUT previews for all available LUTs in your collection.
+          </p>
+          
+          <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={(e) => {
+                const files = Array.from(e.target.files || []);
+                if (files.length > 0) {
+                  handleUploadForLuts(files);
+                }
+              }}
+              className="hidden"
+              id="lut-upload"
+            />
+            <label
+              htmlFor="lut-upload"
+              className="cursor-pointer flex flex-col items-center space-y-2"
             >
-              <RotateCcw className="h-4 w-4" />
-              <span>Reset</span>
-            </button>
+              <Upload className="h-12 w-12 text-gray-400" />
+              <span className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                {isUploadingForLuts ? 'Generating LUT Previews...' : 'Upload Photos'}
+              </span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                Click to select photos or drag and drop
+              </span>
+            </label>
           </div>
         </div>
+      )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Reference Photo */}
-          <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
-            <h4 className="font-medium text-orange-800 dark:text-orange-200 mb-3">
-              Reference Photo (Source Look)
-            </h4>
-            {referencePhoto ? (
-              <div className="flex items-center space-x-3">
-                <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                  <img
-                    src={referencePhoto.url}
-                    alt={referencePhoto.filename}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
-                    {referencePhoto.filename}
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    This photo's look will be copied to targets
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <p className="text-orange-700 dark:text-orange-300 text-sm">
-                Click on a photo below to select it as reference
-              </p>
-            )}
+      {/* Selection Summary */}
+      {photosWithLuts.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              LUT Selection
+            </h3>
+            <div className="flex items-center space-x-3">
+              {canApply && (
+                <button
+                  onClick={handleApplyLut}
+                  disabled={isProcessing}
+                  className="px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 
+                           hover:from-orange-700 hover:to-red-700 disabled:from-gray-400 
+                           disabled:to-gray-400 disabled:cursor-not-allowed text-white rounded-lg 
+                           flex items-center space-x-2 transition-all duration-200 font-medium"
+                >
+                  <Sparkles className="h-5 w-5" />
+                  <span>{isProcessing ? 'Applying LUT...' : 'Apply LUT'}</span>
+                </button>
+              )}
+              <button
+                onClick={handleReset}
+                className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg 
+                         flex items-center space-x-2 transition-colors duration-200"
+              >
+                <RotateCcw className="h-4 w-4" />
+                <span>Reset</span>
+              </button>
+            </div>
           </div>
 
-          {/* Target Photos */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-3">
-              Target Photos ({targetPhotos.size})
-            </h4>
-            {targetPhotos.size > 0 ? (
-              <div className="space-y-2 max-h-32 overflow-y-auto">
-                {Array.from(targetPhotos).map(photoId => {
-                  const photo = photos.find(p => p.id === photoId);
-                  if (!photo) return null;
-                  
-                  return (
-                    <div key={photoId} className="flex items-center space-x-2">
-                      <div className="w-8 h-8 rounded overflow-hidden flex-shrink-0">
-                        <img
-                          src={photo.url}
-                          alt={photo.filename}
-                          className="w-full h-full object-cover"
-                        />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Selected LUT */}
+            <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+              <h4 className="font-medium text-orange-800 dark:text-orange-200 mb-3">
+                Selected LUT Style
+              </h4>
+              {selectedLut ? (
+                <div className="flex items-center space-x-3">
+                  <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                    <img
+                      src={selectedLut.previewUrl}
+                      alt={selectedLut.lutName}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 dark:text-gray-100">
+                      {selectedLut.lutName}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                      From: {selectedLut.sourcePhoto.filename}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-orange-700 dark:text-orange-300 text-sm">
+                  Click on a LUT preview below to select the style
+                </p>
+              )}
+            </div>
+
+            {/* Target Photos */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-3">
+                Target Photos ({targetPhotos.size})
+              </h4>
+              {targetPhotos.size > 0 ? (
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {Array.from(targetPhotos).map(photoId => {
+                    const photo = photosWithLuts.find(p => p.id === photoId);
+                    if (!photo) return null;
+                    
+                    return (
+                      <div key={photoId} className="flex items-center space-x-2">
+                        <div className="w-8 h-8 rounded overflow-hidden flex-shrink-0">
+                          <img
+                            src={photo.url}
+                            alt={photo.filename}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <p className="text-sm text-gray-900 dark:text-gray-100 truncate">
+                          {photo.filename}
+                        </p>
                       </div>
-                      <p className="text-sm text-gray-900 dark:text-gray-100 truncate">
-                        {photo.filename}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-blue-700 dark:text-blue-300 text-sm">
-                Click on photos below to select them as targets
-              </p>
-            )}
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-blue-700 dark:text-blue-300 text-sm">
+                  Select photos below to apply the LUT to them
+                </p>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Results Section */}
       {results.length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Color Transfer Results ({results.length})
+            LUT Application Results ({results.length})
           </h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {results.map((result, index) => {
-              const originalPhoto = photos.find(p => p.filename === result.filename);
+              const originalPhoto = photosWithLuts.find(p => p.filename === result.filename);
               if (!originalPhoto) return null;
               
               const showBefore = !showComparison.get(result.filename);
@@ -294,7 +403,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
                     ) : (
                       <img
                         src={`data:image/jpeg;base64,${result.image_base64}`}
-                        alt={`Copy Look Result ${result.filename}`}
+                        alt={`LUT Applied ${result.filename}`}
                         className="w-full h-full object-cover"
                       />
                     )}
@@ -311,14 +420,19 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
                     
                     {/* Status Badge */}
                     <div className="absolute top-2 right-2 px-2 py-1 bg-green-500 text-white text-xs rounded">
-                      ✓ Complete
+                      ✓ {selectedLut?.lutName}
                     </div>
                   </div>
                   
                   <div className="space-y-3">
-                    <h4 className="font-medium text-gray-900 dark:text-gray-100 truncate" title={result.filename}>
-                      {result.filename}
-                    </h4>
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100 truncate" title={result.filename}>
+                        {result.filename}
+                      </h4>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        LUT: {result.lut_name}
+                      </p>
+                    </div>
                     
                     <div className="flex space-x-2">
                       <button
@@ -349,117 +463,121 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
         </div>
       )}
 
-      {/* Photo Grid */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Select Photos for Color Transfer
-          </h3>
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Click to select reference (orange) or targets (blue)
-          </div>
-        </div>
-        
-        {photos.length === 0 ? (
-          <div className="text-center py-12">
-            <Palette className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              No Photos Available
+      {/* Photos with LUT Previews Grid */}
+      {photosWithLuts.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Photos with LUT Previews
             </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Upload photos first to start color transfer.
-            </p>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Click LUT previews to select style, then click photos to apply to
+            </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {photos.map((photo) => {
-              const isReference = referencePhoto?.id === photo.id;
-              const isTarget = targetPhotos.has(photo.id);
-              const hasResult = results.some(r => r.filename === photo.filename);
-              
-              return (
-                <div
-                  key={photo.id}
-                  className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer 
-                           transition-all duration-200 border-2 ${
-                    isReference
-                      ? 'border-orange-500 ring-2 ring-orange-300 shadow-lg'
-                      : isTarget
-                      ? 'border-blue-500 ring-2 ring-blue-300 shadow-lg'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
-                >
-                  <img
-                    src={photo.url}
-                    alt={photo.filename}
-                    className="w-full h-full object-cover"
-                  />
-                  
-                  {/* Selection Overlay */}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 
-                                transition-opacity duration-200 flex items-center justify-center">
-                    <div className="bg-white/90 rounded-lg p-2 space-y-1">
-                      <button
-                        onClick={() => handleReferenceSelect(photo)}
-                        disabled={isReference}
-                        className={`w-full px-3 py-1.5 text-xs rounded transition-colors ${
-                          isReference
-                            ? 'bg-orange-500 text-white cursor-default'
-                            : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                        }`}
-                      >
-                        {isReference ? '✓ Reference' : 'Set Reference'}
-                      </button>
-                      
-                      <button
-                        onClick={() => handleTargetToggle(photo)}
-                        disabled={isReference}
-                        className={`w-full px-3 py-1.5 text-xs rounded transition-colors ${
-                          isReference
-                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                            : isTarget
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                        }`}
-                      >
-                        {isTarget ? '✓ Target' : 'Add Target'}
-                      </button>
-                    </div>
+          
+          <div className="space-y-8">
+            {photosWithLuts.map((photo) => (
+              <div key={photo.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                {/* Original Photo */}
+                <div className="flex items-center space-x-4 mb-4">
+                  <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
+                    <img
+                      src={photo.url}
+                      alt={photo.filename}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                  
-                  {/* Status Indicators */}
-                  <div className="absolute top-2 left-2">
-                    {isReference && (
-                      <div className="px-2 py-1 bg-orange-500 text-white text-xs rounded-full font-medium">
-                        Reference
-                      </div>
-                    )}
-                    {isTarget && (
-                      <div className="px-2 py-1 bg-blue-500 text-white text-xs rounded-full font-medium">
-                        Target
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Result Indicator */}
-                  {hasResult && (
-                    <div className="absolute top-2 right-2">
-                      <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                        <Check className="h-4 w-4 text-white" />
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Filename */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/75 to-transparent p-2">
-                    <p className="text-white text-xs truncate">{photo.filename}</p>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                      {photo.filename}
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {photo.lut_previews?.length || 0} LUT previews available
+                    </p>
+                    
+                    {/* Target Selection Button */}
+                    <button
+                      onClick={() => handleTargetToggle(photo)}
+                      disabled={!selectedLut || selectedLut.sourcePhoto.id === photo.id}
+                      className={`mt-2 px-3 py-1 text-sm rounded-md transition-colors ${
+                        selectedLut && selectedLut.sourcePhoto.id === photo.id
+                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          : targetPhotos.has(photo.id)
+                          ? 'bg-blue-500 text-white'
+                          : selectedLut
+                          ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                          : 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
+                      {selectedLut && selectedLut.sourcePhoto.id === photo.id
+                        ? 'Source Photo'
+                        : targetPhotos.has(photo.id)
+                        ? '✓ Selected as Target'
+                        : selectedLut
+                        ? 'Select as Target'
+                        : 'Select LUT first'
+                      }
+                    </button>
                   </div>
                 </div>
-              );
-            })}
+
+                {/* LUT Previews */}
+                {photo.lut_previews && photo.lut_previews.length > 0 && (
+                  <div>
+                    <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                      Available LUT Styles:
+                    </h5>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                      {photo.lut_previews.map((lutPreview, index) => {
+                        const isSelected = selectedLut?.lutName === lutPreview.lut_name && 
+                                         selectedLut?.sourcePhoto.id === photo.id;
+                        const previewUrl = lutPreview.preview_url || getLutPreviewUrl(lutPreview.preview_path);
+                        
+                        return (
+                          <div
+                            key={index}
+                            className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer 
+                                     transition-all duration-200 border-2 ${
+                              isSelected
+                                ? 'border-orange-500 ring-2 ring-orange-300 shadow-lg scale-105'
+                                : 'border-gray-200 dark:border-gray-700 hover:border-orange-300 hover:scale-102'
+                            }`}
+                            onClick={() => handleLutSelect(lutPreview.lut_name, previewUrl, photo)}
+                          >
+                            <img
+                              src={previewUrl}
+                              alt={`${lutPreview.lut_name} preview`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                console.error('Failed to load LUT preview:', previewUrl);
+                                e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkVycm9yPC90ZXh0Pjwvc3ZnPg==';
+                              }}
+                            />
+                            
+                            {/* LUT Name */}
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/75 to-transparent p-1">
+                              <p className="text-white text-xs text-center truncate" title={lutPreview.lut_name}>
+                                {lutPreview.lut_name}
+                              </p>
+                            </div>
+                            
+                            {/* Selection Indicator */}
+                            {isSelected && (
+                              <div className="absolute top-1 right-1 w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center">
+                                <Check className="h-3 w-3 text-white" />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

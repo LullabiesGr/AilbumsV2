@@ -1097,3 +1097,43 @@ export const colorTransfer = async (referenceFile: File, targetFiles: File[]): P
     throw error instanceof Error ? error : new Error(error.toString());
   }
 };
+
+// Apply LUT to photos
+export const applyLUT = async (files: File[], lutName: string): Promise<{ results: LUTApplyResult[] }> => {
+  const formData = new FormData();
+  
+  files.forEach(file => {
+    formData.append('files', file);
+  });
+  
+  formData.append('lut_name', lutName);
+
+  try {
+    const response = await fetch(`${API_URL}/apply-lut`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      },
+      mode: 'cors',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Failed to apply LUT');
+    }
+
+    const data = await response.json();
+    
+    // Handle both response formats: { results: [...] } or direct array
+    const results = data.results || data;
+    if (!Array.isArray(results)) {
+      throw new Error('Invalid response format from server');
+    }
+    
+    return { results };
+  } catch (error: any) {
+    console.error('LUT apply error:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};

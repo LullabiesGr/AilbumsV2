@@ -264,7 +264,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           tags: isRawFile ? ['raw'] : [],
           dateCreated: new Date().toISOString(),
           selected: false,
-          lut_previews: [], // Will be populated by backend
+          lut_previews: [], // Will be populated when calling /upload-photo
           selected_lut: undefined
         });
       }
@@ -273,15 +273,14 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       
       const rawCount = newPhotos.filter(p => p.tags?.includes('raw')).length;
       const standardCount = newPhotos.length - rawCount;
-      const lutPreviewCount = newPhotos.reduce((sum, p) => sum + (p.lut_previews?.length || 0), 0);
       
       let message = 'Photos uploaded successfully';
       if (rawCount > 0 && standardCount > 0) {
-        message = `${standardCount} standard and ${rawCount} RAW photos uploaded successfully. Generated ${lutPreviewCount} LUT previews.`;
+        message = `${standardCount} standard and ${rawCount} RAW photos uploaded successfully. LUT previews will be generated during analysis.`;
       } else if (rawCount > 0) {
         message = `${rawCount} RAW photos uploaded successfully`;
       } else {
-        message = `${standardCount} photos uploaded successfully. Generated ${lutPreviewCount} LUT previews.`;
+        message = `${standardCount} photos uploaded successfully. LUT previews will be generated during analysis.`;
       }
       
       showToast(message, 'success');
@@ -406,12 +405,43 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return;
     }
 
+    // Step 1: Upload photos for LUT previews if not already done
+    const uploadPhotosForPreviews = async () => {
+      const albumNameForUpload = currentAlbumName || 'temp_album';
+      console.log(`📤 Background upload: Uploading ${photos.length} photos to album: "${albumNameForUpload}"`);
+      
+      const updatedPhotos = [...photos];
+      for (let i = 0; i < photos.length; i++) {
+        const photo = photos[i];
+        
+        // Skip if already has LUT previews or is RAW
+        if (photo.lut_previews?.length || photo.tags?.includes('raw')) {
+          continue;
+        }
+        
+        try {
+          const response = await uploadPhotoForLUTPreviews(photo.file, user.email, albumNameForUpload);
+          updatedPhotos[i] = {
+            ...photo,
+            lut_previews: response.lut_previews || []
+          };
+        } catch (error) {
+          console.warn(`Failed to generate LUT previews for ${photo.filename}:`, error);
+        }
+      }
+      
+      setPhotos(updatedPhotos);
+    };
+
     setIsAnalyzing(true);
     setShowAnalysisOverlay(true);
     setAnalysisProgress({ processed: 0, total: photos.length, currentPhoto: '' });
     
     const runAnalysis = async () => {
       try {
+        // Upload photos for LUT previews first
+        await uploadPhotosForPreviews();
+        
         if (cullingMode === 'deep') {
           // Use parallel processing for deep analysis with real-time updates
           const analyzedPhotos = await deepAnalyzePhotosSingle(
@@ -433,7 +463,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               }
             },
             2, // Concurrency limit
-            currentAlbumId || 'temp-album' // Album ID
+            currentAlbumName || 'temp-album' // Album name
           );
           
           setPhotos(analyzedPhotos);
@@ -459,7 +489,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               }
             },
             2, // Concurrency limit
-            currentAlbumId || albumName?.trim() || 'temp_album'
+            currentAlbumName || 'temp_album'
           );
           
           setPhotos(analyzedPhotos);
@@ -490,7 +520,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     runAnalysis();
-  }, [photos, eventType, cullingMode, showToast, groupPeopleByFaces, currentAlbumId, user?.email]);
 
   const startAnalysis = useCallback(async (albumName?: string, providedEventType?: EventType) => {
     if (!cullingMode || photos.length === 0) {
@@ -532,6 +561,53 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     // Set event type
     setEventType(analysisEventType);
     
+    // Step 1: Upload photos to backend for LUT preview generation
+    console.log('🔄 Step 1: Uploading photos for LUT preview generation...');
+    try {
+      const albumNameForUpload = albumName?.trim() || currentAlbumName || 'temp_album';
+      console.log(`📤 Uploading ${photos.length} photos to album: "${albumNameForUpload}"`);
+      
+      // Upload each photo to generate LUT previews
+      const updatedPhotos = [...photos];
+      for (let i = 0; i < photos.length; i++) {
+        const photo = photos[i];
+        
+        // Skip RAW files for now (they'll be converted during analysis)
+        if (photo.tags?.includes('raw')) {
+          console.log(`⏭️ Skipping RAW file for LUT previews: ${photo.filename}`);
+          continue;
+        }
+        
+        try {
+          console.log(`📤 Uploading photo ${i + 1}/${photos.length}: ${photo.filename}`);
+          const response = await uploadPhotoForLUTPreviews(photo.file, user.email, albumNameForUpload);
+          
+          // Update photo with LUT previews
+          updatedPhotos[i] = {
+            ...photo,
+            lut_previews: response.lut_previews || []
+          };
+          
+          console.log(`✅ LUT previews generated for ${photo.filename}: ${response.lut_previews?.length || 0} previews`);
+        } catch (error) {
+          console.warn(`⚠️ Failed to generate LUT previews for ${photo.filename}:`, error);
+          // Continue with other photos even if one fails
+        }
+      }
+      
+      // Update photos with LUT previews
+      setPhotos(updatedPhotos);
+      
+      const totalPreviews = updatedPhotos.reduce((sum, p) => sum + (p.lut_previews?.length || 0), 0);
+      showToast(`LUT previews generated: ${totalPreviews} total previews for ${photos.length} photos`, 'success');
+      
+    } catch (error: any) {
+      console.error('❌ Failed to upload photos for LUT previews:', error);
+      showToast('Warning: LUT previews generation failed, continuing with analysis...', 'warning');
+    }
+    
+    // Step 2: Start AI Analysis
+    console.log('🔄 Step 2: Starting AI analysis...');
     // Go to analyzing stage and start analysis
     setWorkflowStage('analyzing');
     setIsAnalyzing(true);
@@ -561,7 +637,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             }
           },
           2, // Concurrency limit
-          albumName?.trim() || currentAlbumId || 'temp_album'
+          albumName?.trim() || currentAlbumName || 'temp_album'
         );
         
         setPhotos(analyzedPhotos);
@@ -589,7 +665,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             }
           },
           2, // Concurrency limit
-          albumName?.trim() || currentAlbumId || 'temp_album'
+          albumName?.trim() || currentAlbumName || 'temp_album'
         );
         
         setPhotos(analyzedPhotos);

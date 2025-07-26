@@ -19,6 +19,7 @@ import Sidebar from '../components/Sidebar';
 import FaceRetouchModal from '../components/FaceRetouchModal';
 import { Play, RotateCcw, Brain, Copy, Users, Grid, List, Sparkles, ArrowLeft, Wand2, Palette } from 'lucide-react';
 import CopyLookMode from '../components/CopyLookMode';
+import CopyPhotoStyleMode from '../components/CopyPhotoStyleMode';
 
 const Home: React.FC = () => {
   const { 
@@ -447,6 +448,13 @@ const Home: React.FC = () => {
         return (
           <div className="space-y-6">
             <CopyLookMode onBack={() => setWorkflowStage('review')} />
+          </div>
+        );
+
+      case 'copy-photo-style':
+        return (
+          <div className="space-y-6">
+            <CopyPhotoStyleMode onBack={() => setWorkflowStage('review')} />
           </div>
         );
 

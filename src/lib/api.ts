@@ -1111,12 +1111,6 @@ export const uploadPhotoWithLuts = async (
   formData.append('album_name', albumName);
   formData.append('user_id', userId);
 
-  console.log('Uploading photo with LUTs:', {
-    filename: file.name,
-    albumName,
-    userId,
-    fileSize: file.size
-  });
   try {
     const response = await fetch(`${API_URL}/upload-photo`, {
       method: 'POST',
@@ -1129,16 +1123,10 @@ export const uploadPhotoWithLuts = async (
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Upload photo API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText
-      });
       throw new Error(errorText || 'Failed to upload photo');
     }
 
     const result = await response.json();
-    console.log('Upload photo response:', result);
     return result;
   } catch (error: any) {
     console.error('Upload photo with LUTs error:', error);
@@ -1203,14 +1191,6 @@ export const getLutPreviewUrl = (previewPath: string): string => {
   const userId = pathParts[0];
   const albumName = pathParts[1];
   const filename = pathParts.slice(2).join('/'); // Handle nested paths like "previews/filename.jpg"
-  
-  console.log('Converting preview path to URL:', {
-    originalPath: previewPath,
-    userId,
-    albumName,
-    filename,
-    finalUrl: `${API_URL}/album-photo?album_dir=${encodeURIComponent(userId + '/' + albumName)}&filename=${encodeURIComponent(filename)}`
-  });
   
   return `${API_URL}/album-photo?album_dir=${encodeURIComponent(userId + '/' + albumName)}&filename=${encodeURIComponent(filename)}`;
 };

@@ -2,7 +2,6 @@ import React, { useRef } from 'react';
 import { Upload } from 'lucide-react';
 import { usePhoto } from '../context/PhotoContext';
 import { useToast } from '../context/ToastContext';
-import { useToast } from '../context/ToastContext';
 
 interface UploadButtonProps {
   variant?: 'primary' | 'secondary';
@@ -10,16 +9,9 @@ interface UploadButtonProps {
 
 const UploadButton: React.FC<UploadButtonProps> = ({ variant = 'primary' }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { uploadPhotos, isUploading, currentAlbumName } = usePhoto();
-  const { showToast } = useToast();
+  const { uploadPhotos, isUploading } = usePhoto();
 
   const handleUploadClick = () => {
-    // Check if album name is set
-    if (!currentAlbumName || !currentAlbumName.trim()) {
-      showToast('Please enter album name first to generate LUT previews', 'warning');
-      return;
-    }
-    
     fileInputRef.current?.click();
   };
 
@@ -53,7 +45,7 @@ const UploadButton: React.FC<UploadButtonProps> = ({ variant = 'primary' }) => {
       <input 
         type="file" 
         ref={fileInputRef}
-        accept=".jpg,.jpeg,.png,.tiff,.tif,.bmp,.webp,.cr2,.cr3,.nef,.arw,.dng,.orf,.raf,.pef"
+        accept=".jpg,.jpeg,.png"
         multiple
         className="hidden"
         onChange={handleFileChange}

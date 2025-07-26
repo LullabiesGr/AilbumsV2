@@ -227,104 +227,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setIsUploading(true);
     
     try {
-      // Check if we have user email and album name for backend upload
-      if (!user?.email) {
-        throw new Error('User email is required for photo upload');
-      }
-
-      if (!currentAlbumName || !currentAlbumName.trim()) {
-        throw new Error('Album name is required for photo upload');
-      }
-
-      console.log(`📤 Starting upload of ${files.length} photos to album: ${currentAlbumName}`);
-      
-      const newPhotos: PhotoWithLUTs[] = [];
-      
-      // Upload each photo to backend and get LUT previews
-      for (const file of files) {
-        try {
-          console.log(`📤 Uploading: ${file.name}`);
-          
-          // Upload to backend and get LUT previews
-          const uploadResult = await uploadPhotoWithPreviews(file, user.email, currentAlbumName.trim());
-          
-          // Create photo URL for display
-          const photoUrl = URL.createObjectURL(file);
-          
-          // Create photo object with LUT previews from backend
-          const newPhoto: PhotoWithLUTs = {
-            id: Math.random().toString(36).substring(2, 11),
-            filename: uploadResult.filename,
-            file: file,
-            url: photoUrl,
-            score: null,
-            ai_score: 0,
-            score_type: 'base',
-            tags: [],
-            dateCreated: new Date().toISOString(),
-            selected: false,
-            lut_previews: uploadResult.lut_previews || [], // LUT previews from backend
-            selected_lut: undefined
-          };
-          
-          newPhotos.push(newPhoto);
-          
-          console.log(`✅ Photo uploaded with ${uploadResult.lut_previews?.length || 0} LUT previews:`, uploadResult.filename);
-          
-        } catch (error: any) {
-          console.error(`❌ Failed to upload ${file.name}:`, error);
-          showToast(`Failed to upload ${file.name}: ${error.message}`, 'error');
-          
-          // Create fallback photo without LUT previews
-          const photoUrl = URL.createObjectURL(file);
-          const fallbackPhoto: PhotoWithLUTs = {
-            id: Math.random().toString(36).substring(2, 11),
-            filename: file.name,
-            file: file,
-            url: photoUrl,
-            score: null,
-            ai_score: 0,
-            score_type: 'base',
-            tags: ['upload_failed'],
-            dateCreated: new Date().toISOString(),
-            selected: false,
-            lut_previews: [],
-            selected_lut: undefined
-          };
-          
-          newPhotos.push(fallbackPhoto);
-        }
-      }
-      
-      setPhotos((prev) => [...prev, ...newPhotos]);
-      
-      const successCount = newPhotos.filter(p => !p.tags?.includes('upload_failed')).length;
-      const failedCount = newPhotos.length - successCount;
-      const totalPreviews = newPhotos.reduce((sum, p) => sum + (p.lut_previews?.length || 0), 0);
-      
-      let message = `${successCount} photos uploaded successfully`;
-      if (totalPreviews > 0) {
-        message += ` with ${totalPreviews} LUT previews generated`;
-      }
-      if (failedCount > 0) {
-        message += ` (${failedCount} failed)`;
-      }
-      
-      showToast(message, successCount > 0 ? 'success' : 'error');
-      
-    } catch (error: any) {
-      console.error('❌ Upload photos error:', error);
-      showToast(error.message || 'Failed to upload photos', 'error');
-    } finally {
-      setIsUploading(false);
-    }
-  }, [showToast, user?.email, currentAlbumName]);
-
-  // Legacy upload function for backward compatibility (without LUT previews)
-  const uploadPhotosLegacy = useCallback(async (files: File[]) => {
-    setIsUploading(true);
-    
-    try {
       // Separate RAW and standard image files
       const rawExtensions = [
         '.cr2', '.cr3', '.crw', '.nef', '.nrw', '.arw', '.srf', '.sr2', '.dng', 
@@ -362,7 +264,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           tags: isRawFile ? ['raw'] : [],
           dateCreated: new Date().toISOString(),
           selected: false,
-          lut_previews: [], // Will be populated by backend during analysis
+          lut_previews: [], // Will be populated by backend
           selected_lut: undefined
         });
       }
@@ -401,10 +303,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     try {
       const albumId = albumName.trim();
       console.log('📝 Using album ID:', albumId);
-      
-      // Set album name immediately for uploads
-      setCurrentAlbumName(albumName.trim());
-      setCurrentAlbumId(albumName.trim());
       
       // Create FormData for backend
       console.log('📡 Sending FormData to /create-album...');

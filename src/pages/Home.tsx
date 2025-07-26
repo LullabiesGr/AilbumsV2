@@ -118,47 +118,12 @@ const Home: React.FC = () => {
                 </p>
               </div>
               
-              {/* Album Name Input - Show before upload */}
-              {photos.length === 0 && (
-                <div className="mb-6">
-                  <label className="block text-sm font-medium mb-2">
-                    Album Name (Required for LUT Previews)
-                  </label>
-                  <input
-                    type="text"
-                    value={albumName}
-                    onChange={(e) => setAlbumName(e.target.value)}
-                    placeholder="e.g. Wedding of John & Mary 2024"
-                    className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-lg border 
-                             border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 
-                             focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Album name is required to generate LUT previews for your photos
-                  </p>
-                </div>
-              )}
-              
               <div className="flex flex-col items-center justify-center py-8">
-                {albumName.trim() ? (
-                  <UploadButton />
-                ) : (
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Upload className="h-8 w-8 text-gray-400" />
-                    </div>
-                    <p className="text-gray-500 dark:text-gray-400">
-                      Enter album name above to start uploading
-                    </p>
-                  </div>
-                )}
+                <UploadButton />
                 <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
                   <p className="font-medium mb-1">Supported formats:</p>
                   <p>Standard: JPEG, PNG, TIFF, WebP, BMP</p>
                   <p>RAW: CR2, CR3, NEF, ARW, DNG, ORF, RAF, PEF, and more</p>
-                  <p className="mt-2 text-blue-600 dark:text-blue-400 font-medium">
-                    ✨ LUT previews will be generated automatically for each photo!
-                  </p>
                 </div>
               </div>
               

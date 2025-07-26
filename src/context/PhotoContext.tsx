@@ -299,25 +299,22 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
     
     try {
-      // Create album ID from user-provided name for better backend organization
-      const sanitizedName = albumName.trim().replace(/[^a-zA-Z0-9]/g, '_');
-      const albumId = `${sanitizedName}_${Date.now()}`;
-      console.log('📝 Generated album ID:', albumId);
+      const albumId = albumName.trim();
+      console.log('📝 Using album ID:', albumId);
       
       // Create FormData for backend
       console.log('📡 Sending FormData to /create-album...');
       const formData = new FormData();
-      formData.append('album_name', albumName.trim()); // This should be the folder name
-      formData.append('album_id', albumName.trim()); // Also send as album_id
+      formData.append('album_name', albumName.trim());
+      formData.append('album_id', albumName.trim());
       formData.append('event_type', eventType);
       formData.append('user_id', user.email);
-      formData.append('album_id', albumId);
       
       console.log('📤 FormData contents:', {
         album_name: albumName.trim(),
         event_type: eventType,
         user_id: user.email,
-        album_id: albumId
+        album_id: albumName.trim()
       });
       
       const response = await fetch('https://a7b0ec6a0aa5.ngrok-free.app/create-album', {
@@ -365,13 +362,13 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       
       // Update state with backend response
       setCurrentAlbumName(albumName);
-      setCurrentAlbumId(result.album_id || albumId);
+      setCurrentAlbumId(albumName.trim());
       setEventType(eventType);
       
       console.log('✅ State updated successfully');
       showToast(`Album "${albumName}" created successfully!`, 'success');
       
-      return { albumId: result.album_id || albumId, albumName };
+      return { albumId: albumName.trim(), albumName };
     } catch (error: any) {
       console.error('❌ createNewAlbum failed:', {
         error: error.message || error,
@@ -459,7 +456,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               }
             },
             2, // Concurrency limit
-            currentAlbumId || albumName?.trim() || `temp_album_${Date.now()}` // Use user's album name
+            currentAlbumId || albumName?.trim() || 'temp_album'
           );
           
           setPhotos(analyzedPhotos);
@@ -511,7 +508,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       // Store album name even in manual mode
       if (albumName && albumName.trim()) {
         setCurrentAlbumName(albumName.trim());
-        // Use the exact album name as ID (backend will handle folder creation)
         setCurrentAlbumId(albumName.trim());
       }
       setWorkflowStage('review');
@@ -527,9 +523,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     // Store album name if provided
     if (albumName && albumName.trim()) {
       setCurrentAlbumName(albumName.trim());
-      // Create album ID from user-provided name for better backend organization
-      const sanitizedName = albumName.trim().replace(/[^a-zA-Z0-9]/g, '_');
-      setCurrentAlbumId(`${sanitizedName}_${Date.now()}`);
+      setCurrentAlbumId(albumName.trim());
     }
     
     // Set event type
@@ -564,7 +558,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             }
           },
           2, // Concurrency limit
-          currentAlbumId || `temp_album_${Date.now()}` // Album ID with user name
+          albumName?.trim() || currentAlbumId || 'temp_album'
         );
         
         setPhotos(analyzedPhotos);
@@ -592,7 +586,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             }
           },
           2, // Concurrency limit
-          currentAlbumId || `temp_album_${Date.now()}` // Album ID with user name
+          albumName?.trim() || currentAlbumId || 'temp_album'
         );
         
         setPhotos(analyzedPhotos);

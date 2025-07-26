@@ -155,6 +155,7 @@ export type EventType = 'wedding' | 'baptism' | 'portrait' | 'event' | 'landscap
 
 export type WorkflowStage = 'upload' | 'configure' | 'analyzing' | 'review' | 'face-retouch' | 'ai-edit';
 export type WorkflowStage = 'upload' | 'configure' | 'analyzing' | 'review' | 'face-retouch' | 'ai-edit' | 'copy-look';
+export type WorkflowStage = 'upload' | 'configure' | 'analyzing' | 'review' | 'face-retouch' | 'ai-edit' | 'copy-look' | 'copy-photo-style';
 
 export interface ColorLabelConfig {
   color: ColorLabel;
@@ -168,3 +169,15 @@ export interface ColorTransferResult {
   filename: string;
   image_base64: string;
 }
+
+export interface LUTPreview {
+  path: string;
+  lut_name: string;
+  preview_url: string;
+}
+
+export interface PhotoWithPreviews {
+  photo: Photo;
+  original_path: string;
+  previews: LUTPreview[];
+  selected_lut?: string;

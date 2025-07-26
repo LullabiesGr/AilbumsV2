@@ -1096,4 +1096,3 @@ export const colorTransfer = async (referenceFile: File, targetFiles: File[]): P
     console.error('Color transfer error:', error);
     throw error instanceof Error ? error : new Error(error.toString());
   }
-};

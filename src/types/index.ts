@@ -181,3 +181,4 @@ export interface PhotoWithPreviews {
   original_path: string;
   previews: LUTPreview[];
   selected_lut?: string;
+}

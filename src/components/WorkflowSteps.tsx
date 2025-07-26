@@ -14,6 +14,7 @@ const WorkflowSteps: React.FC<WorkflowStepsProps> = ({ currentStage }) => {
     { id: 'review', label: 'Review & Cull', icon: Eye },
     { id: 'face-retouch', label: 'Face Retouch', icon: Sparkles, separated: true },
     { id: 'copy-look', label: 'Copy Look', icon: Sparkles, separated: false },
+    { id: 'copy-photo-style', label: 'Photo Style', icon: Sparkles, separated: false },
     { id: 'ai-edit', label: 'Edit & Relight', icon: Sparkles, separated: false }
   ];
 

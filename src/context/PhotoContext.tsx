@@ -273,14 +273,15 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       
       const rawCount = newPhotos.filter(p => p.tags?.includes('raw')).length;
       const standardCount = newPhotos.length - rawCount;
+      const lutPreviewCount = newPhotos.reduce((sum, p) => sum + (p.lut_previews?.length || 0), 0);
       
       let message = 'Photos uploaded successfully';
       if (rawCount > 0 && standardCount > 0) {
-        message = `${standardCount} standard and ${rawCount} RAW photos uploaded successfully`;
+        message = `${standardCount} standard and ${rawCount} RAW photos uploaded successfully. Generated ${lutPreviewCount} LUT previews.`;
       } else if (rawCount > 0) {
         message = `${rawCount} RAW photos uploaded successfully`;
       } else {
-        message = `${standardCount} photos uploaded successfully`;
+        message = `${standardCount} photos uploaded successfully. Generated ${lutPreviewCount} LUT previews.`;
       }
       
       showToast(message, 'success');

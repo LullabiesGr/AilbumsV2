@@ -1150,7 +1150,13 @@ export const uploadPhotoForLUTPreviews = async (file: File, userEmail: string, a
   formData.append('album_name', albumName);
 
   try {
-    console.log(`📤 Uploading photo for LUT previews: ${file.name}`);
+    console.log(`📤 Calling POST /upload-photo for: ${file.name}`, {
+      filename: file.name,
+      fileSize: file.size,
+      userEmail,
+      albumName,
+      endpoint: `${API_URL}/upload-photo`
+    });
     
     const response = await fetch(`${API_URL}/upload-photo`, {
       method: 'POST',
@@ -1172,11 +1178,29 @@ export const uploadPhotoForLUTPreviews = async (file: File, userEmail: string, a
     }
 
     const data = await response.json();
-    console.log(`✅ LUT previews generated for ${file.name}:`, data);
+    console.log(`✅ POST /upload-photo response for ${file.name}:`, {
+      status: data.status,
+      album: data.album,
+      photo: data.photo,
+      previewsCount: data.previews?.length || 0,
+      previews: data.previews
+    });
     
-    // Expected response format: { lut_previews: [...] }
+    // Backend returns: { status, album, photo, path, previews: [...] }
+    // Convert to our expected format
     return {
-      lut_previews: data.lut_previews || []
+      lut_previews: (data.previews || []).map((previewPath: string) => {
+        // Extract LUT name from preview path
+        // Example: "D:\mainv2\albums\user\album\previews\photo_lutname.jpg" -> "lutname"
+        const filename = previewPath.split(/[\\\/]/).pop() || '';
+        const lutName = filename.replace(new RegExp(`^${file.name.replace(/\.[^/.]+$/, '')}_`), '').replace(/\.[^/.]+$/, '');
+        
+        return {
+          lut_name: lutName,
+          preview_url: `${API_URL}/album-photo?album_dir=${encodeURIComponent(`${userEmail}/${albumName}`)}&filename=${encodeURIComponent(filename.split(/[\\\/]/).pop() || '')}`,
+          preview_path: previewPath
+        };
+      })
     };
   } catch (error: any) {
     console.error('Upload photo for LUT previews error:', error);

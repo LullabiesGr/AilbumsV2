@@ -146,16 +146,16 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               groups[face.same_person_group].photo_count++;
             }
             
-    formData.append('album_name', albumName.trim()); // This should be the folder name
-    formData.append('album_id', albumName.trim()); // Also send as album_id
+            groups[face.same_person_group].faces.push(face);
             
             // Set representative face (highest quality)
+            if (!groups[face.same_person_group].representative_face ||
                 (face.face_quality && face.face_quality > (groups[face.same_person_group].representative_face?.face_quality || 0))) {
               groups[face.same_person_group].representative_face = face;
             }
           }
         });
-      album_id: albumName.trim()
+      }
     });
     
     setPersonGroups(Object.values(groups));
@@ -307,7 +307,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       // Create FormData for backend
       console.log('📡 Sending FormData to /create-album...');
       const formData = new FormData();
-      formData.append('album_name', albumName.trim());
+      formData.append('album_name', albumName.trim()); // This should be the folder name
+      formData.append('album_id', albumName.trim()); // Also send as album_id
       formData.append('event_type', eventType);
       formData.append('user_id', user.email);
       formData.append('album_id', albumId);
@@ -510,8 +511,9 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       // Store album name even in manual mode
       if (albumName && albumName.trim()) {
         setCurrentAlbumName(albumName.trim());
-        // Use the exact album name as ID (backend will handle folder creation)
-        setCurrentAlbumId(albumName.trim());
+        // Create album ID from user-provided name
+        const sanitizedName = albumName.trim().replace(/[^a-zA-Z0-9]/g, '_');
+        setCurrentAlbumId(`${sanitizedName}_${Date.now()}`);
       }
       setWorkflowStage('review');
       showToast('Manual review mode activated. Start reviewing your photos!', 'success');
@@ -591,7 +593,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             }
           },
           2, // Concurrency limit
-          currentAlbumId || albumName?.trim() || `temp_album_${Date.now()}` // Use user's album name
+          currentAlbumId || `temp_album_${Date.now()}` // Album ID with user name
         );
         
         setPhotos(analyzedPhotos);

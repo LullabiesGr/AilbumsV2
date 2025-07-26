@@ -17,7 +17,7 @@ import AlbumSelector from '../components/AlbumSelector';
 import AnalysisOverlay from '../components/AnalysisOverlay';
 import Sidebar from '../components/Sidebar';
 import FaceRetouchModal from '../components/FaceRetouchModal';
-import { Play, RotateCcw, Brain, Copy, Users, Grid, List, Sparkles, ArrowLeft, Wand2, Palette } from 'lucide-react';
+import { Play, RotateCcw, Brain, Copy, Users, Grid, List, Sparkles, ArrowLeft, Wand2, Palette, Upload } from 'lucide-react';
 import CopyLookMode from '../components/CopyLookMode';
 import LUTModeSelector from '../components/LUTModeSelector';
 

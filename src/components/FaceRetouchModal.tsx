@@ -123,7 +123,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
         });
 
         // Call the /enhance endpoint for CodeFormer processing
-        const response = await fetch('https://36f5ddfd52c2.ngrok-free.app/enhance', {
+        const response = await fetch('https://438aeaff2b7a.ngrok-free.app/enhance', {
           method: 'POST',
           body: formData,
           mode: 'cors',

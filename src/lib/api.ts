@@ -1157,3 +1157,51 @@ export const falRelight = async (file: File, prompt: string): Promise<{ result_u
 };
 
 export const colorTransfer = async (referenceFile: File, targetFiles: File[]): Promise<{ results: ColorTransferResult[] }> => {
+}
+
+// New LUT and Apply endpoint for Copy Look Mode
+export const lutAndApply = async (
+  referenceFile: File, 
+  targetFile: File, 
+  strength: number = 0.5
+): Promise<{
+  lut_cube_file: string;
+  result_image_file: string;
+  strength_used: number;
+  info: string;
+}> => {
+  console.log('🎨 LUT and Apply:', {
+    reference: referenceFile.name,
+    target: targetFile.name,
+    strength
+  });
+  
+  const formData = new FormData();
+  formData.append('reference', referenceFile);
+  formData.append('source', targetFile);
+  formData.append('apply_on', targetFile); // Same file as source
+  formData.append('strength', String(strength));
+
+  try {
+    const response = await fetch(`${API_URL}/lut_and_apply/`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      },
+      mode: 'cors',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Failed to process LUT and apply');
+    }
+
+    const result = await response.json();
+    console.log('✅ LUT and Apply result:', result);
+    return result;
+  } catch (error: any) {
+    console.error('❌ LUT and Apply error:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};

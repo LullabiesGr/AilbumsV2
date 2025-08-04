@@ -1157,39 +1157,3 @@ export const falRelight = async (file: File, prompt: string): Promise<{ result_u
 };
 
 export const colorTransfer = async (referenceFile: File, targetFiles: File[]): Promise<{ results: ColorTransferResult[] }> => {
-  const formData = new FormData();
-  formData.append('reference', referenceFile);
-  
-  targetFiles.forEach(file => {
-    formData.append('targets', file);
-  });
-
-  try {
-    const response = await fetch(`${API_URL}/color-transfer`, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'ngrok-skip-browser-warning': 'true'
-      },
-      mode: 'cors',
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Failed to process color transfer');
-    }
-
-    const data = await response.json();
-    
-    // Handle both response formats: { results: [...] } or direct array
-    const results = data.results || data;
-    if (!Array.isArray(results)) {
-      throw new Error('Invalid response format from server');
-    }
-    
-    return { results };
-  } catch (error: any) {
-    console.error('Color transfer error:', error);
-    throw error instanceof Error ? error : new Error(error.toString());
-  }
-}

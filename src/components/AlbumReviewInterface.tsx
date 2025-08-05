@@ -8,10 +8,9 @@ import ImageModal from './ImageModal';
 import { useToast } from '../context/ToastContext';
 
 // API URL configuration
-export const API_URL =
+const API_URL =
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:8000"
-    : "https://438aeaff2b7a.ngrok-free.app";
 
 interface AlbumReviewInterfaceProps {
   album: SavedAlbum;

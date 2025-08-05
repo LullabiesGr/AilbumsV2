@@ -4,10 +4,9 @@ import { SavedAlbum, SavedPhoto } from './MyAilbumsModal'; // Import interfaces
 import { Photo, Face } from '../types'; // Import Photo and Face types for consistency
 
 // API URL configuration
-export const API_URL =
+const API_URL =
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:8000"
-    : "https://438aeaff2b7a.ngrok-free.app";
 
 interface AlbumDetailViewProps {
   album: SavedAlbum;

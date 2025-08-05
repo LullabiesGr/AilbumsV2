@@ -19,6 +19,8 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
   const [results, setResults] = useState<ColorTransferResult[]>([]);
   const [showComparison, setShowComparison] = useState<Map<string, boolean>>(new Map());
 
+  const [strengthValue, setStrengthValue] = useState(0.5);
+
   const handleReferenceSelect = (photo: Photo) => {
     setReferencePhoto(photo);
     // Remove from targets if it was selected
@@ -47,22 +49,61 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
     }
 
     setIsProcessing(true);
+    const newResults: ColorTransferResult[] = [];
+    let successCount = 0;
+    let errorCount = 0;
+    
     try {
       const targetPhotoObjects = photos.filter(p => targetPhotos.has(p.id));
-      const targetFiles = targetPhotoObjects.map(p => p.file);
       
       console.log('Starting color transfer:', {
         reference: referencePhoto.filename,
         targets: targetPhotoObjects.map(p => p.filename)
       });
 
-      const response = await colorTransfer(referencePhoto.file, targetFiles);
+      // Process each target photo individually
+      for (const targetPhoto of targetPhotoObjects) {
+        try {
+          showToast(`Processing ${targetPhoto.filename}...`, 'info');
+          
+          const result = await lutAndApply(
+            referencePhoto.file, 
+            targetPhoto.file, 
+            strengthValue // Use user-selected strength
+          );
+          
+          // Convert result to expected format
+          newResults.push({
+            filename: targetPhoto.filename,
+            image_base64: result.result_image_base64 || '',
+            lut_cube_file: result.lut_cube_file,
+            strength_used: result.strength_used,
+            info: result.info
+            lut_cube_file: result.lut_cube_file,
+            strength_used: result.strength_used,
+            info: result.info
+          });
+          
+          successCount++;
+          showToast(`✅ ${targetPhoto.filename} processed successfully`, 'success');
+          
+        } catch (error: any) {
+          console.error(`Failed to process ${targetPhoto.filename}:`, error);
+          errorCount++;
+          showToast(`❌ Failed to process ${targetPhoto.filename}`, 'error');
+        }
+      }
       
-      // Handle the backend response format: { results: [...] }
-      const transferResults = response.results || response;
+      setResults(newResults);
       
-      setResults(transferResults);
-      showToast(`Color transfer completed for ${transferResults.length} photos!`, 'success');
+      if (successCount > 0) {
+        showToast(`Color transfer completed for ${successCount} photos!`, 'success');
+      }
+      
+      if (errorCount > 0) {
+        showToast(`Failed to process ${errorCount} photos`, 'error');
+      }
+      
     } catch (error: any) {
       console.error('Color transfer failed:', error);
       showToast(error.message || 'Color transfer failed', 'error');
@@ -96,6 +137,29 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
     } catch (error) {
       console.error('Download failed:', error);
       showToast('Failed to download photo', 'error');
+    }
+  };
+  
+  const handleDownloadLUT = (result: ColorTransferResult) => {
+    if (!result.lut_cube_file) {
+      showToast('No LUT file available', 'warning');
+      return;
+    }
+
+    try {
+      // Download the LUT cube file
+      const a = document.createElement('a');
+      a.href = `${API_URL}/${result.lut_cube_file}`;
+      a.download = `copy_look_${result.filename.replace(/\.[^/.]+$/, '')}.cube`;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      showToast('LUT file downloaded!', 'success');
+    } catch (error) {
+      console.error('LUT download failed:', error);
+      showToast('Failed to download LUT file', 'error');
     }
   };
 
@@ -163,9 +227,43 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
             <ul className="text-sm text-orange-700 dark:text-orange-300 space-y-1">
               <li>• Click on one photo to set it as the <strong>reference</strong> (source of the look)</li>
               <li>• Click on multiple photos to select them as <strong>targets</strong> (will receive the look)</li>
+              <li>• Adjust the strength slider to control the blending intensity</li>
               <li>• Click "Apply Copy Look" to transfer the color grading</li>
               <li>• View before/after comparisons and download the results</li>
             </ul>
+          </div>
+          
+          {/* Strength Control */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 mb-6">
+            <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">
+              Blending Strength
+            </h4>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-gray-600 dark:text-gray-400">
+                  Strength
+                </label>
+                <span className="text-sm font-mono text-gray-900 dark:text-gray-100">
+                  {strengthValue.toFixed(1)}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0.0"
+                max="1.0"
+                step="0.1"
+                value={strengthValue}
+                onChange={(e) => setStrengthValue(parseFloat(e.target.value))}
+                className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
+              />
+              <div className="flex justify-between text-xs text-gray-400">
+                <span>Subtle (0.0)</span>
+                <span>Strong (1.0)</span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Controls how strongly the reference look is applied to target photos
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -339,6 +437,17 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
                       >
                         <Download className="h-4 w-4" />
                         <span>Download</span>
+                      </button>
+                      
+                      <button
+                        onClick={() => handleDownloadLUT(result)}
+                        className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white 
+                                 text-sm rounded-md flex items-center justify-center space-x-1 
+                                 transition-colors duration-200"
+                        title="Download LUT cube file"
+                      >
+                        <Download className="h-4 w-4" />
+                        <span>LUT</span>
                       </button>
                     </div>
                   </div>

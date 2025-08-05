@@ -1157,4 +1157,23 @@ export const falRelight = async (file: File, prompt: string): Promise<{ result_u
 };
 
 export const colorTransfer = async (referenceFile: File, targetFiles: File[]): Promise<{ results: ColorTransferResult[] }> => {
+  // Use the new /lut_and_apply/ endpoint
+  const results: ColorTransferResult[] = [];
+  
+  for (const targetFile of targetFiles) {
+    try {
+      const result = await lutAndApply(referenceFile, targetFile, 0.5);
+      
+      // Convert the backend response to match the expected format
+      results.push({
+        filename: targetFile.name,
+        image_base64: result.result_image_base64 // Assuming backend returns base64
+      });
+    } catch (error) {
+      console.error(`Failed to apply LUT to ${targetFile.name}:`, error);
+      throw error;
+    }
+  }
+  
+  return { results };
 }

@@ -1169,10 +1169,24 @@ export const lutAndApply = async (
   });
   
   const formData = new FormData();
-  formData.append('reference', referenceFile);
-  formData.append('source', targetFile);
-  formData.append('apply_on', targetFile);
+  
+  // Add files as binary data (File objects)
+  formData.append('reference', referenceFile, referenceFile.name);
+  formData.append('source', targetFile, targetFile.name);
+  formData.append('apply_on', targetFile, targetFile.name);
   formData.append('strength', strength.toString());
+  
+  console.log('📤 FormData contents:', {
+    reference: `${referenceFile.name} (${referenceFile.size} bytes)`,
+    source: `${targetFile.name} (${targetFile.size} bytes)`,
+    apply_on: `${targetFile.name} (${targetFile.size} bytes)`,
+    strength: strength.toString(),
+    formDataEntries: Array.from(formData.entries()).map(([key, value]) => ({
+      key,
+      type: value instanceof File ? 'File' : typeof value,
+      size: value instanceof File ? value.size : 'N/A'
+    }))
+  });
 
   try {
     const response = await fetch(`${API_URL}/lut_and_apply/`, {
@@ -1180,8 +1194,15 @@ export const lutAndApply = async (
       body: formData,
       headers: {
         'ngrok-skip-browser-warning': 'true'
+        // Don't set Content-Type - let browser set it automatically for multipart/form-data
       },
       mode: 'cors',
+    });
+
+    console.log('📥 LUT and Apply response:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
     });
 
     if (!response.ok) {
@@ -1195,6 +1216,7 @@ export const lutAndApply = async (
     }
 
     const result = await response.json();
+    console.log('📄 LUT and Apply result:', result);
     
     // If backend returns file paths, we need to fetch the actual image data
     if (result.result_image_file && !result.result_image_base64) {
@@ -1210,6 +1232,10 @@ export const lutAndApply = async (
           const imageBlob = await imageResponse.blob();
           const base64 = await blobToBase64(imageBlob);
           result.result_image_base64 = base64.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+          console.log('✅ Converted result image to base64:', {
+            originalPath: result.result_image_file,
+            base64Length: result.result_image_base64.length
+          });
         }
       } catch (error) {
         console.warn('Failed to fetch result image:', error);

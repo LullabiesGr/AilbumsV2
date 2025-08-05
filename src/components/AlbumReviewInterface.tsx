@@ -11,7 +11,7 @@ import { useToast } from '../context/ToastContext';
 const API_URL =
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:8000"
-    : "https://8b5c-2a02-587-8707-7700-c9b9-c46b-7a8e-b8c8.ngrok-free.app";
+    : "https://438aeaff2b7a.ngrok-free.app";
 
 interface AlbumReviewInterfaceProps {
   album: SavedAlbum;

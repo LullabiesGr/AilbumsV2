@@ -79,6 +79,9 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
             lut_cube_file: result.lut_cube_file,
             strength_used: result.strength_used,
             info: result.info
+            lut_cube_file: result.lut_cube_file,
+            strength_used: result.strength_used,
+            info: result.info
           });
           
           successCount++;

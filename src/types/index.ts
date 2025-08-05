@@ -168,9 +168,6 @@ export interface ColorLabelConfig {
 export interface ColorTransferResult {
   filename: string;
   image_base64: string;
-  lut_cube_file?: string;
-  strength_used?: number;
-  info?: string;
 }
 
 export interface LUTPreview {

@@ -1169,9 +1169,9 @@ export const lutAndApply = async (
   });
   
   const formData = new FormData();
-  formData.append('reference', referenceFile, referenceFile.name);
-  formData.append('source', referenceFile, referenceFile.name); // Same as reference per your spec
-  formData.append('apply_on', targetFile, targetFile.name);
+  formData.append('reference', referenceFile);
+  formData.append('source', targetFile);
+  formData.append('apply_on', targetFile);
   formData.append('strength', strength.toString());
 
   try {

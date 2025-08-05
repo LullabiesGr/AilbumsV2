@@ -1156,6 +1156,84 @@ export const falRelight = async (file: File, prompt: string): Promise<{ result_u
   }
 };
 
+// LUT and Apply endpoint for Copy Look Mode
+export const lutAndApply = async (
+  referenceFile: File, 
+  targetFile: File, 
+  strength: number = 0.5
+): Promise<{ lut_cube_file: string; result_image_file: string; result_image_base64: string; strength_used: number; info: string }> => {
+  console.log('🎨 Applying LUT and color transfer:', {
+    reference: referenceFile.name,
+    target: targetFile.name,
+    strength
+  });
+  
+  const formData = new FormData();
+  formData.append('reference', referenceFile);
+  formData.append('source', targetFile);
+  formData.append('apply_on', targetFile);
+  formData.append('strength', strength.toString());
+
+  try {
+    const response = await fetch(`${API_URL}/lut_and_apply/`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      },
+      mode: 'cors',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LUT and Apply API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`LUT and Apply failed: ${response.status} ${errorText || response.statusText}`);
+    }
+
+    const result = await response.json();
+    
+    // If backend returns file paths, we need to fetch the actual image data
+    if (result.result_image_file && !result.result_image_base64) {
+      try {
+        // Fetch the result image and convert to base64
+        const imageResponse = await fetch(`${API_URL}/${result.result_image_file}`, {
+          headers: {
+            'ngrok-skip-browser-warning': 'true'
+          }
+        });
+        
+        if (imageResponse.ok) {
+          const imageBlob = await imageResponse.blob();
+          const base64 = await blobToBase64(imageBlob);
+          result.result_image_base64 = base64.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+        }
+      } catch (error) {
+        console.warn('Failed to fetch result image:', error);
+      }
+    }
+    
+    console.log('✅ LUT and Apply successful:', result);
+    return result;
+  } catch (error: any) {
+    console.error('❌ LUT and Apply failed:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};
+
+// Helper function to convert blob to base64
+const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
 export const colorTransfer = async (referenceFile: File, targetFiles: File[]): Promise<{ results: ColorTransferResult[] }> => {
   // Use the new /lut_and_apply/ endpoint
   const results: ColorTransferResult[] = [];

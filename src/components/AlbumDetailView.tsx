@@ -43,27 +43,17 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
       return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk1pc3NpbmcgRGlyZWN0b3J5PC90ZXh0Pjwvc3ZnPg==';
     }
     
-    // Debug logging
-    console.log('AlbumDetailView getPhotoUrl debug:', {
-      filename,
+    // Backend επιστρέφει album_dir σε μορφή: "lullabiesgr@gmail.com/tt"
+    // Απλά κάνουμε encode και στέλνουμε στο /album-photo endpoint
+    const imageUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(album.album_dir)}&filename=${encodeURIComponent(filename)}`;
+    
+    console.log('AlbumDetailView URL:', {
       album_dir: album.album_dir,
-      album_name: album.name || album.id
+      filename,
+      final_url: imageUrl
     });
     
-    // Use album_dir exactly as provided by backend
-    // Backend sends: "./albums/user@email.com/album_name" 
-    // We need to send: "user@email.com/album_name" to match BASE_PATH structure
-    const relativePath = album.album_dir
-      .replace(/^\.?[\\/]?albums[\\/]/, '') // Remove leading ./albums/ or albums/ or albums\
-      .replace(/\\/g, '/'); // Normalize Windows paths to forward slashes
-    
-    console.log('AlbumDetailView relativePath:', relativePath);
-    
-    // Create photo URL using relative path  
-    const finalUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(relativePath)}&filename=${encodeURIComponent(filename)}`;
-    console.log('AlbumDetailView final URL:', finalUrl);
-    
-    return finalUrl;
+    return imageUrl;
   };
 
   const getTagIcon = (tag: string) => {

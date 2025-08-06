@@ -102,6 +102,11 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const { showToast } = useToast();
   const { user } = useAuth();
 
+  // Add setPhotos function to allow external loading of photos
+  const setPhotos = useCallback((newPhotos: Photo[]) => {
+    setPhotos(newPhotos);
+  }, []);
+
   const resetWorkflow = useCallback(() => {
     setPhotos([]);
     setCurrentAlbumName('');
@@ -1309,7 +1314,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     removePhotosFromAlbum,
     saveAlbumAndTrainAI,
     markDuplicateAsKeep,
-    deleteDuplicateGroup
+    deleteDuplicateGroup,
+    setPhotos
   }), [
     photos,
     currentAlbumName,
@@ -1369,7 +1375,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     removePhotosFromAlbum,
     saveAlbumAndTrainAI,
     markDuplicateAsKeep,
-    deleteDuplicateGroup
+    deleteDuplicateGroup,
+    setPhotos
   ]);
 
   return <PhotoContext.Provider value={value}>{children}</PhotoContext.Provider>;

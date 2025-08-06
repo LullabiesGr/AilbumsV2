@@ -122,7 +122,72 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
 
   // Handle editing album - load it into the main interface
   const handleEditAlbum = async (album: SavedAlbum) => {
-    // Simply close the modal and navigate to the editing interface
+    try {
+      console.log('🔄 Loading album for editing:', album.name || album.id);
+      
+      // Convert SavedPhoto results to Photo objects for the interface
+      const convertedPhotos: Photo[] = album.results.map((savedPhoto, index) => {
+        const photoUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(album.album_dir)}&filename=${encodeURIComponent(savedPhoto.filename)}`;
+        
+        return {
+          id: `${album.id}-${index}`,
+          filename: savedPhoto.filename,
+          file: new File([], savedPhoto.filename), // Dummy file object
+          url: photoUrl,
+          score: savedPhoto.ai_score,
+          basic_score: savedPhoto.basic_score,
+          ml_score: savedPhoto.ml_score,
+          ai_score: savedPhoto.ai_score,
+          score_type: savedPhoto.score_type || 'ai',
+          blur_score: savedPhoto.blur_score,
+          tags: savedPhoto.tags || [],
+          faces: savedPhoto.faces || [],
+          face_summary: savedPhoto.face_summary,
+          caption: savedPhoto.caption,
+          event_type: album.event_type,
+          blip_flags: savedPhoto.blip_flags || [],
+          blip_highlights: savedPhoto.blip_highlights || [],
+          ai_categories: savedPhoto.ai_categories || [],
+          approved: savedPhoto.approved,
+          color_label: savedPhoto.color_label,
+          dateCreated: album.date_created,
+          selected: false,
+          clip_vector: savedPhoto.clip_vector,
+          phash: savedPhoto.phash,
+          deep_prompts: savedPhoto.deep_prompts || {}
+        };
+      });
+      
+      // Close modal first
+      onClose();
+      
+      // Reset workflow and load album data
+      resetWorkflow();
+      
+      // Set the photos and album data in context
+      setTimeout(() => {
+        // Load the converted photos into the interface
+        setPhotos(convertedPhotos);
+        
+        // Set album information
+        setCurrentAlbumName(album.name || album.id);
+        setCurrentAlbumId(album.id);
+        setEventType(album.event_type);
+        
+        // Go directly to review stage with loaded data
+        setWorkflowStage('review');
+        
+        showToast(`Album "${album.name || album.id}" loaded for editing with ${convertedPhotos.length} photos`, 'success');
+      }, 100);
+      
+    } catch (error: any) {
+      console.error('Failed to load album for editing:', error);
+      showToast(error.message || 'Failed to load album for editing', 'error');
+    }
+  };
+  
+  // Legacy function - kept for backward compatibility
+  const handleEditAlbumLegacy = async (album: SavedAlbum) => {
     onClose();
     
     // Reset current workflow and go to upload stage

@@ -122,61 +122,18 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
 
   // Handle editing album - load it into the main interface
   const handleEditAlbum = async (album: SavedAlbum) => {
-    try {
-      showToast('Loading album for editing...', 'info');
-      
-      // Reset current workflow
-      resetWorkflow();
-      
-      // Create File objects from album photos for the interface
-      const photoFiles: File[] = [];
-      
-      for (const filename of album.photos) {
-        try {
-          // Fetch the photo from backend
-          const photoUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(album.album_dir)}&filename=${encodeURIComponent(filename)}`;
-          const response = await fetch(photoUrl, {
-            headers: {
-              'ngrok-skip-browser-warning': 'true'
-            }
-          });
-          
-          if (response.ok) {
-            const blob = await response.blob();
-            const file = new File([blob], filename, { type: blob.type || 'image/jpeg' });
-            photoFiles.push(file);
-          } else {
-            console.warn(`Failed to fetch photo: ${filename}`);
-          }
-        } catch (error) {
-          console.warn(`Error fetching photo ${filename}:`, error);
-        }
-      }
-      
-      if (photoFiles.length > 0) {
-        // Close the modal first
-        onClose();
-        
-        // Small delay to ensure modal is closed
-        setTimeout(() => {
-          // Upload the photos to the interface
-          uploadPhotos(photoFiles);
-          
-          // Set workflow to review stage after upload
-          setTimeout(() => {
-            setWorkflowStage('review');
-          }, 500);
-        }, 100);
-        
-        showToast(`Loading ${photoFiles.length} photos from "${album.name || album.id}" for editing...`, 'success');
-      } else {
-        showToast('Failed to load album photos', 'error');
-      }
-      
-    } catch (error: any) {
-      console.error('Failed to load album for editing:', error);
-      showToast('Failed to load album for editing', 'error');
-    }
+    // Simply close the modal and navigate to the editing interface
+    onClose();
+    
+    // Reset current workflow and go to upload stage
+    resetWorkflow();
+    
+    // Set workflow to upload stage so user can upload new photos or continue editing
+    setTimeout(() => {
+      setWorkflowStage('upload');
+    }, 100);
+    
+    showToast(`Switched to editing interface. You can now upload photos or continue editing.`, 'info');
   };
   // Handle back from detail view
   const handleBackToAlbums = () => {

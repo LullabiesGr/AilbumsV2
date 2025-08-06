@@ -64,9 +64,6 @@ interface PhotoContextType {
   saveAlbumAndTrainAI: (event: string) => Promise<void>;
   markDuplicateAsKeep: (filename: string, duplicateGroup: string[]) => void;
   deleteDuplicateGroup: (duplicateGroup: string[]) => void;
-  setPhotos: React.Dispatch<React.SetStateAction<Photo[]>>;
-  setCurrentAlbumName: React.Dispatch<React.SetStateAction<string>>;
-  setCurrentAlbumId: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const PhotoContext = createContext<PhotoContextType | undefined>(undefined);
@@ -625,17 +622,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       // Go to review stage after completion
       setWorkflowStage('review');
       
-      // Save album with all analyzed photos and complete metadata
-      if (albumName && albumName.trim()) {
-        try {
-          console.log('💾 Saving album after analysis completion...');
-          await saveAlbumAndTrainAI(albumName.trim());
-        } catch (error: any) {
-          console.error('Failed to save album after analysis:', error);
-          showToast('Analysis completed but failed to save album', 'warning');
-        }
-      }
-      
       // Upload photos for LUT previews after analysis completes
       if (albumName && albumName.trim()) {
         try {
@@ -1007,9 +993,10 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             console.log('Using backend approved photos:', backendApproved.length);
             photosToInclude.push(...backendApproved);
           } else {
-            // Fallback: ALL PHOTOS (don't filter by score)
-            console.log('Using ALL photos as fallback:', photos.length);
-            photosToInclude.push(...photos);
+            // Fallback: All photos with AI score > 6
+            const highScorePhotos = photos.filter(p => p.ai_score > 6);
+            console.log('Using high score photos:', highScorePhotos.length);
+            photosToInclude.push(...highScorePhotos);
           }
         }
       }
@@ -1043,7 +1030,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         user_id: user.email,
         name: albumTitle_final, // Store user-provided name in metadata
         title: albumTitle_final, // Also store as title for compatibility
-        photos: uniquePhotos.map(photo => photo.filename), // Array of ALL filenames - FIXED
         culling_mode: cullingMode || 'fast',
         analysis_complete: photos.some(p => p.ai_score > 0),
         original_total_photos: photos.length,
@@ -1062,8 +1048,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       
       // Add photo files and their metadata
       uniquePhotos.forEach((photo, index) => {
-        // Add each photo file with unique key for backend to receive all files
-        formData.append(`file_${index}`, photo.file);
+        // Add the actual File object for backend to save locally
+        formData.append('files', photo.file);
         
         // Add photo metadata as separate JSON string
         const photoMetadata = {
@@ -1323,10 +1309,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     removePhotosFromAlbum,
     saveAlbumAndTrainAI,
     markDuplicateAsKeep,
-    deleteDuplicateGroup,
-    setPhotos,
-    setCurrentAlbumName,
-    setCurrentAlbumId
+    deleteDuplicateGroup
   }), [
     photos,
     currentAlbumName,
@@ -1386,10 +1369,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     removePhotosFromAlbum,
     saveAlbumAndTrainAI,
     markDuplicateAsKeep,
-    deleteDuplicateGroup,
-    setPhotos,
-    setCurrentAlbumName,
-    setCurrentAlbumId
+    deleteDuplicateGroup
   ]);
 
   return <PhotoContext.Provider value={value}>{children}</PhotoContext.Provider>;

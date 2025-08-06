@@ -34,8 +34,8 @@ const AlbumReviewInterface: React.FC<AlbumReviewInterfaceProps> = ({ album, user
 
   // Convert SavedPhoto to Photo format for compatibility with existing components
   useEffect(() => {
-    const convertedPhotos: Photo[] = album.photos.map((savedPhoto, index) => {
-      const photoUrl = savedPhoto.path || getPhotoUrl(savedPhoto.filename);
+    const convertedPhotos: Photo[] = album.results.map((savedPhoto, index) => {
+      const photoUrl = getPhotoUrl(savedPhoto.filename);
       
       return {
         id: `${album.id}-${index}`,
@@ -58,7 +58,7 @@ const AlbumReviewInterface: React.FC<AlbumReviewInterfaceProps> = ({ album, user
         ai_categories: savedPhoto.ai_categories || [],
         approved: savedPhoto.approved,
         color_label: savedPhoto.color_label,
-        dateCreated: album.created_at || album.date_created,
+        dateCreated: album.date_created,
         selected: selectedPhotos.has(`${album.id}-${index}`)
       };
     });
@@ -72,14 +72,15 @@ const AlbumReviewInterface: React.FC<AlbumReviewInterfaceProps> = ({ album, user
       return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk1pc3NpbmcgRGlyZWN0b3J5PC90ZXh0Pjwvc3ZnPg==';
     }
     
-    // Use photo.path directly from backend if available
-    const photo = album.photos.find(p => p.filename === filename);
-    if (photo && photo.path) {
-      return photo.path;
-    }
-    
-    // Fallback: construct URL using album_dir
+    // Backend επιστρέφει album_dir σε μορφή: "lullabiesgr@gmail.com/tt"
+    // Απλά κάνουμε encode και στέλνουμε στο /album-photo endpoint
     const imageUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(album.album_dir)}&filename=${encodeURIComponent(filename)}`;
+    
+    console.log('AlbumReviewInterface URL:', {
+      album_dir: album.album_dir,
+      filename,
+      final_url: imageUrl
+    });
     
     return imageUrl;
   };

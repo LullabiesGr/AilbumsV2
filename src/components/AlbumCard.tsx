@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Camera, Calendar, Tag, Star, Eye, MessageSquare, Users, Flag, Sparkles, Edit } from 'lucide-react';
+import { Camera, Calendar, Tag, Star, Eye, MessageSquare, Users, Flag, Sparkles } from 'lucide-react';
 import { SavedAlbum, SavedPhoto } from './MyAilbumsModal'; // Import interfaces
 import { EventType } from '../types'; // Import EventType
 
@@ -51,14 +51,15 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail, onEd
       return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk1pc3NpbmcgRGlyZWN0b3J5PC90ZXh0Pjwvc3ZnPg==';
     }
     
-    // Use photo.path directly from backend if available, otherwise construct URL
-    const photo = album.photos.find(p => p.filename === filename);
-    if (photo && photo.path) {
-      return photo.path;
-    }
-    
-    // Fallback: construct URL using album_dir
+    // Backend επιστρέφει album_dir σε μορφή: "lullabiesgr@gmail.com/tt"
+    // Απλά κάνουμε encode και στέλνουμε στο /album-photo endpoint
     const imageUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(album.album_dir)}&filename=${encodeURIComponent(filename)}`;
+    
+    console.log('AlbumCard URL:', {
+      album_dir: album.album_dir,
+      filename,
+      final_url: imageUrl
+    });
     
     return imageUrl;
   };
@@ -74,7 +75,7 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail, onEd
     return Array.from(allTags).slice(0, 5); // Limit to 5 unique tags for display
   };
 
-  const uniqueTags = getUniqueTags(album.photos);
+  const uniqueTags = getUniqueTags(album.results);
 
   return (
     <div
@@ -87,68 +88,26 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail, onEd
       <div className="aspect-video bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
         {album.photos.length > 0 ? (
           <div className="w-full h-full relative">
-            {album.photos.length === 1 ? (
-              /* Single photo - show as cover */
-              <img
-                src={getPhotoUrl(album.photos[0].filename)}
-                alt={album.photos[0].filename}
-                className="w-full h-full object-cover transition-opacity duration-200"
-                loading="lazy"
-              />
-            ) : (
-              /* Multiple photos - show grid of ALL photos */
-              <div className="grid grid-cols-2 grid-rows-2 gap-0.5 h-full">
-                {album.photos.slice(0, 4).map((photo, index) => {
-                  return (
-                    <div
-                      key={index}
-                      className="relative w-full h-full overflow-hidden"
-                      onMouseEnter={() => setHoveredPhoto(photo)}
-                      onMouseLeave={() => setHoveredPhoto(null)}
-                    >
-                      <img
-                        src={photo.path || getPhotoUrl(photo.filename)}
-                        alt={photo.filename}
-                        className="w-full h-full object-cover transition-opacity duration-200"
-                      />
-                      {hoveredPhoto && hoveredPhoto.filename === photo.filename && (
-                        <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center p-2 text-white text-xs opacity-100 transition-opacity duration-200">
-                          <p className="font-medium truncate w-full text-center">{hoveredPhoto.filename}</p>
-                          {hoveredPhoto.ai_score !== undefined && (
-                            <p className="flex items-center space-x-1 mt-1">
-                              <Star className="h-3 w-3 text-yellow-400" />
-                              <span>{(hoveredPhoto.ai_score / 2).toFixed(1)}</span>
-                            </p>
-                          )}
-                          {hoveredPhoto.caption && (
-                            <p className="mt-1 text-center line-clamp-2">{hoveredPhoto.caption}</p>
-                          )}
-                          {hoveredPhoto.tags && hoveredPhoto.tags.length > 0 && (
-                            <div className="flex flex-wrap justify-center mt-1">
-                              {hoveredPhoto.tags.slice(0, 2).map((tag, tagIdx) => (
-                                <span key={tagIdx} className="bg-gray-700 px-1 py-0.5 rounded-full text-xs mr-1 mb-1">
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            {/* Main cover photo */}
+            <img
+              src={getPhotoUrl(album.photos[0])}
+              alt={album.photos[0]}
+              className="w-full h-full object-cover transition-opacity duration-200"
+              loading="lazy"
+              onError={(e) => {
+                console.warn('Failed to load cover image:', getPhotoUrl(album.photos[0]));
+                e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';
+                e.currentTarget.style.opacity = '0.7';
+              }}
+              onLoad={(e) => {
+                e.currentTarget.style.opacity = '1';
+              }}
+            />
             
-            {/* Photo count overlay - show total count */}
-            {album.photos.length > 4 && (
+            {/* Photo count overlay */}
+            {album.photos.length > 1 && (
               <div className="absolute bottom-2 right-2 bg-black/75 text-white text-xs px-2 py-1 rounded-full">
-                +{album.photos.length - 4} more
-              </div>
-            )}
-            {album.photos.length > 1 && album.photos.length <= 4 && (
-              <div className="absolute bottom-2 right-2 bg-black/75 text-white text-xs px-2 py-1 rounded-full">
-                {album.photos.length} photos
+                +{album.photos.length - 1} more
               </div>
             )}
           </div>
@@ -158,6 +117,61 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail, onEd
           </div>
         )}
         
+        {/* Alternative grid view for multiple photos */}
+        {false && album.photos.length > 0 && (
+          <div className="grid grid-cols-2 grid-rows-2 gap-0.5 h-full">
+            {album.photos.slice(0, 4).map((filename, index) => {
+              const photoData = album.results.find(r => r.filename === filename);
+              return (
+                <div
+                  key={index}
+                  className="relative w-full h-full overflow-hidden"
+                  onMouseEnter={() => setHoveredPhoto(photoData || null)}
+                  onMouseLeave={() => setHoveredPhoto(null)}
+                >
+                  <img
+                    src={getPhotoUrl(filename)}
+                    alt={filename}
+                    className="w-full h-full object-cover transition-opacity duration-200"
+                    onError={(e) => {
+                      console.warn('Failed to load image:', getPhotoUrl(filename));
+                      // Set a placeholder image
+                      e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';
+                      e.currentTarget.style.opacity = '0.7';
+                    }}
+                    onLoad={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                    }}
+                  />
+                  {hoveredPhoto && hoveredPhoto.filename === filename && (
+                    <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center p-2 text-white text-xs opacity-100 transition-opacity duration-200">
+                      <p className="font-medium truncate w-full text-center">{hoveredPhoto.filename}</p>
+                      {hoveredPhoto.ai_score !== undefined && (
+                        <p className="flex items-center space-x-1 mt-1">
+                          <Star className="h-3 w-3 text-yellow-400" />
+                          <span>{(hoveredPhoto.ai_score / 2).toFixed(1)}</span>
+                        </p>
+                      )}
+                      {hoveredPhoto.caption && (
+                        <p className="mt-1 text-center line-clamp-2">{hoveredPhoto.caption}</p>
+                      )}
+                      {hoveredPhoto.tags && hoveredPhoto.tags.length > 0 && (
+                        <div className="flex flex-wrap justify-center mt-1">
+                          {hoveredPhoto.tags.slice(0, 2).map((tag, tagIdx) => (
+                            <span key={tagIdx} className="bg-gray-700 px-1 py-0.5 rounded-full text-xs mr-1 mb-1">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* Event Type Badge */}
         <div className="absolute top-3 left-3">
           <span className="px-3 py-1 bg-black/75 text-white text-sm rounded-full 
@@ -170,7 +184,7 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail, onEd
         {/* Stats Badge */}
         <div className="absolute top-3 right-3">
           <span className="px-2 py-1 bg-green-500/90 text-white text-xs rounded-full font-medium">
-            {album.photos.filter(p => p.approved).length}/{album.photos.length} approved
+            {album.results.filter(p => p.approved).length}/{album.photos.length} approved
           </span>
         </div>
       </div>
@@ -198,7 +212,7 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail, onEd
           <div className="flex items-center space-x-2">
             <Star className="h-4 w-4 text-yellow-500" />
             <span className="text-gray-600 dark:text-gray-400">
-              {album.photos.filter(p => p.ai_score && p.ai_score >= 7).length} high score
+              {album.results.filter(p => p.ai_score && p.ai_score >= 7).length} high score
             </span>
           </div>
         </div>

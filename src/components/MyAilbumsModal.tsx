@@ -37,7 +37,8 @@ export interface SavedAlbum {
   date_created: string;
   user_id: string;
   album_dir: string; // Exact directory path from backend
-  photos: SavedPhoto[]; // Array of photo objects with metadata
+  photos: string[]; // List of filenames
+  results: SavedPhoto[]; // List of analysis results for each photo
   metadata?: { // Optional metadata from backend
     user_id: string;
     culling_mode: string;
@@ -73,7 +74,7 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
   const [viewMode, setViewMode] = useState<'list' | 'detail' | 'review'>('list');
   const { user } = useAuth();
   const { showToast } = useToast();
-  const { resetWorkflow, setWorkflowStage, uploadPhotos, setPhotos, setCurrentAlbumName, setCurrentAlbumId, setEventType } = usePhoto();
+  const { resetWorkflow, setWorkflowStage, uploadPhotos } = usePhoto();
 
   // Load albums from backend
   const loadAlbums = async () => {
@@ -122,82 +123,57 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
   // Handle editing album - load it into the main interface
   const handleEditAlbum = async (album: SavedAlbum) => {
     try {
-      console.log('🔄 Loading album for editing:', album.name || album.id);
+      showToast('Loading album for editing...', 'info');
       
-      // Convert SavedPhoto results to Photo objects for the interface
-      const convertedPhotos: Photo[] = album.photos.map((savedPhoto, index) => {
-        const photoUrl = savedPhoto.path || `${API_URL}/album-photo?album_dir=${encodeURIComponent(album.album_dir)}&filename=${encodeURIComponent(savedPhoto.filename)}`;
-        
-        return {
-          id: `${album.id}-${index}`,
-          filename: savedPhoto.filename,
-          file: new File([], savedPhoto.filename), // Dummy file object
-          url: photoUrl,
-          score: savedPhoto.ai_score,
-          basic_score: savedPhoto.basic_score,
-          ml_score: savedPhoto.ml_score,
-          ai_score: savedPhoto.ai_score,
-          score_type: savedPhoto.score_type || 'ai',
-          blur_score: savedPhoto.blur_score,
-          tags: savedPhoto.tags || [],
-          faces: savedPhoto.faces || [],
-          face_summary: savedPhoto.face_summary,
-          caption: savedPhoto.caption,
-          event_type: album.event_type,
-          blip_flags: savedPhoto.blip_flags || [],
-          blip_highlights: savedPhoto.blip_highlights || [],
-          ai_categories: savedPhoto.ai_categories || [],
-          approved: savedPhoto.approved,
-          color_label: savedPhoto.color_label,
-          dateCreated: album.created_at || album.date_created,
-          selected: false,
-          clip_vector: savedPhoto.clip_vector,
-          phash: savedPhoto.phash,
-          deep_prompts: savedPhoto.deep_prompts || {}
-        };
-      });
-      
-      // Close modal first
-      onClose();
-      
-      // Reset workflow and load album data
+      // Reset current workflow
       resetWorkflow();
       
-      // Set the photos and album data in context
-      setTimeout(() => {
-        // Load the converted photos into the interface
-        setPhotos(convertedPhotos);
+      // Create File objects from album photos for the interface
+      const photoFiles: File[] = [];
+      
+      for (const filename of album.photos) {
+        try {
+          // Fetch the photo from backend
+          const photoUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(album.album_dir)}&filename=${encodeURIComponent(filename)}`;
+          const response = await fetch(photoUrl, {
+            headers: {
+              'ngrok-skip-browser-warning': 'true'
+            }
+          });
+          
+          if (response.ok) {
+            const blob = await response.blob();
+            const file = new File([blob], filename, { type: blob.type || 'image/jpeg' });
+            photoFiles.push(file);
+          } else {
+            console.warn(`Failed to fetch photo: ${filename}`);
+          }
+        } catch (error) {
+          console.warn(`Error fetching photo ${filename}:`, error);
+        }
+      }
+      
+      if (photoFiles.length > 0) {
+        // Upload the photos to the interface
+        uploadPhotos(photoFiles);
         
-        // Set album information
-        setCurrentAlbumName(album.name || album.id);
-        setCurrentAlbumId(album.id);
-        setEventType(album.event_type);
+        // Set workflow to review stage
+        setTimeout(() => {
+          setWorkflowStage('review');
+        }, 1000);
         
-        // Go directly to review stage with loaded data
-        setWorkflowStage('review');
+        // Close the modal
+        onClose();
         
-        showToast(`Album "${album.name || album.id}" loaded for editing with ${convertedPhotos.length} photos`, 'success');
-      }, 200);
+        showToast(`Loaded ${photoFiles.length} photos from "${album.name || album.id}" for editing`, 'success');
+      } else {
+        showToast('Failed to load album photos', 'error');
+      }
       
     } catch (error: any) {
       console.error('Failed to load album for editing:', error);
-      showToast(error.message || 'Failed to load album for editing', 'error');
+      showToast('Failed to load album for editing', 'error');
     }
-  };
-  
-  // Legacy function - kept for backward compatibility
-  const handleEditAlbumLegacy = async (album: SavedAlbum) => {
-    onClose();
-    
-    // Reset current workflow and go to upload stage
-    resetWorkflow();
-    
-    // Set workflow to upload stage so user can upload new photos or continue editing
-    setTimeout(() => {
-      setWorkflowStage('upload');
-    }, 100);
-    
-    showToast(`Switched to editing interface. You can now upload photos or continue editing.`, 'info');
   };
   // Handle back from detail view
   const handleBackToAlbums = () => {

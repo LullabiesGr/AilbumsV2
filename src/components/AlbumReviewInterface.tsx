@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Star, Eye, Download, Trash2, Check, X, Grid, List, Minimize2, 
-         Filter, Search, Users, Copy, Sparkles, Flag, AlertCircle, EyeOff, Heart } from 'lucide-react';
+         Filter, Search, Users, Copy, Sparkles, Flag, AlertCircle, EyeOff, Heart, 
+         Wand2, Palette, Edit, Save, RotateCcw, Zap, Brain } from 'lucide-react';
 import { SavedAlbum, SavedPhoto } from './MyAilbumsModal';
 import { Photo, Face } from '../types';
 import ImageCard from './ImageCard';
 import ImageModal from './ImageModal';
+import InpaintModal from './InpaintModal';
+import FaceRetouchModal from './FaceRetouchModal';
+import AIEditModal from './AIEditModal';
 import { useToast } from '../context/ToastContext';
+import { usePhoto } from '../context/PhotoContext';
+import StarRating from './StarRating';
+import ColorLabelIndicator from './ColorLabelIndicator';
+import FaceOverlay from './FaceOverlay';
 
 // API URL configuration
 const API_URL =
@@ -30,7 +38,11 @@ const AlbumReviewInterface: React.FC<AlbumReviewInterfaceProps> = ({ album, user
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [showInpaintModal, setShowInpaintModal] = useState(false);
+  const [showFaceRetouchModal, setShowFaceRetouchModal] = useState(false);
+  const [showAIEditModal, setShowAIEditModal] = useState(false);
   const { showToast } = useToast();
+  const { updatePhotoUrl } = usePhoto();
 
   // Convert SavedPhoto to Photo format for compatibility with existing components
   useEffect(() => {
@@ -72,8 +84,6 @@ const AlbumReviewInterface: React.FC<AlbumReviewInterfaceProps> = ({ album, user
       return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk1pc3NpbmcgRGlyZWN0b3J5PC90ZXh0Pjwvc3ZnPg==';
     }
     
-    // Backend επιστρέφει album_dir σε μορφή: "lullabiesgr@gmail.com/tt"
-    // Απλά κάνουμε encode και στέλνουμε στο /album-photo endpoint
     const imageUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(album.album_dir)}&filename=${encodeURIComponent(filename)}`;
     
     console.log('AlbumReviewInterface URL:', {
@@ -196,6 +206,28 @@ const AlbumReviewInterface: React.FC<AlbumReviewInterfaceProps> = ({ album, user
     }
   };
 
+  const handleSaveRetouchedPhoto = (retouchedImageUrl: string) => {
+    if (selectedPhoto) {
+      // Update the photo URL with the enhanced version
+      const updatedPhotos = photos.map(p => 
+        p.id === selectedPhoto.id ? { ...p, url: retouchedImageUrl } : p
+      );
+      setPhotos(updatedPhotos);
+      showToast('Enhanced photo updated!', 'success');
+    }
+  };
+
+  const handleSaveEditedPhoto = (editedImageUrl: string) => {
+    if (selectedPhoto) {
+      // Update the photo URL with the edited version
+      const updatedPhotos = photos.map(p => 
+        p.id === selectedPhoto.id ? { ...p, url: editedImageUrl } : p
+      );
+      setPhotos(updatedPhotos);
+      showToast('AI edited photo updated!', 'success');
+    }
+  };
+
   const renderPhotoGrid = () => {
     const getGalleryClassName = () => {
       switch (viewMode) {
@@ -258,7 +290,7 @@ const AlbumReviewInterface: React.FC<AlbumReviewInterfaceProps> = ({ album, user
             {album.name || album.id}
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
-            {getEventTypeIcon(album.event_type)} {album.event_type} • Review Mode
+            {getEventTypeIcon(album.event_type)} {album.event_type} • Review & Edit Mode
           </p>
         </div>
 
@@ -276,6 +308,34 @@ const AlbumReviewInterface: React.FC<AlbumReviewInterfaceProps> = ({ album, user
               <span>Download</span>
             </button>
           )}
+        </div>
+      </div>
+
+      {/* Album Stats */}
+      <div className="grid grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-center border border-gray-200 dark:border-gray-700">
+          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            {album.photos.length}
+          </div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Total Photos</div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-center border border-gray-200 dark:border-gray-700">
+          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+            {album.results.filter(p => p.approved).length}
+          </div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Approved</div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-center border border-gray-200 dark:border-gray-700">
+          <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+            {album.results.filter(p => p.blip_highlights && p.blip_highlights.length > 0).length}
+          </div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Highlights</div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-center border border-gray-200 dark:border-gray-700">
+          <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+            {(album.results.reduce((sum, p) => sum + (p.ai_score || 0), 0) / album.results.length / 2).toFixed(1)}
+          </div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Avg Rating</div>
         </div>
       </div>
 
@@ -361,11 +421,34 @@ const AlbumReviewInterface: React.FC<AlbumReviewInterfaceProps> = ({ album, user
         {renderPhotoGrid()}
       </div>
 
-      {/* Image Modal */}
+      {/* Modals */}
       {showImageModal && selectedPhoto && (
         <ImageModal 
           photo={selectedPhoto} 
           onClose={() => setShowImageModal(false)} 
+        />
+      )}
+      
+      {showInpaintModal && selectedPhoto && (
+        <InpaintModal 
+          photo={selectedPhoto} 
+          onClose={() => setShowInpaintModal(false)} 
+        />
+      )}
+      
+      {showFaceRetouchModal && selectedPhoto && (
+        <FaceRetouchModal 
+          photo={selectedPhoto} 
+          onClose={() => setShowFaceRetouchModal(false)}
+          onSave={handleSaveRetouchedPhoto}
+        />
+      )}
+      
+      {showAIEditModal && selectedPhoto && (
+        <AIEditModal 
+          photo={selectedPhoto} 
+          onClose={() => setShowAIEditModal(false)}
+          onSave={handleSaveEditedPhoto}
         />
       )}
     </div>
@@ -389,6 +472,10 @@ const AlbumPhotoCard: React.FC<AlbumPhotoCardProps> = ({
   onClick 
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [showInpaintModal, setShowInpaintModal] = useState(false);
+  const [showFaceRetouchModal, setShowFaceRetouchModal] = useState(false);
+  const [showAIEditModal, setShowAIEditModal] = useState(false);
+  const { showToast } = useToast();
 
   const getTagIcon = (tag: string) => {
     switch (tag) {
@@ -411,6 +498,27 @@ const AlbumPhotoCard: React.FC<AlbumPhotoCardProps> = ({
       .replace('_in_photo', '')
       .replace(/\b\w/g, l => l.toUpperCase())
       .trim();
+  };
+
+  const handleFaceRetouch = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (photo.faces && photo.faces.length > 0) {
+      setShowFaceRetouchModal(true);
+    } else {
+      showToast('No faces detected in this photo', 'warning');
+    }
+  };
+
+  const handleSaveRetouchedPhoto = (retouchedImageUrl: string) => {
+    // Update the photo URL with the enhanced version
+    photo.url = retouchedImageUrl;
+    showToast('Enhanced photo updated!', 'success');
+  };
+
+  const handleSaveEditedPhoto = (editedImageUrl: string) => {
+    // Update the photo URL with the edited version
+    photo.url = editedImageUrl;
+    showToast('AI edited photo updated!', 'success');
   };
 
   if (viewMode === 'compact') {
@@ -439,12 +547,22 @@ const AlbumPhotoCard: React.FC<AlbumPhotoCardProps> = ({
         </div>
         
         <div className="aspect-square relative overflow-hidden">
-          <img
-            src={photo.url}
-            alt={photo.filename}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
+          {photo.faces && photo.faces.length > 0 ? (
+            <FaceOverlay
+              faces={photo.faces}
+              imageUrl={photo.url}
+              className="w-full h-full"
+              showTooltips={false}
+              onFaceClick={() => {}}
+            />
+          ) : (
+            <img
+              src={photo.url}
+              alt={photo.filename}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          )}
         </div>
         
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
@@ -456,6 +574,67 @@ const AlbumPhotoCard: React.FC<AlbumPhotoCardProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Edit buttons on hover */}
+        {isHovered && (
+          <div className="absolute top-1 right-1 flex flex-col gap-1">
+            {photo.faces && photo.faces.length > 0 && (
+              <button 
+                className="p-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded text-white text-xs 
+                         hover:from-purple-700 hover:to-pink-700 transition-all duration-200" 
+                onClick={handleFaceRetouch}
+                title="Retouch Faces"
+              >
+                <Sparkles className="h-3 w-3" />
+              </button>
+            )}
+            <button 
+              className="p-1 bg-purple-600 rounded text-white text-xs hover:bg-purple-700 transition-colors" 
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowInpaintModal(true);
+              }}
+              title="AI Inpaint"
+            >
+              <Wand2 className="h-3 w-3" />
+            </button>
+            <button 
+              className="p-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded text-white text-xs 
+                       hover:from-blue-700 hover:to-purple-700 transition-all duration-200" 
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowAIEditModal(true);
+              }}
+              title="AI Edit & Relight"
+            >
+              <Palette className="h-3 w-3" />
+            </button>
+          </div>
+        )}
+
+        {/* Modals */}
+        {showInpaintModal && (
+          <InpaintModal 
+            photo={photo} 
+            onClose={() => setShowInpaintModal(false)} 
+          />
+        )}
+        
+        {showFaceRetouchModal && (
+          <FaceRetouchModal 
+            photo={photo} 
+            onClose={() => setShowFaceRetouchModal(false)}
+            onSave={handleSaveRetouchedPhoto}
+          />
+        )}
+        
+        {showAIEditModal && (
+          <AIEditModal 
+            photo={photo} 
+            onClose={() => setShowAIEditModal(false)}
+            onSave={handleSaveEditedPhoto}
+          />
+        )}
       </div>
     );
   }
@@ -465,6 +644,8 @@ const AlbumPhotoCard: React.FC<AlbumPhotoCardProps> = ({
       <div
         className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden 
                  transition-all duration-200 hover:shadow-lg flex cursor-pointer"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         onClick={onClick}
       >
         <div className="w-24 h-24 flex-shrink-0 relative overflow-hidden">
@@ -482,12 +663,22 @@ const AlbumPhotoCard: React.FC<AlbumPhotoCardProps> = ({
             <Check className="h-3 w-3" />
           </button>
           
-          <img
-            src={photo.url}
-            alt={photo.filename}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
+          {photo.faces && photo.faces.length > 0 ? (
+            <FaceOverlay
+              faces={photo.faces}
+              imageUrl={photo.url}
+              className="w-full h-full"
+              showTooltips={false}
+              onFaceClick={() => {}}
+            />
+          ) : (
+            <img
+              src={photo.url}
+              alt={photo.filename}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          )}
         </div>
         
         <div className="flex-1 p-3 flex flex-col justify-between">
@@ -500,7 +691,7 @@ const AlbumPhotoCard: React.FC<AlbumPhotoCardProps> = ({
             )}
             <div className="mt-1 flex items-center space-x-2">
               <div className="flex items-center space-x-1">
-                <Star className="h-3 w-3 text-yellow-400" />
+                <Star className="h-4 w-4 text-yellow-400" />
                 <span className="text-xs">{(photo.ai_score / 2).toFixed(1)}</span>
               </div>
               {photo.approved && (
@@ -516,6 +707,63 @@ const AlbumPhotoCard: React.FC<AlbumPhotoCardProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Edit buttons */}
+        <div className="flex items-center pr-3 space-x-1">
+          {photo.faces && photo.faces.length > 0 && (
+            <button 
+              className="p-1.5 text-purple-500 hover:text-purple-700" 
+              onClick={handleFaceRetouch}
+              title="Retouch Faces"
+            >
+              <Sparkles className="h-4 w-4" />
+            </button>
+          )}
+          <button 
+            className="p-1.5 text-purple-500 hover:text-purple-700" 
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowInpaintModal(true);
+            }}
+            title="AI Inpaint"
+          >
+            <Wand2 className="h-4 w-4" />
+          </button>
+          <button 
+            className="p-1.5 text-purple-500 hover:text-purple-700" 
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowAIEditModal(true);
+            }}
+            title="AI Edit & Relight"
+          >
+            <Palette className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Modals */}
+        {showInpaintModal && (
+          <InpaintModal 
+            photo={photo} 
+            onClose={() => setShowInpaintModal(false)} 
+          />
+        )}
+        
+        {showFaceRetouchModal && (
+          <FaceRetouchModal 
+            photo={photo} 
+            onClose={() => setShowFaceRetouchModal(false)}
+            onSave={handleSaveRetouchedPhoto}
+          />
+        )}
+        
+        {showAIEditModal && (
+          <AIEditModal 
+            photo={photo} 
+            onClose={() => setShowAIEditModal(false)}
+            onSave={handleSaveEditedPhoto}
+          />
+        )}
       </div>
     );
   }
@@ -546,12 +794,22 @@ const AlbumPhotoCard: React.FC<AlbumPhotoCardProps> = ({
           </button>
         </div>
         
-        <img
-          src={photo.url}
-          alt={photo.filename}
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
+        {photo.faces && photo.faces.length > 0 ? (
+          <FaceOverlay
+            faces={photo.faces}
+            imageUrl={photo.url}
+            className="w-full h-full"
+            showTooltips={false}
+            onFaceClick={() => {}}
+          />
+        ) : (
+          <img
+            src={photo.url}
+            alt={photo.filename}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        )}
         
         <div className="absolute top-2 right-2">
           <div className="px-2 py-1 rounded-full bg-black/50 backdrop-blur-sm flex flex-col items-center gap-1">
@@ -572,6 +830,46 @@ const AlbumPhotoCard: React.FC<AlbumPhotoCardProps> = ({
             )}
           </div>
         </div>
+
+        {/* Edit buttons overlay */}
+        {isHovered && (
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100
+                        transition-opacity duration-200 rounded-t-lg flex items-center justify-center">
+            <div className="flex space-x-2">
+              {photo.faces && photo.faces.length > 0 && (
+                <button 
+                  className="p-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white 
+                           hover:from-purple-700 hover:to-pink-700 transition-all duration-200"
+                  onClick={handleFaceRetouch}
+                  title="Retouch Faces"
+                >
+                  <Sparkles className="h-5 w-5" />
+                </button>
+              )}
+              <button 
+                className="p-2 bg-purple-600 rounded-full text-white hover:bg-purple-700 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowInpaintModal(true);
+                }}
+                title="AI Inpaint"
+              >
+                <Wand2 className="h-5 w-5" />
+              </button>
+              <button 
+                className="p-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-white 
+                         hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowAIEditModal(true);
+                }}
+                title="AI Edit & Relight"
+              >
+                <Palette className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
       
       <div className="p-3">
@@ -615,7 +913,42 @@ const AlbumPhotoCard: React.FC<AlbumPhotoCardProps> = ({
             })}
           </div>
         )}
+
+        {/* Color Label */}
+        <div className="mt-2">
+          <ColorLabelIndicator 
+            colorLabel={photo.color_label} 
+            size="sm" 
+            showText 
+            photoId={photo.id}
+            editable={true}
+          />
+        </div>
       </div>
+
+      {/* Modals */}
+      {showInpaintModal && (
+        <InpaintModal 
+          photo={photo} 
+          onClose={() => setShowInpaintModal(false)} 
+        />
+      )}
+      
+      {showFaceRetouchModal && (
+        <FaceRetouchModal 
+          photo={photo} 
+          onClose={() => setShowFaceRetouchModal(false)}
+          onSave={handleSaveRetouchedPhoto}
+        />
+      )}
+      
+      {showAIEditModal && (
+        <AIEditModal 
+          photo={photo} 
+          onClose={() => setShowAIEditModal(false)}
+          onSave={handleSaveEditedPhoto}
+        />
+      )}
     </div>
   );
 };

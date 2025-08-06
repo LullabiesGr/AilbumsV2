@@ -1052,8 +1052,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       
       // Add photo files and their metadata
       uniquePhotos.forEach((photo, index) => {
-        // Add the actual File object for backend to save locally
-        formData.append('files', photo.file);
+        // Add each photo file with unique key for backend to receive all files
+        formData.append(`file_${index}`, photo.file);
         
         // Add photo metadata as separate JSON string
         const photoMetadata = {

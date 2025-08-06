@@ -34,30 +34,32 @@ const AlbumReviewInterface: React.FC<AlbumReviewInterfaceProps> = ({ album, user
 
   // Convert SavedPhoto to Photo format for compatibility with existing components
   useEffect(() => {
-    const convertedPhotos: Photo[] = album.results.map((savedPhoto, index) => {
-      const photoUrl = getPhotoUrl(savedPhoto.filename);
+    const convertedPhotos: Photo[] = album.photos.map((filename, index) => {
+      // Find corresponding result data if available
+      const savedPhoto = album.results ? album.results.find(r => r.filename === filename) : null;
+      const photoUrl = getPhotoUrl(filename);
       
       return {
         id: `${album.id}-${index}`,
-        filename: savedPhoto.filename,
-        file: new File([], savedPhoto.filename), // Dummy file object
+        filename: filename,
+        file: new File([], filename), // Dummy file object
         url: photoUrl,
-        score: savedPhoto.ai_score,
-        basic_score: savedPhoto.basic_score,
-        ml_score: savedPhoto.ml_score,
-        ai_score: savedPhoto.ai_score,
-        score_type: savedPhoto.score_type || 'ai',
-        blur_score: savedPhoto.blur_score,
-        tags: savedPhoto.tags || [],
-        faces: savedPhoto.faces || [],
-        face_summary: savedPhoto.face_summary,
-        caption: savedPhoto.caption,
+        score: savedPhoto?.ai_score || 0,
+        basic_score: savedPhoto?.basic_score,
+        ml_score: savedPhoto?.ml_score,
+        ai_score: savedPhoto?.ai_score || 0,
+        score_type: savedPhoto?.score_type || 'base',
+        blur_score: savedPhoto?.blur_score,
+        tags: savedPhoto?.tags || [],
+        faces: savedPhoto?.faces || [],
+        face_summary: savedPhoto?.face_summary,
+        caption: savedPhoto?.caption,
         event_type: album.event_type,
-        blip_flags: savedPhoto.blip_flags || [],
-        blip_highlights: savedPhoto.blip_highlights || [],
-        ai_categories: savedPhoto.ai_categories || [],
-        approved: savedPhoto.approved,
-        color_label: savedPhoto.color_label,
+        blip_flags: savedPhoto?.blip_flags || [],
+        blip_highlights: savedPhoto?.blip_highlights || [],
+        ai_categories: savedPhoto?.ai_categories || [],
+        approved: savedPhoto?.approved || false,
+        color_label: savedPhoto?.color_label,
         dateCreated: album.date_created,
         selected: selectedPhotos.has(`${album.id}-${index}`)
       };

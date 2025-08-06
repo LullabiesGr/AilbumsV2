@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, FolderOpen, Plus, ArrowLeft } from 'lucide-react';
+import { Edit } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { EventType, AnalysisResult, Face } from '../types';
@@ -7,6 +8,7 @@ import { fetchAlbums } from '../lib/api'; // Renamed from loadUserAlbums
 import AlbumCard from './AlbumCard'; // New component
 import AlbumDetailView from './AlbumDetailView'; // New component
 import AlbumReviewInterface from './AlbumReviewInterface'; // New component for review mode
+import { usePhoto } from '../context/PhotoContext';
 
 // Define interfaces for the data coming from the backend
 export interface SavedPhoto extends AnalysisResult {
@@ -72,6 +74,7 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
   const [viewMode, setViewMode] = useState<'list' | 'detail' | 'review'>('list');
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { resetWorkflow, setWorkflowStage, uploadPhotos } = usePhoto();
 
   // Load albums from backend
   const loadAlbums = async () => {
@@ -117,6 +120,61 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
     setViewMode('review');
   };
 
+  // Handle editing album - load it into the main interface
+  const handleEditAlbum = async (album: SavedAlbum) => {
+    try {
+      showToast('Loading album for editing...', 'info');
+      
+      // Reset current workflow
+      resetWorkflow();
+      
+      // Create File objects from album photos for the interface
+      const photoFiles: File[] = [];
+      
+      for (const filename of album.photos) {
+        try {
+          // Fetch the photo from backend
+          const photoUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(album.album_dir)}&filename=${encodeURIComponent(filename)}`;
+          const response = await fetch(photoUrl, {
+            headers: {
+              'ngrok-skip-browser-warning': 'true'
+            }
+          });
+          
+          if (response.ok) {
+            const blob = await response.blob();
+            const file = new File([blob], filename, { type: blob.type || 'image/jpeg' });
+            photoFiles.push(file);
+          } else {
+            console.warn(`Failed to fetch photo: ${filename}`);
+          }
+        } catch (error) {
+          console.warn(`Error fetching photo ${filename}:`, error);
+        }
+      }
+      
+      if (photoFiles.length > 0) {
+        // Upload the photos to the interface
+        uploadPhotos(photoFiles);
+        
+        // Set workflow to review stage
+        setTimeout(() => {
+          setWorkflowStage('review');
+        }, 1000);
+        
+        // Close the modal
+        onClose();
+        
+        showToast(`Loaded ${photoFiles.length} photos from "${album.name || album.id}" for editing`, 'success');
+      } else {
+        showToast('Failed to load album photos', 'error');
+      }
+      
+    } catch (error: any) {
+      console.error('Failed to load album for editing:', error);
+      showToast('Failed to load album for editing', 'error');
+    }
+  };
   // Handle back from detail view
   const handleBackToAlbums = () => {
     setSelectedAlbum(null);
@@ -165,7 +223,13 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {albums.map((album) => ( // Pass userId to AlbumCard
-          <AlbumCard key={album.id} album={album} userId={user!.email} onViewDetail={handleViewAlbumDetail} />
+          <AlbumCard 
+            key={album.id} 
+            album={album} 
+            userId={user!.email} 
+            onViewDetail={handleViewAlbumDetail}
+            onEditAlbum={handleEditAlbum}
+          />
         ))} 
       </div>
     );
@@ -213,7 +277,7 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
               album={selectedAlbum} 
               userId={user!.email} 
               onBack={handleBackToAlbums}
-              onOpenReview={() => setViewMode('review')}
+              onEditAlbum={handleEditAlbum}
             />
           ) : viewMode === 'review' && selectedAlbum ? (
             <AlbumReviewInterface 

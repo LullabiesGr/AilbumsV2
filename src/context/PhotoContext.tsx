@@ -625,6 +625,17 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       // Go to review stage after completion
       setWorkflowStage('review');
       
+      // Save album with all analyzed photos and complete metadata
+      if (albumName && albumName.trim()) {
+        try {
+          console.log('💾 Saving album after analysis completion...');
+          await saveAlbumAndTrainAI(albumName.trim());
+        } catch (error: any) {
+          console.error('Failed to save album after analysis:', error);
+          showToast('Analysis completed but failed to save album', 'warning');
+        }
+      }
+      
       // Upload photos for LUT previews after analysis completes
       if (albumName && albumName.trim()) {
         try {

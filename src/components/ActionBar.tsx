@@ -41,18 +41,8 @@ const ActionBar: React.FC = () => {
   };
 
   const handleSaveAndTrain = async () => {
-    if (!eventType || !eventType.trim()) {
-      setShowEventDialog(true);
-      return;
-    }
-    
-    // If we already have event type, save directly
-    try {
-      await saveAlbumAndTrainAI(eventType.trim());
-    } catch (error: any) {
-      console.error('Failed to save album:', error);
-      showToast(error.message || 'Failed to save album', 'error');
-    }
+    // Show dialog to manually save album (analysis auto-saves)
+    setShowEventDialog(true);
   };
 
   const handleBatchProcess = async (processor: 'autocorrect' | 'autofix') => {

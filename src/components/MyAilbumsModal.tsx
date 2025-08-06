@@ -154,18 +154,21 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
       }
       
       if (photoFiles.length > 0) {
-        // Upload the photos to the interface
-        uploadPhotos(photoFiles);
-        
-        // Set workflow to review stage
-        setTimeout(() => {
-          setWorkflowStage('review');
-        }, 1000);
-        
-        // Close the modal
+        // Close the modal first
         onClose();
         
-        showToast(`Loaded ${photoFiles.length} photos from "${album.name || album.id}" for editing`, 'success');
+        // Small delay to ensure modal is closed
+        setTimeout(() => {
+          // Upload the photos to the interface
+          uploadPhotos(photoFiles);
+          
+          // Set workflow to review stage after upload
+          setTimeout(() => {
+            setWorkflowStage('review');
+          }, 500);
+        }, 100);
+        
+        showToast(`Loading ${photoFiles.length} photos from "${album.name || album.id}" for editing...`, 'success');
       } else {
         showToast('Failed to load album photos', 'error');
       }

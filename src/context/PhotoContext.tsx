@@ -1043,26 +1043,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         date_created: new Date().toISOString(),
         date_updated: new Date().toISOString(),
         creation_source: 'ailbums_web_app'
-        // ---- ΕΔΩ ΤΑ ΠΡΟΣΘΕΤΩ ----
-        photos: uniquePhotos.map(photo => photo.filename),
-        results: uniquePhotos.map(photo => ({
-          filename: photo.filename,
-          ai_score: photo.ai_score,
-          basic_score: photo.basic_score,
-          ml_score: photo.ml_score,
-          approved: photo.approved,
-          color_label: photo.color_label,
-          tags: photo.tags || [],
-          blip_highlights: photo.blip_highlights || [],
-          blip_flags: photo.blip_flags || [],
-          faces: photo.faces || [],
-          caption: photo.caption,
-          face_summary: photo.face_summary,
-          deep_prompts: photo.deep_prompts || {},
-          ai_categories: photo.ai_categories || [],
-          phash: photo.phash,
-          dateCreated: photo.dateCreated
-        }))
       };
       formData.append('metadata', JSON.stringify(albumMetadata));
       

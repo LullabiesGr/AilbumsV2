@@ -178,7 +178,7 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
         setWorkflowStage('review');
         
         showToast(`Album "${album.name || album.id}" loaded for editing with ${convertedPhotos.length} photos`, 'success');
-      }, 100);
+      }, 200);
       
     } catch (error: any) {
       console.error('Failed to load album for editing:', error);

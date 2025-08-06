@@ -64,6 +64,9 @@ interface PhotoContextType {
   saveAlbumAndTrainAI: (event: string) => Promise<void>;
   markDuplicateAsKeep: (filename: string, duplicateGroup: string[]) => void;
   deleteDuplicateGroup: (duplicateGroup: string[]) => void;
+  setPhotos: React.Dispatch<React.SetStateAction<Photo[]>>;
+  setCurrentAlbumName: React.Dispatch<React.SetStateAction<string>>;
+  setCurrentAlbumId: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const PhotoContext = createContext<PhotoContextType | undefined>(undefined);
@@ -1310,7 +1313,9 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     saveAlbumAndTrainAI,
     markDuplicateAsKeep,
     deleteDuplicateGroup,
-    setPhotos
+    setPhotos,
+    setCurrentAlbumName,
+    setCurrentAlbumId
   }), [
     photos,
     currentAlbumName,
@@ -1371,7 +1376,9 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     saveAlbumAndTrainAI,
     markDuplicateAsKeep,
     deleteDuplicateGroup,
-    setPhotos
+    setPhotos,
+    setCurrentAlbumName,
+    setCurrentAlbumId
   ]);
 
   return <PhotoContext.Provider value={value}>{children}</PhotoContext.Provider>;

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Copy, Download, RotateCcw, Eye, EyeOff, Check, X, Palette } from 'lucide-react';
+import { ArrowLeft, Copy, Download, RotateCcw, Eye, EyeOff, Check, X, Palette, ArrowLeftRight } from 'lucide-react';
 import { Photo, ColorTransferResult } from '../types';
 import { usePhoto } from '../context/PhotoContext';
 import { useToast } from '../context/ToastContext';
 import { colorTransfer } from '../lib/api';
+import { ImageComparison, ImageComparisonImage, ImageComparisonSlider } from './ui/ImageComparison';
 
 interface CopyLookModeProps {
   onBack: () => void;
@@ -17,7 +18,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
   const [targetPhotos, setTargetPhotos] = useState<Set<string>>(new Set());
   const [isProcessing, setIsProcessing] = useState(false);
   const [results, setResults] = useState<ColorTransferResult[]>([]);
-  const [showComparison, setShowComparison] = useState<Map<string, boolean>>(new Map());
+  const [viewMode, setViewMode] = useState<Map<string, 'before' | 'after' | 'comparison'>>(new Map());
 
   const handleReferenceSelect = (photo: Photo) => {
     setReferencePhoto(photo);
@@ -103,13 +104,19 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
     setReferencePhoto(null);
     setTargetPhotos(new Set());
     setResults([]);
-    setShowComparison(new Map());
+    setViewMode(new Map());
   };
 
-  const toggleComparison = (filename: string) => {
-    const newComparison = new Map(showComparison);
-    newComparison.set(filename, !newComparison.get(filename));
-    setShowComparison(newComparison);
+  const toggleViewMode = (filename: string) => {
+    const newViewMode = new Map(viewMode);
+    const current = newViewMode.get(filename) || 'after';
+    
+    // Cycle through: after -> before -> comparison -> after
+    const nextMode = current === 'after' ? 'before' : 
+                    current === 'before' ? 'comparison' : 'after';
+    
+    newViewMode.set(filename, nextMode);
+    setViewMode(newViewMode);
   };
 
   const canApply = referencePhoto && targetPhotos.size > 0 && !isProcessing;
@@ -280,12 +287,30 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
               const originalPhoto = photos.find(p => p.filename === result.filename);
               if (!originalPhoto) return null;
               
-              const showBefore = !showComparison.get(result.filename);
+              const currentViewMode = viewMode.get(result.filename) || 'after';
               
               return (
                 <div key={`${result.filename}-${index}`} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                  <div className="aspect-square rounded-lg overflow-hidden mb-3 relative">
-                    {showBefore ? (
+                  <div className="aspect-square rounded-lg overflow-hidden mb-3 relative bg-gray-200 dark:bg-gray-600">
+                    {currentViewMode === 'comparison' ? (
+                      <ImageComparison className="w-full h-full">
+                        <ImageComparisonImage
+                          src={originalPhoto.url}
+                          alt={`Original ${result.filename}`}
+                          position="left"
+                        />
+                        <ImageComparisonImage
+                          src={`data:image/jpeg;base64,${result.image_base64}`}
+                          alt={`Copy Look Result ${result.filename}`}
+                          position="right"
+                        />
+                        <ImageComparisonSlider className="w-1 bg-gradient-to-b from-orange-500 to-red-500 shadow-lg">
+                          <div className="absolute left-1/2 top-1/2 h-8 w-6 -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white shadow-xl border-2 border-orange-500 flex items-center justify-center">
+                            <ArrowLeftRight className="w-3 h-3 text-orange-600" />
+                          </div>
+                        </ImageComparisonSlider>
+                      </ImageComparison>
+                    ) : currentViewMode === 'before' ? (
                       <img
                         src={originalPhoto.url}
                         alt={`Original ${result.filename}`}
@@ -299,14 +324,20 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
                       />
                     )}
                     
-                    {/* Before/After Toggle */}
+                    {/* View Mode Toggle */}
                     <button
-                      onClick={() => toggleComparison(result.filename)}
+                      onClick={() => toggleViewMode(result.filename)}
                       className="absolute top-2 left-2 px-2 py-1 bg-black/75 text-white text-xs 
                                rounded hover:bg-black/90 transition-colors duration-200 flex items-center space-x-1"
                     >
-                      {showBefore ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                      <span>{showBefore ? 'Before' : 'After'}</span>
+                      {currentViewMode === 'before' ? <EyeOff className="h-3 w-3" /> : 
+                       currentViewMode === 'after' ? <Eye className="h-3 w-3" /> : 
+                       <ArrowLeftRight className="h-3 w-3" />}
+                      <span>
+                        {currentViewMode === 'before' ? 'Before' : 
+                         currentViewMode === 'after' ? 'After' : 
+                         'Compare'}
+                      </span>
                     </button>
                     
                     {/* Status Badge */}
@@ -322,13 +353,19 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
                     
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => toggleComparison(result.filename)}
+                        onClick={() => toggleViewMode(result.filename)}
                         className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white 
                                  text-sm rounded-md flex items-center justify-center space-x-1 
                                  transition-colors duration-200"
                       >
-                        {showBefore ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                        <span>{showBefore ? 'Show After' : 'Show Before'}</span>
+                        {currentViewMode === 'before' ? <Eye className="h-4 w-4" /> : 
+                         currentViewMode === 'after' ? <EyeOff className="h-4 w-4" /> : 
+                         <ArrowLeftRight className="h-4 w-4" />}
+                        <span>
+                          {currentViewMode === 'before' ? 'Show After' : 
+                           currentViewMode === 'after' ? 'Show Compare' : 
+                           'Show Before'}
+                        </span>
                       </button>
                       
                       <button

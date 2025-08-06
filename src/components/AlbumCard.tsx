@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Camera, Calendar, Tag, Star, Eye, MessageSquare, Users, Flag, Sparkles } from 'lucide-react';
+import { Camera, Calendar, Tag, Star, Eye, MessageSquare, Users, Flag, Sparkles, Edit } from 'lucide-react';
 import { SavedAlbum, SavedPhoto } from './MyAilbumsModal'; // Import interfaces
 import { EventType } from '../types'; // Import EventType
 

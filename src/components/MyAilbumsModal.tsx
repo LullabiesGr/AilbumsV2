@@ -74,7 +74,7 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
   const [viewMode, setViewMode] = useState<'list' | 'detail' | 'review'>('list');
   const { user } = useAuth();
   const { showToast } = useToast();
-  const { resetWorkflow, setWorkflowStage, uploadPhotos } = usePhoto();
+  const { resetWorkflow, setWorkflowStage, uploadPhotos, setPhotos, setCurrentAlbumName, setCurrentAlbumId, setEventType } = usePhoto();
 
   // Load albums from backend
   const loadAlbums = async () => {

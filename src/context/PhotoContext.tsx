@@ -996,10 +996,9 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             console.log('Using backend approved photos:', backendApproved.length);
             photosToInclude.push(...backendApproved);
           } else {
-            // Fallback: All photos with AI score > 6
-            const highScorePhotos = photos.filter(p => p.ai_score > 6);
-            console.log('Using high score photos:', highScorePhotos.length);
-            photosToInclude.push(...highScorePhotos);
+            // Fallback: ALL PHOTOS (don't filter by score)
+            console.log('Using ALL photos as fallback:', photos.length);
+            photosToInclude.push(...photos);
           }
         }
       }
@@ -1033,7 +1032,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         user_id: user.email,
         name: albumTitle_final, // Store user-provided name in metadata
         title: albumTitle_final, // Also store as title for compatibility
-        photos: uniquePhotos.map(photo => photo.filename), // Array of ALL filenames
+        photos: uniquePhotos.map(photo => photo.filename), // Array of ALL filenames - FIXED
         culling_mode: cullingMode || 'fast',
         analysis_complete: photos.some(p => p.ai_score > 0),
         original_total_photos: photos.length,

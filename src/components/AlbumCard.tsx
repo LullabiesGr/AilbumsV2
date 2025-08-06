@@ -88,7 +88,93 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail, onEd
       <div className="aspect-video bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
         {album.photos.length > 0 ? (
           <div className="w-full h-full relative">
-            {/* Main cover photo */}
+            {/* Grid view for multiple photos */}
+            {album.photos.length === 1 ? (
+              /* Single photo - show as cover */
+              <img
+                src={getPhotoUrl(album.photos[0])}
+                alt={album.photos[0]}
+                className="w-full h-full object-cover transition-opacity duration-200"
+                loading="lazy"
+                onError={(e) => {
+                  console.warn('Failed to load cover image:', getPhotoUrl(album.photos[0]));
+                  e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';
+                  e.currentTarget.style.opacity = '0.7';
+                }}
+                onLoad={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                }}
+              />
+            ) : (
+              /* Multiple photos - show grid */
+              <div className="grid grid-cols-2 grid-rows-2 gap-0.5 h-full">
+                {album.photos.slice(0, 4).map((filename, index) => {
+                  const photoData = album.results.find(r => r.filename === filename);
+                  return (
+                    <div
+                      key={index}
+                      className="relative w-full h-full overflow-hidden"
+                      onMouseEnter={() => setHoveredPhoto(photoData || null)}
+                      onMouseLeave={() => setHoveredPhoto(null)}
+                    >
+                      <img
+                        src={getPhotoUrl(filename)}
+                        alt={filename}
+                        className="w-full h-full object-cover transition-opacity duration-200"
+                        onError={(e) => {
+                          console.warn('Failed to load image:', getPhotoUrl(filename));
+                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';
+                          e.currentTarget.style.opacity = '0.7';
+                        }}
+                        onLoad={(e) => {
+                          e.currentTarget.style.opacity = '1';
+                        }}
+                      />
+                      {hoveredPhoto && hoveredPhoto.filename === filename && (
+                        <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center p-2 text-white text-xs opacity-100 transition-opacity duration-200">
+                          <p className="font-medium truncate w-full text-center">{hoveredPhoto.filename}</p>
+                          {hoveredPhoto.ai_score !== undefined && (
+                            <p className="flex items-center space-x-1 mt-1">
+                              <Star className="h-3 w-3 text-yellow-400" />
+                              <span>{(hoveredPhoto.ai_score / 2).toFixed(1)}</span>
+                            </p>
+                          )}
+                          {hoveredPhoto.caption && (
+                            <p className="mt-1 text-center line-clamp-2">{hoveredPhoto.caption}</p>
+                          )}
+                          {hoveredPhoto.tags && hoveredPhoto.tags.length > 0 && (
+                            <div className="flex flex-wrap justify-center mt-1">
+                              {hoveredPhoto.tags.slice(0, 2).map((tag, tagIdx) => (
+                                <span key={tagIdx} className="bg-gray-700 px-1 py-0.5 rounded-full text-xs mr-1 mb-1">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            
+            {/* Photo count overlay for multiple photos */}
+            {album.photos.length > 4 && (
+              <div className="absolute bottom-2 right-2 bg-black/75 text-white text-xs px-2 py-1 rounded-full">
+                +{album.photos.length - 4} more
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Camera className="h-12 w-12 text-gray-400" />
+          </div>
+        )}
+        
+        {/* Alternative single cover view - disabled */}
+        {false && album.photos.length > 0 && (
+          <div className="w-full h-full relative">
             <img
               src={getPhotoUrl(album.photos[0])}
               alt={album.photos[0]}
@@ -104,20 +190,15 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail, onEd
               }}
             />
             
-            {/* Photo count overlay */}
             {album.photos.length > 1 && (
               <div className="absolute bottom-2 right-2 bg-black/75 text-white text-xs px-2 py-1 rounded-full">
                 +{album.photos.length - 1} more
               </div>
             )}
           </div>
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Camera className="h-12 w-12 text-gray-400" />
-          </div>
         )}
         
-        {/* Alternative grid view for multiple photos */}
+        {/* Grid view for multiple photos - now enabled */}
         {false && album.photos.length > 0 && (
           <div className="grid grid-cols-2 grid-rows-2 gap-0.5 h-full">
             {album.photos.slice(0, 4).map((filename, index) => {

@@ -306,7 +306,7 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
           Album Photos ({album.photos.length})
         </h3>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {album.photos.length === 0 ? (
           <div className="text-center py-12">
             <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
@@ -371,6 +371,9 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
               </div>
             ))}
           </div>
+        )}
+      </div>
+
       {showPhotoModal && renderPhotoModal()}
     </div>
   );

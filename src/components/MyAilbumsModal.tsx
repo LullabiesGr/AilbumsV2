@@ -128,73 +128,50 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
       // Reset current workflow
       resetWorkflow();
       
-      // Close the modal first
-      onClose();
+      // Create File objects from album photos for the interface
+      const photoFiles: File[] = [];
       
-      // Small delay to ensure modal is closed
-      setTimeout(async () => {
+      for (const filename of album.photos) {
         try {
-          // Create File objects from album photos for the interface
-          const photoFiles: File[] = [];
-          
-          console.log('Loading album for editing:', {
-            albumId: album.id,
-            albumDir: album.album_dir,
-            photosCount: album.photos.length,
-            userId: user!.email
+          // Fetch the photo from backend
+          const photoUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(album.album_dir)}&filename=${encodeURIComponent(filename)}`;
+          const response = await fetch(photoUrl, {
+            headers: {
+              'ngrok-skip-browser-warning': 'true'
+            }
           });
           
-          for (const filename of album.photos) {
-            try {
-              // Use the correct backend path format: user_id/folder_name/filename
-              const photoUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(album.album_dir)}&filename=${encodeURIComponent(filename)}`;
-              
-              console.log('Fetching photo:', {
-                filename,
-                albumDir: album.album_dir,
-                photoUrl
-              });
-              
-              const response = await fetch(photoUrl, {
-                headers: {
-                  'ngrok-skip-browser-warning': 'true'
-                }
-              });
-              
-              if (response.ok) {
-                const blob = await response.blob();
-                const file = new File([blob], filename, { type: blob.type || 'image/jpeg' });
-                photoFiles.push(file);
-                console.log(`✅ Successfully loaded: ${filename}`);
-              } else {
-                console.warn(`❌ Failed to fetch photo: ${filename}`, {
-                  status: response.status,
-                  statusText: response.statusText
-                });
-              }
-            } catch (error) {
-              console.warn(`❌ Error fetching photo ${filename}:`, error);
-            }
-          }
-          
-          if (photoFiles.length > 0) {
-            // Upload the photos to the interface
-            uploadPhotos(photoFiles);
-            
-            // Set workflow to review stage after upload
-            setTimeout(() => {
-              setWorkflowStage('review');
-            }, 500);
-            
-            showToast(`Loading ${photoFiles.length} photos from "${album.name || album.id}" for editing...`, 'success');
+          if (response.ok) {
+            const blob = await response.blob();
+            const file = new File([blob], filename, { type: blob.type || 'image/jpeg' });
+            photoFiles.push(file);
           } else {
-            showToast('Failed to load album photos', 'error');
+            console.warn(`Failed to fetch photo: ${filename}`);
           }
-        } catch (error: any) {
-          console.error('Failed to load album for editing:', error);
-          showToast('Failed to load album for editing', 'error');
+        } catch (error) {
+          console.warn(`Error fetching photo ${filename}:`, error);
         }
-      }, 100);
+      }
+      
+      if (photoFiles.length > 0) {
+        // Close the modal first
+        onClose();
+        
+        // Small delay to ensure modal is closed
+        setTimeout(() => {
+          // Upload the photos to the interface
+          uploadPhotos(photoFiles);
+          
+          // Set workflow to review stage after upload
+          setTimeout(() => {
+            setWorkflowStage('review');
+          }, 500);
+        }, 100);
+        
+        showToast(`Loading ${photoFiles.length} photos from "${album.name || album.id}" for editing...`, 'success');
+      } else {
+        showToast('Failed to load album photos', 'error');
+      }
       
     } catch (error: any) {
       console.error('Failed to load album for editing:', error);

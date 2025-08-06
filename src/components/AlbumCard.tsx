@@ -13,10 +13,9 @@ interface AlbumCardProps {
   album: SavedAlbum;
   userId: string;
   onViewDetail: (album: SavedAlbum) => void;
-  onEditAlbum: (album: SavedAlbum) => void;
 }
 
-const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail, onEditAlbum }) => {
+const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) => {
   const [hoveredPhoto, setHoveredPhoto] = useState<SavedPhoto | null>(null);
 
 
@@ -235,26 +234,15 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail, onEd
         )}
 
         {/* Action Button */}
-        <div className="flex space-x-2">
-          <button
-            onClick={() => onViewDetail(album)}
-            className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white 
-                       rounded-lg flex items-center justify-center space-x-1 
-                       transition-colors duration-200 text-sm"
-          >
-            <Eye className="h-4 w-4" />
-            <span>View</span>
-          </button>
-          <button
-            onClick={() => onEditAlbum(album)}
-            className="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white 
-                       rounded-lg flex items-center justify-center space-x-1 
-                       transition-colors duration-200 text-sm"
-          >
-            <Edit className="h-4 w-4" />
-            <span>Edit</span>
-          </button>
-        </div>
+        <button
+          onClick={() => onViewDetail(album)}
+          className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white 
+                     rounded-lg flex items-center justify-center space-x-1 
+                     transition-colors duration-200 text-sm"
+        >
+          <Eye className="h-4 w-4" />
+          <span>View Details</span>
+        </button>
       </div>
     </div>
   );

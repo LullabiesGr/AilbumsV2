@@ -13,7 +13,6 @@ interface AlbumDetailViewProps {
   album: SavedAlbum;
   userId: string;
   onBack: () => void;
-  onEditAlbum: (album: SavedAlbum) => void;
 }
 
 const getEventTypeIcon = (eventType: string) => {
@@ -34,7 +33,7 @@ const getEventTypeIcon = (eventType: string) => {
   }
 };
 
-const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack, onEditAlbum }) => {
+const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack }) => {
   const [selectedPhoto, setSelectedPhoto] = useState<SavedPhoto | null>(null);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
 
@@ -269,14 +268,8 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
           </p>
         </div>
 
-        <button
-          onClick={() => onEditAlbum(album)}
-          className="flex items-center space-x-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 
-                   text-white rounded-lg transition-colors duration-200"
-        >
-          <Edit className="h-4 w-4" />
-          <span>Edit Album</span>
-        </button>
+        {/* Placeholder for future actions */}
+        <div className="w-24"></div>
       </div>
 
       {/* Album Stats */}

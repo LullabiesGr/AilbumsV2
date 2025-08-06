@@ -38,12 +38,17 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
   const [showPhotoModal, setShowPhotoModal] = useState(false);
 
   const getPhotoUrl = (filename: string) => {
-    // Construct album directory from user_id and album_id
-    const albumDir = `${userId}/${album.id}`;
-    const imageUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(albumDir)}&filename=${encodeURIComponent(filename)}`;
+    if (!album.album_dir) {
+      console.error('Album missing album_dir:', album);
+      return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk1pc3NpbmcgRGlyZWN0b3J5PC90ZXh0Pjwvc3ZnPg==';
+    }
+    
+    // Backend επιστρέφει album_dir σε μορφή: "lullabiesgr@gmail.com/tt"
+    // Απλά κάνουμε encode και στέλνουμε στο /album-photo endpoint
+    const imageUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(album.album_dir)}&filename=${encodeURIComponent(filename)}`;
     
     console.log('AlbumDetailView URL:', {
-      album_dir: albumDir,
+      album_dir: album.album_dir,
       filename,
       final_url: imageUrl
     });
@@ -146,6 +151,7 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-4">
+            <img src={photoUrl} alt={selectedPhoto.filename} className="w-full h-auto object-contain rounded-lg mb-4" />
             <img 
               src={photoUrl} 
               alt={selectedPhoto.filename} 
@@ -255,7 +261,7 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
 
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {album.title || album.id}
+            {album.name || album.id}
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
             {getEventTypeIcon(album.event_type)} {album.event_type} • {new Date(album.created_at).toLocaleDateString()}
@@ -276,19 +282,19 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-center border border-gray-200 dark:border-gray-700">
           <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-            {album.photos.filter(p => p.approved).length}
+            {album.results.filter(p => p.approved).length}
           </div>
           <div className="text-sm text-gray-600 dark:text-gray-400">Approved</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-center border border-gray-200 dark:border-gray-700">
           <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-            {album.photos.filter(p => p.blip_highlights && p.blip_highlights.length > 0).length}
+            {album.results.filter(p => p.blip_highlights && p.blip_highlights.length > 0).length}
           </div>
           <div className="text-sm text-gray-600 dark:text-gray-400">Highlights</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-center border border-gray-200 dark:border-gray-700">
           <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-            {(album.photos.reduce((sum, p) => sum + (p.ai_score || 0), 0) / album.photos.length / 2).toFixed(1)}
+            {(album.results.reduce((sum, p) => sum + (p.ai_score || 0), 0) / album.results.length / 2).toFixed(1)}
           </div>
           <div className="text-sm text-gray-600 dark:text-gray-400">Avg Rating</div>
         </div>
@@ -301,24 +307,24 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
         </h3>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {album.photos.map((photo, index) => {
-            // Photo already contains all the data we need
-            const photoResult = photo;
+          {album.photos.map((filename, index) => {
+            // Find corresponding result data if available
+            const photoResult = album.results ? album.results.find(r => r.filename === filename) : null;
             
             return (
             <div
-              key={`${photo.filename}-${index}`}
+              key={`${filename}-${index}`}
               className="relative group cursor-pointer"
               onClick={() => photoResult && handlePhotoClick(photoResult)}
             >
               <div className="aspect-square rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700">
                 <img
-                  src={getPhotoUrl(photo.filename)}
-                  alt={photo.filename}
+                  src={getPhotoUrl(filename)}
+                  alt={filename}
                   className="w-full h-full object-cover group-hover:scale-105 transition-all duration-200"
                   loading="lazy"
                   onError={(e) => {
-                    console.warn('Failed to load image in grid:', getPhotoUrl(photo.filename));
+                    console.warn('Failed to load image in grid:', getPhotoUrl(filename));
                     e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';
                     e.currentTarget.style.opacity = '0.7';
                   }}
@@ -351,7 +357,7 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
                     <Star className="h-3 w-3 text-yellow-400" />
                     <span className="text-xs">{photoResult?.ai_score ? (photoResult.ai_score / 2).toFixed(1) : 'N/A'}</span>
                   </div>
-                  <p className="text-xs truncate">{photo.filename}</p>
+                  <p className="text-xs truncate">{filename}</p>
                   {photoResult?.caption && <p className="text-xs truncate opacity-80">{photoResult.caption}</p>}
                 </div>
               </div>

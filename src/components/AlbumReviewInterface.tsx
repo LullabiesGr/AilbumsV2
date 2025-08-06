@@ -34,30 +34,32 @@ const AlbumReviewInterface: React.FC<AlbumReviewInterfaceProps> = ({ album, user
 
   // Convert SavedPhoto to Photo format for compatibility with existing components
   useEffect(() => {
-    const convertedPhotos: Photo[] = album.photos.map((savedPhoto, index) => {
-      const photoUrl = getPhotoUrl(savedPhoto.filename);
+    const convertedPhotos: Photo[] = album.photos.map((filename, index) => {
+      // Find corresponding result data if available
+      const savedPhoto = album.results ? album.results.find(r => r.filename === filename) : null;
+      const photoUrl = getPhotoUrl(filename);
       
       return {
         id: `${album.id}-${index}`,
-        filename: savedPhoto.filename,
-        file: new File([], savedPhoto.filename), // Dummy file object
+        filename: filename,
+        file: new File([], filename), // Dummy file object
         url: photoUrl,
-        score: savedPhoto.ai_score || 0,
-        basic_score: savedPhoto.basic_score,
-        ml_score: savedPhoto.ml_score,
-        ai_score: savedPhoto.ai_score || 0,
-        score_type: savedPhoto.score_type || 'base',
-        blur_score: savedPhoto.blur_score,
-        tags: savedPhoto.tags || [],
-        faces: savedPhoto.faces || [],
-        face_summary: savedPhoto.face_summary,
-        caption: savedPhoto.caption,
+        score: savedPhoto?.ai_score || 0,
+        basic_score: savedPhoto?.basic_score,
+        ml_score: savedPhoto?.ml_score,
+        ai_score: savedPhoto?.ai_score || 0,
+        score_type: savedPhoto?.score_type || 'base',
+        blur_score: savedPhoto?.blur_score,
+        tags: savedPhoto?.tags || [],
+        faces: savedPhoto?.faces || [],
+        face_summary: savedPhoto?.face_summary,
+        caption: savedPhoto?.caption,
         event_type: album.event_type,
-        blip_flags: savedPhoto.blip_flags || [],
-        blip_highlights: savedPhoto.blip_highlights || [],
-        ai_categories: savedPhoto.ai_categories || [],
-        approved: savedPhoto.approved || false,
-        color_label: savedPhoto.color_label,
+        blip_flags: savedPhoto?.blip_flags || [],
+        blip_highlights: savedPhoto?.blip_highlights || [],
+        ai_categories: savedPhoto?.ai_categories || [],
+        approved: savedPhoto?.approved || false,
+        color_label: savedPhoto?.color_label,
         dateCreated: album.date_created,
         selected: selectedPhotos.has(`${album.id}-${index}`)
       };
@@ -67,17 +69,17 @@ const AlbumReviewInterface: React.FC<AlbumReviewInterfaceProps> = ({ album, user
   }, [album, selectedPhotos]);
 
   const getPhotoUrl = (filename: string) => {
-    if (!album.id) {
-      console.error('Album missing id:', album);
+    if (!album.album_dir) {
+      console.error('Album missing album_dir:', album);
       return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk1pc3NpbmcgRGlyZWN0b3J5PC90ZXh0Pjwvc3ZnPg==';
     }
     
-    // Backend αποθηκεύει φωτογραφίες σε ./albums/{user_id}/{album_id}/
-    const album_dir = `albums/${userId}/${album.id}`;
-    const imageUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(album_dir)}&filename=${encodeURIComponent(filename)}`;
+    // Backend επιστρέφει album_dir σε μορφή: "lullabiesgr@gmail.com/tt"
+    // Απλά κάνουμε encode και στέλνουμε στο /album-photo endpoint
+    const imageUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(album.album_dir)}&filename=${encodeURIComponent(filename)}`;
     
     console.log('AlbumReviewInterface URL:', {
-      album_dir: album_dir,
+      album_dir: album.album_dir,
       filename,
       final_url: imageUrl
     });
@@ -255,7 +257,7 @@ const AlbumReviewInterface: React.FC<AlbumReviewInterfaceProps> = ({ album, user
 
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {album.title || album.name || album.id}
+            {album.name || album.id}
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
             {getEventTypeIcon(album.event_type)} {album.event_type} • Review Mode

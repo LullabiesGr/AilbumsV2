@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Camera, Calendar, Tag, Star, Eye, MessageSquare, Users, Flag, Sparkles } from 'lucide-react';
+import { Camera, Calendar, Tag, Star, Eye, MessageSquare, Users, Flag, Sparkles, Edit } from 'lucide-react';
 import { SavedAlbum, SavedPhoto } from './MyAilbumsModal'; // Import interfaces
 import { EventType } from '../types'; // Import EventType
 
@@ -13,9 +13,10 @@ interface AlbumCardProps {
   album: SavedAlbum;
   userId: string;
   onViewDetail: (album: SavedAlbum) => void;
+  onOpenInEditor: (album: SavedAlbum) => void;
 }
 
-const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) => {
+const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail, onOpenInEditor }) => {
   const [hoveredPhoto, setHoveredPhoto] = useState<SavedPhoto | null>(null);
 
 
@@ -242,6 +243,20 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) =>
         >
           <Eye className="h-4 w-4" />
           <span>View Details</span>
+        </button>
+        
+        {/* Open in Editor Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenInEditor(album);
+          }}
+          className="w-full mt-2 px-3 py-2 bg-gradient-to-r from-purple-600 to-pink-600 
+                     hover:from-purple-700 hover:to-pink-700 text-white rounded-lg 
+                     flex items-center justify-center space-x-1 transition-all duration-200 text-sm"
+        >
+          <Edit className="h-4 w-4" />
+          <span>Open in Editor</span>
         </button>
       </div>
     </div>

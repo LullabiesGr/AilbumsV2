@@ -102,6 +102,53 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const { showToast } = useToast();
   const { user } = useAuth();
 
+  // Listen for album loading events from My Albums modal
+  useEffect(() => {
+    const handleLoadAlbumIntoEditor = (event: CustomEvent) => {
+      const { photos: albumPhotos, albumName, albumId, eventType: albumEventType, cullingMode: albumCullingMode } = event.detail;
+      
+      console.log('📂 Loading album into editor:', {
+        albumName,
+        albumId,
+        photosCount: albumPhotos.length,
+        eventType: albumEventType,
+        cullingMode: albumCullingMode
+      });
+      
+      // Reset current state
+      setPhotos([]);
+      setDuplicateClusters([]);
+      setPersonGroups([]);
+      setShowAnalysisOverlay(false);
+      setFilterOption('all');
+      setCaptionFilter('');
+      setStarRatingFilterState({ min: null, max: null });
+      setSelectedPersonGroup(null);
+      setAnalysisProgress({ processed: 0, total: 0, currentPhoto: '' });
+      
+      // Load album data
+      setPhotos(albumPhotos);
+      setCurrentAlbumName(albumName);
+      setCurrentAlbumId(albumId);
+      setEventType(albumEventType);
+      setCullingMode(albumCullingMode);
+      
+      // Go to review stage since photos are already analyzed
+      setWorkflowStage('review');
+      
+      // Auto-group people by faces after loading
+      setTimeout(() => {
+        groupPeopleByFaces();
+      }, 500);
+    };
+    
+    window.addEventListener('loadAlbumIntoEditor', handleLoadAlbumIntoEditor as EventListener);
+    
+    return () => {
+      window.removeEventListener('loadAlbumIntoEditor', handleLoadAlbumIntoEditor as EventListener);
+    };
+  }, [groupPeopleByFaces]);
+
   const resetWorkflow = useCallback(() => {
     setPhotos([]);
     setCurrentAlbumName('');

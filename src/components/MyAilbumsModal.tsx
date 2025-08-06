@@ -117,6 +117,78 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
     setViewMode('review');
   };
 
+  // Handle opening album in main editor
+  const handleOpenInEditor = async (album: SavedAlbum) => {
+    try {
+      console.log('🔄 Loading album into editor:', album.name || album.id);
+      
+      // Convert SavedPhoto back to Photo format for the main interface
+      const convertedPhotos: Photo[] = album.results.map((savedPhoto, index) => {
+        const photoUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(album.album_dir)}&filename=${encodeURIComponent(savedPhoto.filename)}`;
+        
+        // Create a dummy File object (we'll need the actual file for some operations)
+        const dummyFile = new File([], savedPhoto.filename, { type: 'image/jpeg' });
+        
+        return {
+          id: `${album.id}-${index}`,
+          filename: savedPhoto.filename,
+          file: dummyFile,
+          url: photoUrl,
+          score: savedPhoto.ai_score,
+          basic_score: savedPhoto.basic_score,
+          ml_score: savedPhoto.ml_score,
+          ai_score: savedPhoto.ai_score || 0,
+          score_type: savedPhoto.score_type || 'ai',
+          blur_score: savedPhoto.blur_score,
+          personalized_similarity: savedPhoto.personalized_similarity,
+          tags: savedPhoto.tags || [],
+          faces: savedPhoto.faces || [],
+          face_summary: savedPhoto.face_summary,
+          clip_vector: savedPhoto.clip_vector,
+          phash: savedPhoto.phash,
+          caption: savedPhoto.caption,
+          event_type: album.event_type,
+          color_label: savedPhoto.color_label as any,
+          blip_flags: savedPhoto.blip_flags || [],
+          blip_highlights: savedPhoto.blip_highlights || [],
+          deep_prompts: savedPhoto.deep_prompts || {},
+          ai_categories: savedPhoto.ai_categories || [],
+          approved: savedPhoto.approved,
+          dateCreated: album.date_created,
+          selected: false,
+          albumId: album.id,
+          albumName: album.name || album.id
+        };
+      });
+      
+      // Use the PhotoContext to load the album data
+      const { loadAlbumIntoEditor } = await import('../context/PhotoContext');
+      
+      // Close the modal first
+      onClose();
+      
+      // Small delay to ensure modal closes smoothly
+      setTimeout(() => {
+        // Load album data into the main editor
+        window.dispatchEvent(new CustomEvent('loadAlbumIntoEditor', {
+          detail: {
+            photos: convertedPhotos,
+            albumName: album.name || album.id,
+            albumId: album.id,
+            eventType: album.event_type,
+            cullingMode: album.metadata?.culling_mode || 'deep'
+          }
+        }));
+        
+        showToast(`Album "${album.name || album.id}" loaded into editor!`, 'success');
+      }, 300);
+      
+    } catch (error: any) {
+      console.error('❌ Failed to open album in editor:', error);
+      showToast(error.message || 'Failed to load album into editor', 'error');
+    }
+  };
+
   // Handle back from detail view
   const handleBackToAlbums = () => {
     setSelectedAlbum(null);
@@ -165,7 +237,13 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {albums.map((album) => ( // Pass userId to AlbumCard
-          <AlbumCard key={album.id} album={album} userId={user!.email} onViewDetail={handleViewAlbumDetail} />
+          <AlbumCard 
+            key={album.id} 
+            album={album} 
+            userId={user!.email} 
+            onViewDetail={handleViewAlbumDetail}
+            onOpenInEditor={handleOpenInEditor}
+          />
         ))} 
       </div>
     );

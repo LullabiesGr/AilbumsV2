@@ -18,7 +18,6 @@ interface AlbumCardProps {
 const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) => {
   const [hoveredPhoto, setHoveredPhoto] = useState<SavedPhoto | null>(null);
 
-
   const getEventTypeLabel = (type: EventType) => {
     const eventLabels = {
       wedding: 'Wedding',
@@ -45,17 +44,12 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) =>
   };
 
   const getPhotoUrl = (filename: string) => {
-    if (!album.album_dir) {
-      console.error('Album missing album_dir:', album);
-      return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk1pc3NpbmcgRGlyZWN0b3J5PC90ZXh0Pjwvc3ZnPg==';
-    }
-    
-    // Backend επιστρέφει album_dir σε μορφή: "lullabiesgr@gmail.com/tt"
-    // Απλά κάνουμε encode και στέλνουμε στο /album-photo endpoint
-    const imageUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(album.album_dir)}&filename=${encodeURIComponent(filename)}`;
+    // Construct album directory from user_id and album_id
+    const albumDir = `${userId}/${album.id}`;
+    const imageUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(albumDir)}&filename=${encodeURIComponent(filename)}`;
     
     console.log('AlbumCard URL:', {
-      album_dir: album.album_dir,
+      album_dir: albumDir,
       filename,
       final_url: imageUrl
     });
@@ -74,7 +68,7 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) =>
     return Array.from(allTags).slice(0, 5); // Limit to 5 unique tags for display
   };
 
-  const uniqueTags = getUniqueTags(album.results);
+  const uniqueTags = getUniqueTags(album.photos);
 
   return (
     <div
@@ -91,12 +85,12 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) =>
             {album.photos.length === 1 ? (
               /* Single photo - show as cover */
               <img
-                src={getPhotoUrl(album.photos[0])}
-                alt={album.photos[0]}
+                src={getPhotoUrl(album.photos[0].filename)}
+                alt={album.photos[0].filename}
                 className="w-full h-full object-cover transition-opacity duration-200"
                 loading="lazy"
                 onError={(e) => {
-                  console.warn('Failed to load cover image:', getPhotoUrl(album.photos[0]));
+                  console.warn('Failed to load cover image:', getPhotoUrl(album.photos[0].filename));
                   e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';
                   e.currentTarget.style.opacity = '0.7';
                 }}
@@ -109,15 +103,15 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) =>
               <div className={`grid gap-0.5 h-full ${
                 album.photos.length === 2 ? 'grid-cols-2' : 'grid-cols-2 grid-rows-2'
               }`}>
-                {album.photos.slice(0, 4).map((filename, index) => (
+                {album.photos.slice(0, 4).map((photo, index) => (
                   <div key={index} className="relative w-full h-full overflow-hidden">
                     <img
-                      src={getPhotoUrl(filename)}
-                      alt={filename}
+                      src={getPhotoUrl(photo.filename)}
+                      alt={photo.filename}
                       className="w-full h-full object-cover transition-opacity duration-200"
                       loading="lazy"
                       onError={(e) => {
-                        console.warn('Failed to load image:', getPhotoUrl(filename));
+                        console.warn('Failed to load image:', getPhotoUrl(photo.filename));
                         e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';
                         e.currentTarget.style.opacity = '0.7';
                       }}
@@ -132,12 +126,12 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) =>
               /* 5+ photos - show main photo with count overlay */
               <>
                 <img
-                  src={getPhotoUrl(album.photos[0])}
-                  alt={album.photos[0]}
+                  src={getPhotoUrl(album.photos[0].filename)}
+                  alt={album.photos[0].filename}
                   className="w-full h-full object-cover transition-opacity duration-200"
                   loading="lazy"
                   onError={(e) => {
-                    console.warn('Failed to load cover image:', getPhotoUrl(album.photos[0]));
+                    console.warn('Failed to load cover image:', getPhotoUrl(album.photos[0].filename));
                     e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';
                     e.currentTarget.style.opacity = '0.7';
                   }}
@@ -180,7 +174,7 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) =>
       <div className="p-4">
         <div className="mb-3">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 truncate">
-            {album.name || album.id}
+            {album.title || album.id}
           </h3>
           <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
             <Calendar className="h-4 w-4" />
@@ -199,13 +193,13 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) =>
           <div className="flex items-center space-x-2">
             <Star className="h-4 w-4 text-yellow-500" />
             <span className="text-gray-600 dark:text-gray-400">
-              {album.results ? album.results.filter(p => p.ai_score && p.ai_score >= 7).length : 0} high score
+              {album.photos ? album.photos.filter(p => p.ai_score && p.ai_score >= 7).length : 0} high score
             </span>
           </div>
         </div>
 
         {/* Tags/Highlights */}
-        {album.results && uniqueTags.length > 0 && (
+        {album.photos && uniqueTags.length > 0 && (
           <div className="mb-4">
             <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center space-x-1">
               <Tag className="h-4 w-4 text-gray-500" />

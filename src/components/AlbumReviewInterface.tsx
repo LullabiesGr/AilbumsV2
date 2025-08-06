@@ -34,15 +34,14 @@ const AlbumReviewInterface: React.FC<AlbumReviewInterfaceProps> = ({ album, user
 
   // Convert SavedPhoto to Photo format for compatibility with existing components
   useEffect(() => {
-    const convertedPhotos: Photo[] = album.photos.map((filename, index) => {
-      // Find corresponding result data if available
-      const savedPhoto = album.results ? album.results.find(r => r.filename === filename) : null;
-      const photoUrl = getPhotoUrl(filename);
+    const convertedPhotos: Photo[] = album.photos.map((savedPhoto, index) => {
+      // savedPhoto already contains all the data we need
+      const photoUrl = getPhotoUrl(savedPhoto.filename);
       
       return {
         id: `${album.id}-${index}`,
-        filename: filename,
-        file: new File([], filename), // Dummy file object
+        filename: savedPhoto.filename,
+        file: new File([], savedPhoto.filename), // Dummy file object
         url: photoUrl,
         score: savedPhoto?.ai_score || 0,
         basic_score: savedPhoto?.basic_score,
@@ -69,17 +68,12 @@ const AlbumReviewInterface: React.FC<AlbumReviewInterfaceProps> = ({ album, user
   }, [album, selectedPhotos]);
 
   const getPhotoUrl = (filename: string) => {
-    if (!album.album_dir) {
-      console.error('Album missing album_dir:', album);
-      return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk1pc3NpbmcgRGlyZWN0b3J5PC90ZXh0Pjwvc3ZnPg==';
-    }
-    
-    // Backend επιστρέφει album_dir σε μορφή: "lullabiesgr@gmail.com/tt"
-    // Απλά κάνουμε encode και στέλνουμε στο /album-photo endpoint
-    const imageUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(album.album_dir)}&filename=${encodeURIComponent(filename)}`;
+    // Construct album directory from user_id and album_id
+    const albumDir = `${userId}/${album.id}`;
+    const imageUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(albumDir)}&filename=${encodeURIComponent(filename)}`;
     
     console.log('AlbumReviewInterface URL:', {
-      album_dir: album.album_dir,
+      album_dir: albumDir,
       filename,
       final_url: imageUrl
     });
@@ -257,7 +251,7 @@ const AlbumReviewInterface: React.FC<AlbumReviewInterfaceProps> = ({ album, user
 
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {album.name || album.id}
+            {album.title || album.id}
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
             {getEventTypeIcon(album.event_type)} {album.event_type} • Review Mode

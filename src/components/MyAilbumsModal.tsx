@@ -11,7 +11,7 @@ import AlbumReviewInterface from './AlbumReviewInterface'; // New component for 
 // Define interfaces for the data coming from the backend
 export interface SavedPhoto extends AnalysisResult {
   filename: string;
-  path?: string; // Optional: if backend sends full path, otherwise we construct it
+  path: string; // Backend always sends the local path
   ai_score: number;
   approved: boolean;
   color_label?: string;
@@ -30,13 +30,12 @@ export interface SavedPhoto extends AnalysisResult {
 
 export interface SavedAlbum {
   id: string;
-  name?: string; // Assuming 'name' might be used for title
+  title: string; // Backend sends 'title' field
   event_type: EventType;
-  date_created: string;
-  user_id: string;
-  album_dir: string; // Exact directory path from backend
-  photos: string[]; // List of filenames
-  results: SavedPhoto[]; // List of analysis results for each photo
+  date_created: string; 
+  total_photos: number;
+  approved_photos: number;
+  photos: SavedPhoto[]; // Backend sends photos as array of objects with metadata
   metadata?: { // Optional metadata from backend
     user_id: string;
     culling_mode: string;

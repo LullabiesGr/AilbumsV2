@@ -1033,6 +1033,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         user_id: user.email,
         name: albumTitle_final, // Store user-provided name in metadata
         title: albumTitle_final, // Also store as title for compatibility
+        photos: uniquePhotos.map(photo => photo.filename), // Array of ALL filenames
         culling_mode: cullingMode || 'fast',
         analysis_complete: photos.some(p => p.ai_score > 0),
         original_total_photos: photos.length,

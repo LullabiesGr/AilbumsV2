@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Tag, MessageSquare, Star, Users, Flag, Sparkles, Eye, EyeOff, Smile, Frown, Meh, AlertCircle, Glasses, Shield, ArrowUp, ArrowDown, RotateCcw, X, Calendar, Heart, Baby, Briefcase, GraduationCap, Camera } from 'lucide-react';
+import { ArrowLeft, Tag, MessageSquare, Star, Users, Flag, Sparkles, Eye, EyeOff, Smile, Frown, Meh, AlertCircle, Glasses, Shield, ArrowUp, ArrowDown, RotateCcw, X, Calendar, Heart, Baby, Briefcase, GraduationCap, Camera, Edit } from 'lucide-react';
 import { SavedAlbum, SavedPhoto } from './MyAilbumsModal'; // Import interfaces
 import { Photo, Face } from '../types'; // Import Photo and Face types for consistency
 

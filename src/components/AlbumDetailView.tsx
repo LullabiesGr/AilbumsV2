@@ -38,17 +38,17 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
   const [showPhotoModal, setShowPhotoModal] = useState(false);
 
   const getPhotoUrl = (filename: string) => {
-    if (!album.album_dir) {
-      console.error('Album missing album_dir:', album);
+    if (!album.id) {
+      console.error('Album missing id:', album);
       return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk1pc3NpbmcgRGlyZWN0b3J5PC90ZXh0Pjwvc3ZnPg==';
     }
     
-    // Backend επιστρέφει album_dir σε μορφή: "lullabiesgr@gmail.com/tt"
-    // Απλά κάνουμε encode και στέλνουμε στο /album-photo endpoint
-    const imageUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(album.album_dir)}&filename=${encodeURIComponent(filename)}`;
+    // Backend αποθηκεύει φωτογραφίες σε ./albums/{user_id}/{album_id}/
+    const album_dir = `albums/${userId}/${album.id}`;
+    const imageUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(album_dir)}&filename=${encodeURIComponent(filename)}`;
     
     console.log('AlbumDetailView URL:', {
-      album_dir: album.album_dir,
+      album_dir: album_dir,
       filename,
       final_url: imageUrl
     });
@@ -261,7 +261,7 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
 
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {album.name || album.id}
+            {album.title || album.name || album.id}
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
             {getEventTypeIcon(album.event_type)} {album.event_type} • {new Date(album.created_at).toLocaleDateString()}
@@ -282,19 +282,19 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-center border border-gray-200 dark:border-gray-700">
           <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-            {album.results.filter(p => p.approved).length}
+            {album.approved_photos || album.photos.filter(p => p.approved).length}
           </div>
           <div className="text-sm text-gray-600 dark:text-gray-400">Approved</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-center border border-gray-200 dark:border-gray-700">
           <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-            {album.results.filter(p => p.blip_highlights && p.blip_highlights.length > 0).length}
+            {album.photos.filter(p => p.blip_highlights && p.blip_highlights.length > 0).length}
           </div>
           <div className="text-sm text-gray-600 dark:text-gray-400">Highlights</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-center border border-gray-200 dark:border-gray-700">
           <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-            {(album.results.reduce((sum, p) => sum + (p.ai_score || 0), 0) / album.results.length / 2).toFixed(1)}
+            {album.photos.length > 0 ? (album.photos.reduce((sum, p) => sum + (p.ai_score || 0), 0) / album.photos.length / 2).toFixed(1) : '0.0'}
           </div>
           <div className="text-sm text-gray-600 dark:text-gray-400">Avg Rating</div>
         </div>
@@ -306,66 +306,74 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
           Album Photos ({album.photos.length})
         </h3>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {album.photos.map((filename, index) => {
-            // Find corresponding result data if available
-            const photoResult = album.results ? album.results.find(r => r.filename === filename) : null;
-            
-            return (
-            <div
-              key={`${filename}-${index}`}
-              className="relative group cursor-pointer"
-              onClick={() => photoResult && handlePhotoClick(photoResult)}
-            >
-              <div className="aspect-square rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700">
-                <img
-                  src={getPhotoUrl(filename)}
-                  alt={filename}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-all duration-200"
-                  loading="lazy"
-                  onError={(e) => {
-                    console.warn('Failed to load image in grid:', getPhotoUrl(filename));
-                    e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';
-                    e.currentTarget.style.opacity = '0.7';
-                  }}
-                  onLoad={(e) => {
-                    e.currentTarget.style.opacity = '1';
-                  }}
-                />
-              </div>
+        {album.photos.length === 0 ? (
+          <div className="text-center py-12">
+            <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              No Photos Available
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              This album doesn't contain any photos.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {album.photos.map((photo, index) => (
+              <div
+                key={`${photo.filename}-${index}`}
+                className="relative group cursor-pointer"
+                onClick={() => handlePhotoClick(photo)}
+              >
+                <div className="aspect-square rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700">
+                  <img
+                    src={getPhotoUrl(photo.filename)}
+                    alt={photo.filename}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-all duration-200"
+                    loading="lazy"
+                    onError={(e) => {
+                      console.warn('Failed to load image in grid:', getPhotoUrl(photo.filename));
+                      e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';
+                      e.currentTarget.style.opacity = '0.7';
+                    }}
+                    onLoad={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                    }}
+                  />
+                </div>
 
-              {/* Photo Info Overlay */}
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100
-                            transition-opacity duration-200 rounded-lg flex flex-col justify-between p-2">
-                <div className="flex justify-between items-start">
-                  <div className="flex flex-wrap gap-1">
-                    {photoResult?.blip_highlights && photoResult.blip_highlights.slice(0, 2).map((highlight, idx) => (
-                      <span key={idx} className="px-1.5 py-0.5 bg-yellow-500 text-white text-xs rounded-full">
-                        {cleanTagLabel(highlight)}
-                      </span>
-                    ))}
-                  </div>
-                  {photoResult?.approved && (
-                    <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs">✓</span>
+                {/* Photo Info Overlay */}
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100
+                              transition-opacity duration-200 rounded-lg flex flex-col justify-between p-2">
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-wrap gap-1">
+                      {photo.blip_highlights && photo.blip_highlights.slice(0, 2).map((highlight, idx) => (
+                        <span key={idx} className="px-1.5 py-0.5 bg-yellow-500 text-white text-xs rounded-full">
+                          {cleanTagLabel(highlight)}
+                        </span>
+                      ))}
                     </div>
-                  )}
-                </div>
-
-                <div className="text-white">
-                  <div className="flex items-center space-x-1 mb-1">
-                    <Star className="h-3 w-3 text-yellow-400" />
-                    <span className="text-xs">{photoResult?.ai_score ? (photoResult.ai_score / 2).toFixed(1) : 'N/A'}</span>
+                    {photo.approved && (
+                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs">✓</span>
+                      </div>
+                    )}
                   </div>
-                  <p className="text-xs truncate">{filename}</p>
-                  {photoResult?.caption && <p className="text-xs truncate opacity-80">{photoResult.caption}</p>}
+
+                  <div className="text-white">
+                    <div className="flex items-center space-x-1 mb-1">
+                      <Star className="h-3 w-3 text-yellow-400" />
+                      <span className="text-xs">{photo.ai_score ? (photo.ai_score / 2).toFixed(1) : 'N/A'}</span>
+                    </div>
+                    <p className="text-xs truncate">{photo.filename}</p>
+                    {photo.caption && <p className="text-xs truncate opacity-80">{photo.caption}</p>}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
+
       {showPhotoModal && renderPhotoModal()}
     </div>
   );

@@ -289,19 +289,19 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-center border border-gray-200 dark:border-gray-700">
           <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-            {album.results.filter(p => p.approved).length}
+            {album.photos.filter(p => p.approved).length}
           </div>
           <div className="text-sm text-gray-600 dark:text-gray-400">Approved</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-center border border-gray-200 dark:border-gray-700">
           <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-            {album.results.filter(p => p.blip_highlights && p.blip_highlights.length > 0).length}
+            {album.photos.filter(p => p.blip_highlights && p.blip_highlights.length > 0).length}
           </div>
           <div className="text-sm text-gray-600 dark:text-gray-400">Highlights</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-center border border-gray-200 dark:border-gray-700">
           <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-            {(album.results.reduce((sum, p) => sum + (p.ai_score || 0), 0) / album.results.length / 2).toFixed(1)}
+            {(album.photos.reduce((sum, p) => sum + (p.ai_score || 0), 0) / album.photos.length / 2).toFixed(1)}
           </div>
           <div className="text-sm text-gray-600 dark:text-gray-400">Avg Rating</div>
         </div>
@@ -314,7 +314,7 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
         </h3>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {album.results.map((photo, index) => (
+          {album.photos.map((photo, index) => (
             <div
               key={index}
               className="relative group cursor-pointer"
@@ -322,18 +322,10 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
             >
               <div className="aspect-square rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700">
                 <img
-                  src={getPhotoUrl(photo.filename)}
+                  src={photo.path || getPhotoUrl(photo.filename)}
                   alt={photo.filename}
                   className="w-full h-full object-cover group-hover:scale-105 transition-all duration-200"
                   loading="lazy"
-                  onError={(e) => {
-                    console.warn('Failed to load image in grid:', getPhotoUrl(photo.filename));
-                    e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';
-                    e.currentTarget.style.opacity = '0.7';
-                  }}
-                  onLoad={(e) => {
-                    e.currentTarget.style.opacity = '1';
-                  }}
                 />
               </div>
 

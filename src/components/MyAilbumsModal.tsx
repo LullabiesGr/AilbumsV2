@@ -37,8 +37,7 @@ export interface SavedAlbum {
   date_created: string;
   user_id: string;
   album_dir: string; // Exact directory path from backend
-  photos: string[]; // List of filenames
-  results: SavedPhoto[]; // List of analysis results for each photo
+  photos: SavedPhoto[]; // Array of photo objects with metadata
   metadata?: { // Optional metadata from backend
     user_id: string;
     culling_mode: string;
@@ -126,8 +125,8 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
       console.log('🔄 Loading album for editing:', album.name || album.id);
       
       // Convert SavedPhoto results to Photo objects for the interface
-      const convertedPhotos: Photo[] = album.results.map((savedPhoto, index) => {
-        const photoUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(album.album_dir)}&filename=${encodeURIComponent(savedPhoto.filename)}`;
+      const convertedPhotos: Photo[] = album.photos.map((savedPhoto, index) => {
+        const photoUrl = savedPhoto.path || `${API_URL}/album-photo?album_dir=${encodeURIComponent(album.album_dir)}&filename=${encodeURIComponent(savedPhoto.filename)}`;
         
         return {
           id: `${album.id}-${index}`,
@@ -150,7 +149,7 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
           ai_categories: savedPhoto.ai_categories || [],
           approved: savedPhoto.approved,
           color_label: savedPhoto.color_label,
-          dateCreated: album.date_created,
+          dateCreated: album.created_at || album.date_created,
           selected: false,
           clip_vector: savedPhoto.clip_vector,
           phash: savedPhoto.phash,

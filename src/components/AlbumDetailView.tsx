@@ -307,24 +307,20 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
         </h3>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {album.photos.map((filename, index) => {
-            // Find corresponding result data if available
-            const photoResult = album.results ? album.results.find(r => r.filename === filename) : null;
-            
-            return (
+          {album.results.map((photo, index) => (
             <div
-              key={`${filename}-${index}`}
+              key={index}
               className="relative group cursor-pointer"
-              onClick={() => photoResult && handlePhotoClick(photoResult)}
+              onClick={() => handlePhotoClick(photo)}
             >
               <div className="aspect-square rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700">
                 <img
-                  src={getPhotoUrl(filename)}
-                  alt={filename}
+                  src={getPhotoUrl(photo.filename)}
+                  alt={photo.filename}
                   className="w-full h-full object-cover group-hover:scale-105 transition-all duration-200"
                   loading="lazy"
                   onError={(e) => {
-                    console.warn('Failed to load image in grid:', getPhotoUrl(filename));
+                    console.warn('Failed to load image in grid:', getPhotoUrl(photo.filename));
                     e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';
                     e.currentTarget.style.opacity = '0.7';
                   }}
@@ -339,13 +335,13 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
                             transition-opacity duration-200 rounded-lg flex flex-col justify-between p-2">
                 <div className="flex justify-between items-start">
                   <div className="flex flex-wrap gap-1">
-                    {photoResult?.blip_highlights && photoResult.blip_highlights.slice(0, 2).map((highlight, idx) => (
+                    {photo.blip_highlights && photo.blip_highlights.slice(0, 2).map((highlight, idx) => (
                       <span key={idx} className="px-1.5 py-0.5 bg-yellow-500 text-white text-xs rounded-full">
                         {cleanTagLabel(highlight)}
                       </span>
                     ))}
                   </div>
-                  {photoResult?.approved && (
+                  {photo.approved && (
                     <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
                       <span className="text-white text-xs">✓</span>
                     </div>
@@ -355,15 +351,14 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
                 <div className="text-white">
                   <div className="flex items-center space-x-1 mb-1">
                     <Star className="h-3 w-3 text-yellow-400" />
-                    <span className="text-xs">{photoResult?.ai_score ? (photoResult.ai_score / 2).toFixed(1) : 'N/A'}</span>
+                    <span className="text-xs">{(photo.ai_score / 2).toFixed(1)}</span>
                   </div>
-                  <p className="text-xs truncate">{filename}</p>
-                  {photoResult?.caption && <p className="text-xs truncate opacity-80">{photoResult.caption}</p>}
+                  <p className="text-xs truncate">{photo.filename}</p>
+                  {photo.caption && <p className="text-xs truncate opacity-80">{photo.caption}</p>}
                 </div>
               </div>
             </div>
-          );
-          })}
+          ))}
         </div>
       </div>
       {showPhotoModal && renderPhotoModal()}

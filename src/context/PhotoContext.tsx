@@ -1042,7 +1042,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         faces_detected: uniquePhotos.filter(p => p.faces && p.faces.length > 0).length,
         date_created: new Date().toISOString(),
         date_updated: new Date().toISOString(),
-        creation_source: 'ailbums_web_app',
+        creation_source: 'ailbums_web_app'
         // ---- ΕΔΩ ΤΑ ΠΡΟΣΘΕΤΩ ----
         photos: uniquePhotos.map(photo => photo.filename),
         results: uniquePhotos.map(photo => ({

@@ -367,9 +367,9 @@ export const saveAlbumAndTrain = async (trainingData: { user_email: string; even
 export const fetchAlbums = async (userEmail: string): Promise<any[]> => {
   try {
     console.log('🔍 Loading albums for user:', userEmail);
-    console.log('🌐 API URL:', `${API_URL}/albums?user_id=${userEmail}`);
+    console.log('🌐 API URL:', `${API_URL}/albums?user_id=${userEmail}&include_all_photos=true`);
     
-    const response = await fetch(`${API_URL}/albums?user_id=${userEmail}`, {
+    const response = await fetch(`${API_URL}/albums?user_id=${userEmail}&include_all_photos=true`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

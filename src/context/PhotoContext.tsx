@@ -102,11 +102,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const { showToast } = useToast();
   const { user } = useAuth();
 
-  // Add setPhotos function to allow external loading of photos
-  const setPhotos = useCallback((newPhotos: Photo[]) => {
-    setPhotos(newPhotos);
-  }, []);
-
   const resetWorkflow = useCallback(() => {
     setPhotos([]);
     setCurrentAlbumName('');

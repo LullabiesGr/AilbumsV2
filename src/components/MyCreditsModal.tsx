@@ -44,10 +44,76 @@ const MyCreditsModal: React.FC<MyCreditsModalProps> = ({ isOpen, onClose }) => {
     try {
       console.log('🔍 Loading credits for user:', user.email);
       
+      // Step 1: Find user_id based on email from auth.users table
+      const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
+      
+      if (userError) {
+        console.error('Failed to fetch users:', userError);
+        // Fallback: try to get current user session
+        const { data: { user: currentUser }, error: sessionError } = await supabase.auth.getUser();
+        
+        if (sessionError || !currentUser) {
+          throw new Error('Failed to get user information');
+        }
+        
+        // Use current user's ID
+        const userId = currentUser.id;
+        console.log('🔍 Using current user ID from session:', userId);
+        
+        // Step 2: Load credits using user_id
+        const { data, error: supabaseError } = await supabase
+          .from('user_credits')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
+
+        if (supabaseError) {
+          if (supabaseError.code === 'PGRST116') {
+            // No record found - create default credits entry
+            console.log('📝 Creating default credits entry for new user');
+            
+            const { data: newData, error: insertError } = await supabase
+              .from('user_credits')
+              .insert({
+                user_id: userId,
+                credits: 100, // Default starting credits
+                monthly_credits: 0,
+                extra_credits: 0
+              })
+              .select()
+              .single();
+
+            if (insertError) {
+              throw new Error(`Failed to create credits entry: ${insertError.message}`);
+            }
+
+            setUserCredits(newData);
+            showToast('Welcome! You received 100 free credits to get started!', 'success');
+          } else {
+            throw new Error(`Database error: ${supabaseError.message}`);
+          }
+        } else {
+          console.log('✅ Credits loaded successfully:', data);
+          setUserCredits(data);
+        }
+        return;
+      }
+      
+      // Find user by email
+      const matchingUser = userData.users.find(u => u.email === user.email);
+      
+      if (!matchingUser) {
+        throw new Error('User not found in authentication system');
+      }
+      
+      const userId = matchingUser.id;
+      console.log('🔍 Found user_id for email', user.email, ':', userId);
+      
+      // Step 2: Load credits using the found user_id
       const { data, error: supabaseError } = await supabase
         .from('user_credits')
         .select('*')
-        .eq('user_id', user.email)
+        .eq('user_id', userId)
         .single();
 
       if (supabaseError) {
@@ -58,7 +124,7 @@ const MyCreditsModal: React.FC<MyCreditsModalProps> = ({ isOpen, onClose }) => {
           const { data: newData, error: insertError } = await supabase
             .from('user_credits')
             .insert({
-              user_id: user.email,
+              user_id: userId,
               credits: 100, // Default starting credits
               monthly_credits: 0,
               extra_credits: 0

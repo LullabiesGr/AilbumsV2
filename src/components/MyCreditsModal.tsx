@@ -7,7 +7,11 @@ import { createClient } from '@supabase/supabase-js';
 // Supabase configuration
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://qyukljrlqmimbwodefpc.supabase.co';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5dWtsanJscW1pbWJ3b2RlZnBjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMDUwOTIsImV4cCI6MjA1OTc4MTA5Mn0.71sinmqqnXxAzazjzWLkAYcCMaEXkLA4RWO5WAXHr9w';
+const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5dWtsanJscW1pbWJ3b2RlZnBjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDIwNTA5MiwiZXhwIjoyMDU5NzgxMDkyfQ.Y3VmGCrwiG1i23Kj_5K7nZ-O1nD_XgUY_nylnxzn9HU';
+
+// Create both anon and service role clients
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 interface UserCredits {
   id: string;
@@ -44,13 +48,13 @@ const MyCreditsModal: React.FC<MyCreditsModalProps> = ({ isOpen, onClose }) => {
     try {
       console.log('🔍 Loading credits for user:', user.email);
       
-      // Step 1: Find user_id based on email from auth.users table
-      const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
+      // Step 1: Find user_id based on email from auth.users table using service role
+      const { data: userData, error: userError } = await supabaseAdmin.auth.admin.listUsers();
       
       if (userError) {
         console.error('Failed to fetch users:', userError);
-        // Fallback: try to get current user session
-        const { data: { user: currentUser }, error: sessionError } = await supabase.auth.getUser();
+        // Fallback: try to get current user session with anon client
+        const { data: { user: currentUser }, error: sessionError } = await supabaseAdmin.auth.getUser();
         
         if (sessionError || !currentUser) {
           throw new Error('Failed to get user information');
@@ -60,8 +64,8 @@ const MyCreditsModal: React.FC<MyCreditsModalProps> = ({ isOpen, onClose }) => {
         const userId = currentUser.id;
         console.log('🔍 Using current user ID from session:', userId);
         
-        // Step 2: Load credits using user_id
-        const { data, error: supabaseError } = await supabase
+        // Step 2: Load credits using user_id with service role for admin access
+        const { data, error: supabaseError } = await supabaseAdmin
           .from('user_credits')
           .select('*')
           .eq('user_id', userId)
@@ -72,7 +76,7 @@ const MyCreditsModal: React.FC<MyCreditsModalProps> = ({ isOpen, onClose }) => {
             // No record found - create default credits entry
             console.log('📝 Creating default credits entry for new user');
             
-            const { data: newData, error: insertError } = await supabase
+            const { data: newData, error: insertError } = await supabaseAdmin
               .from('user_credits')
               .insert({
                 user_id: userId,
@@ -109,8 +113,8 @@ const MyCreditsModal: React.FC<MyCreditsModalProps> = ({ isOpen, onClose }) => {
       const userId = matchingUser.id;
       console.log('🔍 Found user_id for email', user.email, ':', userId);
       
-      // Step 2: Load credits using the found user_id
-      const { data, error: supabaseError } = await supabase
+      // Step 2: Load credits using the found user_id with service role for admin access
+      const { data, error: supabaseError } = await supabaseAdmin
         .from('user_credits')
         .select('*')
         .eq('user_id', userId)
@@ -121,7 +125,7 @@ const MyCreditsModal: React.FC<MyCreditsModalProps> = ({ isOpen, onClose }) => {
           // No record found - create default credits entry
           console.log('📝 Creating default credits entry for new user');
           
-          const { data: newData, error: insertError } = await supabase
+          const { data: newData, error: insertError } = await supabaseAdmin
             .from('user_credits')
             .insert({
               user_id: userId,

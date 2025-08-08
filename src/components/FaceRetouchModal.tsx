@@ -666,3 +666,229 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                   </span>
                 )}
                 {photo.faces && photo.faces.length > 1 && (
+                  <button
+                    onClick={handleSelectAllFaces}
+                    className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded 
+                             flex items-center space-x-1 transition-colors duration-200"
+                  >
+                    <Users className="h-4 w-4" />
+                    <span>
+                      {selectedFaceIndices.length === photo.faces.length ? 'Deselect All' : 'Select All'}
+                    </span>
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Click on face boxes in the image to select faces for enhancement
+            </p>
+            
+            {selectedFaceIndices.length > 0 && (
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 
+                            rounded-lg p-3">
+                <p className="text-sm text-green-700 dark:text-green-300 font-medium mb-2">
+                  {selectedFaceIndices.length} face(s) selected for enhancement:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedFaceIndices.map((index) => (
+                    <span key={index} className="px-2 py-1 bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 
+                                                text-sm rounded-md font-medium">
+                      Face {index + 1}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Settings */}
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center space-x-2">
+              <Settings className="h-5 w-5" />
+              <span>CodeFormer Settings</span>
+            </h4>
+            
+            <div className="space-y-4">
+              {/* Fidelity Slider */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Fidelity (w parameter)
+                  </label>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 font-mono">
+                    {settings.fidelity.toFixed(1)}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.0"
+                  max="1.0"
+                  step="0.1"
+                  value={settings.fidelity}
+                  onChange={(e) => setSettings(prev => ({ ...prev, fidelity: parseFloat(e.target.value) }))}
+                  className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                />
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>More Natural (0.0)</span>
+                  <span>More Enhanced (1.0)</span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Lower values preserve more original details, higher values apply stronger enhancement
+                </p>
+              </div>
+
+              {/* Process Info */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <strong>Process:</strong> Full image → <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">./inputs/whole_imgs/</code> → CodeFormer w={settings.fidelity}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex-1 flex flex-col justify-end p-6">
+            <div className="space-y-3">
+              <button
+                onClick={handleCodeFormerEnhancement}
+                disabled={selectedFaceIndices.length === 0 || isProcessing}
+                className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 
+                         hover:from-purple-700 hover:to-pink-700 disabled:from-gray-400 
+                         disabled:to-gray-400 disabled:cursor-not-allowed text-white rounded-lg 
+                         flex items-center justify-center space-x-2 transition-all duration-200 
+                         font-medium"
+              >
+                <Sparkles className="h-5 w-5" />
+                <span>
+                  {isProcessing 
+                    ? `Processing ${selectedFaceIndices.length} face(s)...` 
+                    : `Enhance with CodeFormer ${selectedFaceIndices.length > 0 ? `(${selectedFaceIndices.length} faces)` : ''}`
+                  }
+                </span>
+              </button>
+
+              {retouchedImageUrl && (
+                <div className="flex space-x-3">
+                  <button
+                    onClick={handleSave}
+                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white 
+                             rounded-lg flex items-center justify-center space-x-2 transition-colors duration-200"
+                  >
+                    <Save className="h-4 w-4" />
+                    <span>Save & Update Dashboard</span>
+                  </button>
+                  
+                  <button
+                    onClick={handleDownload}
+                    className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white 
+                             rounded-lg flex items-center justify-center space-x-2 transition-colors duration-200"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>Download Only</span>
+                  </button>
+                </div>
+              )}
+
+              <button
+                onClick={handleReset}
+                className="w-full px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg 
+                         flex items-center justify-center space-x-2 transition-colors duration-200"
+              >
+                <RotateCcw className="h-4 w-4" />
+                <span>Reset All Settings</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Face Retouch Overlay Component
+interface FaceRetouchOverlayProps {
+  faces: Face[];
+  imageUrl: string;
+  onFaceClick: (face: Face, index: number) => void;
+  selectedFaceIndices: number[];
+  className?: string;
+}
+
+const FaceRetouchOverlay: React.FC<FaceRetouchOverlayProps> = ({
+  faces,
+  imageUrl,
+  onFaceClick,
+  selectedFaceIndices,
+  className = ''
+}) => {
+  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+
+  const handleImageLoad = useCallback(() => {
+    if (imageRef.current) {
+      setImageDimensions({
+        width: imageRef.current.naturalWidth,
+        height: imageRef.current.naturalHeight
+      });
+    }
+  }, []);
+
+  return (
+    <div className={`relative ${className}`}>
+      <img
+        ref={imageRef}
+        src={imageUrl}
+        alt="Face retouch preview"
+        className="w-full h-full object-contain"
+        onLoad={handleImageLoad}
+      />
+      
+      {imageDimensions && faces.map((face, index) => {
+        const [x1, y1, x2, y2] = face.box;
+        const isSelected = selectedFaceIndices.includes(index);
+        
+        // Calculate face box dimensions relative to displayed image
+        const displayedImg = imageRef.current;
+        if (!displayedImg) return null;
+        
+        const scaleX = displayedImg.clientWidth / imageDimensions.width;
+        const scaleY = displayedImg.clientHeight / imageDimensions.height;
+        
+        const left = x1 * scaleX;
+        const top = y1 * scaleY;
+        const width = (x2 - x1) * scaleX;
+        const height = (y2 - y1) * scaleY;
+        
+        return (
+          <div
+            key={index}
+            className={`absolute border-2 cursor-pointer transition-all duration-200 ${
+              isSelected 
+                ? 'border-green-500 bg-green-500/20' 
+                : 'border-blue-500 bg-blue-500/10 hover:border-blue-600 hover:bg-blue-600/20'
+            }`}
+            style={{
+              left: `${left}px`,
+              top: `${top}px`,
+              width: `${width}px`,
+              height: `${height}px`
+            }}
+            onClick={() => onFaceClick(face, index)}
+          >
+            <div className={`absolute -top-6 left-0 px-2 py-1 text-xs font-medium rounded ${
+              isSelected 
+                ? 'bg-green-500 text-white' 
+                : 'bg-blue-500 text-white'
+            }`}>
+              {isSelected && <Check className="inline h-3 w-3 mr-1" />}
+              Face {index + 1}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+export default FaceRetouchModal;

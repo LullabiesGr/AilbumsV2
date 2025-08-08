@@ -7,7 +7,7 @@ import { Photo, Face } from '../types'; // Import Photo and Face types for consi
 const API_URL =
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:8000"
-    : "https://3a202ff8dda3.ngrok-free.app";
+    : "https://438aeaff2b7a.ngrok-free.app";
 
 interface AlbumDetailViewProps {
   album: SavedAlbum;

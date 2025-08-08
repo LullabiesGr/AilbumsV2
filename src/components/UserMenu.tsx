@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { LogOut, User, Settings, ChevronDown } from 'lucide-react';
+import { LogOut, User, Settings, ChevronDown, CreditCard } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import MyCreditsModal from './MyCreditsModal';
 
 const UserMenu: React.FC = () => {
   const { user, logout } = useAuth();
   const { showToast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+  const [showCreditsModal, setShowCreditsModal] = useState(false);
   
   // Check if user is a guest
   const isGuest = localStorage.getItem('is_guest') === 'true';
@@ -102,22 +104,27 @@ const UserMenu: React.FC = () => {
                   className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 
                            dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 
                            transition-colors duration-200"
+                  onClick={() => {
+                    setShowCreditsModal(true);
+                    setIsOpen(false);
+                  }}
+                >
+                  <CreditCard className="h-4 w-4" />
+                  <span>My Credits</span>
+                </button>
+              )}
+              
+              {!isGuest && (
+                <button
+                  className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 
+                           dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 
+                           transition-colors duration-200"
                   onClick={() => setIsOpen(false)}
                 >
                   <Settings className="h-4 w-4" />
                   <span>Settings</span>
                 </button>
               )}
-              
-              <button
-                className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 
-                         dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 
-                         transition-colors duration-200"
-                onClick={() => setIsOpen(false)}
-              >
-                <Settings className="h-4 w-4" />
-                <span>Settings</span>
-              </button>
               
               <button
                 className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-red-600 
@@ -132,6 +139,11 @@ const UserMenu: React.FC = () => {
           </div>
         </>
       )}
+      
+      <MyCreditsModal 
+        isOpen={showCreditsModal} 
+        onClose={() => setShowCreditsModal(false)} 
+      />
     </div>
   );
 };

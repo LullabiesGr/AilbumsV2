@@ -165,7 +165,7 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {albums.map((album) => ( // Pass userId to AlbumCard
-          <AlbumCard key={album.id} album={album} userId={user!.email} onViewDetail={handleViewAlbumDetail} onOpenReview={handleOpenAlbumReview} />
+          <AlbumCard key={album.id} album={album} userId={user!.email} onViewDetail={handleViewAlbumDetail} />
         ))} 
       </div>
     );
@@ -213,7 +213,6 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
               album={selectedAlbum} 
               userId={user!.email} 
               onBack={handleBackToAlbums}
-              onOpenReview={() => setViewMode('review')}
               onOpenReview={() => setViewMode('review')}
             />
           ) : viewMode === 'review' && selectedAlbum ? (

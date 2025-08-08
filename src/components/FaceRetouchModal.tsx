@@ -668,7 +668,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                 {photo.faces && photo.faces.length > 1 && (
                   <button
                     onClick={handleSelectAllFaces}
-                    className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded 
+                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded 
                              flex items-center space-x-1 transition-colors duration-200"
                   >
                     <Users className="h-4 w-4" />
@@ -681,7 +681,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
             </div>
             
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Click on face boxes in the image to select faces for enhancement
+              Click on face boxes in the image to select faces for CodeFormer enhancement
             </p>
             
             {selectedFaceIndices.length > 0 && (
@@ -734,13 +734,13 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                   <span>More Enhanced (1.0)</span>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  Lower values preserve more original details, higher values apply stronger enhancement
+                  Lower values preserve more original features, higher values apply stronger enhancement
                 </p>
               </div>
 
               {/* Process Info */}
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-                <p className="text-xs text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   <strong>Process:</strong> Full image → <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">./inputs/whole_imgs/</code> → CodeFormer w={settings.fidelity}
                 </p>
               </div>
@@ -763,7 +763,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                 <span>
                   {isProcessing 
                     ? `Processing ${selectedFaceIndices.length} face(s)...` 
-                    : `Enhance with CodeFormer ${selectedFaceIndices.length > 0 ? `(${selectedFaceIndices.length} faces)` : ''}`
+                    : `Enhance with CodeFormer ${selectedFaceIndices.length > 0 ? `(${selectedFaceIndices.length} face${selectedFaceIndices.length > 1 ? 's' : ''})` : ''}`
                   }
                 </span>
               </button>
@@ -796,7 +796,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                          flex items-center justify-center space-x-2 transition-colors duration-200"
               >
                 <RotateCcw className="h-4 w-4" />
-                <span>Reset All Settings</span>
+                <span>Reset All</span>
               </button>
             </div>
           </div>
@@ -806,7 +806,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
   );
 };
 
-// Face Retouch Overlay Component
+// FaceRetouchOverlay component for displaying faces with selection
 interface FaceRetouchOverlayProps {
   faces: Face[];
   imageUrl: string;
@@ -820,70 +820,103 @@ const FaceRetouchOverlay: React.FC<FaceRetouchOverlayProps> = ({
   imageUrl,
   onFaceClick,
   selectedFaceIndices,
-  className = ''
+  className = ""
 }) => {
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [displayDimensions, setDisplayDimensions] = useState<{ width: number; height: number } | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleImageLoad = useCallback(() => {
-    if (imageRef.current) {
-      setImageDimensions({
-        width: imageRef.current.naturalWidth,
-        height: imageRef.current.naturalHeight
-      });
-    }
-  }, []);
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => {
+      setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.src = imageUrl;
+  }, [imageUrl]);
+
+  useEffect(() => {
+    const updateDisplayDimensions = () => {
+      if (imageRef.current && containerRef.current) {
+        const rect = imageRef.current.getBoundingClientRect();
+        setDisplayDimensions({ width: rect.width, height: rect.height });
+      }
+    };
+
+    updateDisplayDimensions();
+    window.addEventListener('resize', updateDisplayDimensions);
+    return () => window.removeEventListener('resize', updateDisplayDimensions);
+  }, [imageUrl]);
+
+  const getScaledCoordinates = (box: number[]) => {
+    if (!imageDimensions || !displayDimensions) return null;
+
+    const [x1, y1, x2, y2] = box;
+    const scaleX = displayDimensions.width / imageDimensions.width;
+    const scaleY = displayDimensions.height / imageDimensions.height;
+
+    return {
+      left: x1 * scaleX,
+      top: y1 * scaleY,
+      width: (x2 - x1) * scaleX,
+      height: (y2 - y1) * scaleY
+    };
+  };
 
   return (
-    <div className={`relative ${className}`}>
+    <div ref={containerRef} className={`relative ${className}`}>
       <img
         ref={imageRef}
         src={imageUrl}
-        alt="Face retouch preview"
+        alt="Photo with face detection"
         className="w-full h-full object-contain"
-        onLoad={handleImageLoad}
+        onLoad={() => {
+          if (imageRef.current && containerRef.current) {
+            const rect = imageRef.current.getBoundingClientRect();
+            setDisplayDimensions({ width: rect.width, height: rect.height });
+          }
+        }}
       />
       
-      {imageDimensions && faces.map((face, index) => {
-        const [x1, y1, x2, y2] = face.box;
+      {faces.map((face, index) => {
+        const coords = getScaledCoordinates(face.box);
+        if (!coords) return null;
+
         const isSelected = selectedFaceIndices.includes(index);
-        
-        // Calculate face box dimensions relative to displayed image
-        const displayedImg = imageRef.current;
-        if (!displayedImg) return null;
-        
-        const scaleX = displayedImg.clientWidth / imageDimensions.width;
-        const scaleY = displayedImg.clientHeight / imageDimensions.height;
-        
-        const left = x1 * scaleX;
-        const top = y1 * scaleY;
-        const width = (x2 - x1) * scaleX;
-        const height = (y2 - y1) * scaleY;
-        
+
         return (
           <div
             key={index}
             className={`absolute border-2 cursor-pointer transition-all duration-200 ${
-              isSelected 
-                ? 'border-green-500 bg-green-500/20' 
-                : 'border-blue-500 bg-blue-500/10 hover:border-blue-600 hover:bg-blue-600/20'
+              isSelected
+                ? 'border-green-400 bg-green-400/20 shadow-lg'
+                : 'border-blue-400 bg-blue-400/10 hover:border-blue-500 hover:bg-blue-500/20'
             }`}
             style={{
-              left: `${left}px`,
-              top: `${top}px`,
-              width: `${width}px`,
-              height: `${height}px`
+              left: coords.left,
+              top: coords.top,
+              width: coords.width,
+              height: coords.height
             }}
             onClick={() => onFaceClick(face, index)}
           >
-            <div className={`absolute -top-6 left-0 px-2 py-1 text-xs font-medium rounded ${
-              isSelected 
-                ? 'bg-green-500 text-white' 
-                : 'bg-blue-500 text-white'
-            }`}>
-              {isSelected && <Check className="inline h-3 w-3 mr-1" />}
-              Face {index + 1}
+            {/* Face number label */}
+            <div
+              className={`absolute -top-6 -left-1 px-2 py-1 text-xs font-bold rounded ${
+                isSelected
+                  ? 'bg-green-500 text-white'
+                  : 'bg-blue-500 text-white'
+              }`}
+            >
+              {index + 1}
             </div>
+            
+            {/* Selection indicator */}
+            {isSelected && (
+              <div className="absolute top-1 right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                <Check className="h-3 w-3 text-white" />
+              </div>
+            )}
           </div>
         );
       })}

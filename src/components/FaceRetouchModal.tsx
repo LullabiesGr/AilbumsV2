@@ -294,9 +294,11 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <Sparkles className="h-5 w-5 text-purple-500" />
-                    CodeFormer AI Face Enhancement
+                <div>
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                     Ailbums Face Enhancement
+                  </h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
                     The full original image is sent to the backend with your fidelity setting and face upsampling preference. 
                     CodeFormer will automatically detect and enhance all faces in the image.
                   </p>

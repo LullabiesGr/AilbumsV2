@@ -3,12 +3,6 @@ import { X, Sparkles, Eye, EyeOff, Download, Save, RotateCcw, Settings, Users, C
 import { Photo, Face } from '../types';
 import { useToast } from '../context/ToastContext';
 
-// API URL configuration
-const API_URL =
-  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://localhost:8000"
-    : "https://b455dac5621c.ngrok-free.app";
-
 interface FaceRetouchModalProps {
   photo: Photo;
   onClose: () => void;
@@ -125,12 +119,11 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
           faceBox: [Math.round(x1), Math.round(y1), Math.round(x2), Math.round(y2)],
           fidelity: settings.fidelity,
           fileSize: currentImageFile.size,
-          fileType: currentImageFile.type,
-          endpoint: `${API_URL}/enhance`
+          fileType: currentImageFile.type
         });
 
         // Call the /enhance endpoint for CodeFormer processing
-        const response = await fetch(`${API_URL}/enhance`, {
+        const response = await fetch('https://b455dac5621c.ngrok-free.app/enhance', {
           method: 'POST',
           body: formData,
           mode: 'cors',
@@ -146,29 +139,28 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
             statusText: response.statusText,
             error: errorText,
             faceIndex: faceIndex + 1,
-            endpoint: `${API_URL}/enhance`,
             requestDetails: {
               filename: photo.filename,
               fidelity: settings.fidelity,
               faceBox: [x1, y1, x2, y2]
             }
           });
-          throw new Error(`Face enhancement failed for face ${faceIndex + 1}: ${errorText || `HTTP ${response.status}`}`);
+          throw new Error(`CodeFormer enhancement failed for face ${faceIndex + 1}: ${errorText || `HTTP ${response.status}`}`);
         }
 
         finalImageBlob = await response.blob();
         if (!finalImageBlob || finalImageBlob.size === 0) {
-          throw new Error(`Face enhancement returned empty response for face ${faceIndex + 1}`);
+          throw new Error(`CodeFormer returned empty response for face ${faceIndex + 1}`);
         }
 
-        console.log(`Face ${i + 1} enhanced successfully:`, {
+        console.log(`CodeFormer face ${i + 1} enhanced successfully:`, {
           originalSize: currentImageFile.size,
           enhancedSize: finalImageBlob.size,
           faceIndex: faceIndex + 1
         });
 
         // Update progress
-        showToast(`Enhanced face ${i + 1} of ${selectedFaceIndices.length}`, 'info');
+        showToast(`CodeFormer enhanced face ${i + 1} of ${selectedFaceIndices.length}`, 'info');
       }
 
       if (finalImageBlob) {
@@ -184,7 +176,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
         setRetouchedImageUrl(retouchedUrl);
         setSettings(prev => ({ ...prev, showPreview: true }));
         
-        console.log('Face Enhancement Complete:', {
+        console.log('CodeFormer Enhancement Complete:', {
           originalFilename: photo.filename,
           facesEnhanced: selectedFaceIndices.length,
           finalImageSize: finalImageBlob.size,
@@ -197,7 +189,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
         );
       }
     } catch (error: any) {
-      console.error('Face enhancement error:', error);
+      console.error('CodeFormer enhancement error:', error);
       showToast(error.message || 'Face enhancement failed', 'error');
     } finally {
       setIsProcessing(false);
@@ -790,8 +782,8 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                 <Sparkles className="h-5 w-5" />
                 <span>
                   {isProcessing 
-                    ? `Processing...` 
-                    : `Magic Enhance ${selectedFaceIndices.length > 0 ? `(${selectedFaceIndices.length})` : ''}`
+                    ? `Ailbums Processing...` 
+                    : `Magic Retouch ${selectedFaceIndices.length > 0 ? `(${selectedFaceIndices.length})` : ''}`
                   }
                 </span>
               </button>

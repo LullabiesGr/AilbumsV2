@@ -25,7 +25,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
   const [showInpaintModal, setShowInpaintModal] = useState(false);
   const [showFaceRetouchModal, setShowFaceRetouchModal] = useState(false);
   const [showAIEditModal, setShowAIEditModal] = useState(false);
-  const { deletePhoto, cullPhoto, togglePhotoSelection, updatePhotoScore, updatePhotoUrl } = usePhoto();
+  const { deletePhoto, cullPhoto, togglePhotoSelection, updatePhotoScore, updatePhotoUrl, workflowStage } = usePhoto();
   const { showToast } = useToast();
   const [showTip, setShowTip] = useState(false);
   const [tip, setTip] = useState<string | null>(null);
@@ -280,6 +280,115 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
     showToast('AI edited photo updated in dashboard!', 'success');
   };
 
+  // Get buttons to show based on workflow stage
+  const getHoverButtons = () => {
+    const baseButtons = [
+      <button key="view" className="p-1.5 bg-white rounded-full text-gray-900 hover:bg-gray-200 transition-colors" onClick={() => setShowModal(true)}>
+        <Eye className="h-5 w-5" />
+      </button>,
+      <button key="delete" className="p-1.5 bg-red-600 rounded-full text-white hover:bg-red-700 transition-colors" 
+              onClick={handleDelete} style={{ zIndex: 15 }}>
+        <Trash2 className="h-5 w-5" />
+      </button>
+    ];
+
+    switch (workflowStage) {
+      case 'face-retouch':
+        if (photo.faces && photo.faces.length > 0) {
+          return [
+            ...baseButtons.slice(0, 1), // View button
+            <button key="face-retouch"
+              className="p-1.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white 
+                       hover:from-purple-700 hover:to-pink-700 transition-all duration-200"
+              onClick={handleFaceRetouch}
+              title="Retouch Faces"
+              style={{ zIndex: 15 }}
+            >
+              <SparklesIcon className="h-5 w-5" />
+            </button>,
+            ...baseButtons.slice(1) // Delete button
+          ];
+        }
+        return baseButtons;
+
+      case 'ai-edit':
+        return [
+          ...baseButtons.slice(0, 1), // View button
+          <button key="ai-edit"
+            className="p-1.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-white 
+                     hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowAIEditModal(true);
+            }}
+            title="AI Edit & Relight"
+            style={{ zIndex: 15 }}
+          >
+            <Palette className="h-5 w-5" />
+          </button>,
+          ...baseButtons.slice(1) // Delete button
+        ];
+
+      default:
+        // Default review mode - show all buttons
+        return [
+          baseButtons[0], // View
+          <button key="tip" className={`p-1.5 rounded-full transition-all duration-300 relative group ${
+            showTip 
+              ? 'bg-yellow-500 text-white hover:bg-yellow-600 animate-glow' 
+              : 'bg-white text-gray-900 hover:bg-yellow-100'
+          }`}
+          onClick={handleGetTip}
+          title="Get AI Tip"
+          disabled={isLoadingTip}
+          style={{ zIndex: 15 }}
+          >
+            {isLoadingTip ? (
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-yellow-500 border-t-transparent" />
+            ) : (
+              <Lightbulb className={`h-5 w-5 transition-transform duration-300 ${showTip ? 'text-white' : 'group-hover:scale-110'}`} />
+            )}
+          </button>,
+          <button key="cull" className="p-1.5 bg-blue-600 rounded-full text-white hover:bg-blue-700 transition-colors" 
+                  onClick={handleCull} style={{ zIndex: 15 }}>
+            <Scissors className="h-5 w-5" />
+          </button>,
+          ...(photo.faces && photo.faces.length > 0 ? [
+            <button key="face-retouch"
+              className="p-1.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white 
+                       hover:from-purple-700 hover:to-pink-700 transition-all duration-200"
+              onClick={handleFaceRetouch}
+              title="Retouch Faces"
+              style={{ zIndex: 15 }}
+            >
+              <SparklesIcon className="h-5 w-5" />
+            </button>
+          ] : []),
+          <button key="inpaint" className="p-1.5 bg-purple-600 rounded-full text-white hover:bg-purple-700 transition-colors" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowInpaintModal(true);
+                  }}
+                  style={{ zIndex: 15 }}
+          >
+            <Wand2 className="h-5 w-5" />
+          </button>,
+          <button key="ai-edit"
+            className="p-1.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-white 
+                     hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowAIEditModal(true);
+            }}
+            title="AI Edit & Relight"
+            style={{ zIndex: 15 }}
+          >
+            <Palette className="h-5 w-5" />
+          </button>,
+          baseButtons[1] // Delete
+        ];
+    }
+  };
   // Get face summary badges
   const getFaceSummaryBadges = () => {
     if (!photo.face_summary) return null;
@@ -367,71 +476,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
           )}
           <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center transition-opacity duration-200">
             <div className="flex space-x-2">
-              <button className="p-1.5 bg-white rounded-full text-gray-900 hover:bg-gray-200 transition-colors" onClick={() => setShowModal(true)}>
-                <Eye className="h-5 w-5" />
-              </button>
-              <button 
-                className={`p-1.5 rounded-full transition-all duration-300 relative group ${
-                  showTip 
-                    ? 'bg-yellow-500 text-white hover:bg-yellow-600 animate-glow' 
-                    : 'bg-white text-gray-900 hover:bg-yellow-100'
-                }`}
-                onClick={handleGetTip}
-                title="Get AI Tip"
-                disabled={isLoadingTip}
-                style={{ zIndex: 15 }} // Higher z-index than face boxes
-              >
-                {isLoadingTip ? (
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-yellow-500 border-t-transparent" />
-                ) : (
-                  <Lightbulb className={`h-5 w-5 transition-transform duration-300 ${showTip ? 'text-white' : 'group-hover:scale-110'}`} />
-                )}
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/75 text-white text-xs py-1 px-2 rounded 
-                              opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
-                  {tip ? 'Show AI Tip' : 'Get AI Tip'}
-                </div>
-              </button>
-              <button className="p-1.5 bg-blue-600 rounded-full text-white hover:bg-blue-700 transition-colors" 
-                      onClick={handleCull} style={{ zIndex: 15 }}>
-                <Scissors className="h-5 w-5" />
-              </button>
-              {photo.faces && photo.faces.length > 0 && (
-                <button 
-                  className="p-1.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white 
-                           hover:from-purple-700 hover:to-pink-700 transition-all duration-200"
-                  onClick={handleFaceRetouch}
-                  title="Retouch Faces"
-                  style={{ zIndex: 15 }} // Higher z-index than face boxes
-                >
-                  <SparklesIcon className="h-5 w-5" />
-                </button>
-              )}
-              <button 
-                className="p-1.5 bg-purple-600 rounded-full text-white hover:bg-purple-700 transition-colors"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowInpaintModal(true);
-                }}
-                style={{ zIndex: 15 }}
-              >
-                <Wand2 className="h-5 w-5" />
-              </button>
-              <button 
-                className="p-1.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-white 
-                         hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowAIEditModal(true);
-                }}
-                title="AI Edit & Relight"
-                style={{ zIndex: 15 }}
-              >
-                <Palette className="h-5 w-5" />
-              </button>
-              <button className="p-1.5 bg-red-600 rounded-full text-white hover:bg-red-700 transition-colors" 
-                      onClick={handleDelete} style={{ zIndex: 15 }}>
-                <Trash2 className="h-5 w-5" />
-              </button>
+              {getHoverButtons()}
             </div>
           </div>
           </>
@@ -725,59 +770,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
         </div>
       </div>
       <div className="flex items-center pr-3 space-x-1">
-        <button className="p-1.5 text-gray-500 hover:text-gray-900 dark:hover:text-white" onClick={() => setShowModal(true)}><Eye className="h-4 w-4" /></button>
-        <button className="p-1.5 text-blue-500 hover:text-blue-700" onClick={handleCull} style={{ zIndex: 15 }}><Scissors className="h-4 w-4" /></button>
-        <button
-          className={`p-1.5 relative group ${
-            showTip 
-              ? 'text-yellow-500 hover:text-yellow-600 animate-glow' 
-              : 'text-gray-500 hover:text-yellow-500'
-          }`}
-          onClick={handleGetTip}
-          disabled={isLoadingTip}
-          style={{ zIndex: 15 }}
-        >
-          {isLoadingTip ? (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-yellow-500 border-t-transparent" />
-          ) : (
-            <Lightbulb className={`h-4 w-4 transition-transform duration-300 ${showTip ? '' : 'group-hover:scale-110'}`} />
-          )}
-          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/75 text-white text-xs py-1 px-2 rounded 
-                        opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
-            {tip ? 'Show AI Tip' : 'Get AI Tip'}
-          </div>
-        </button>
-        {photo.faces && photo.faces.length > 0 && (
-          <button 
-            className="p-1.5 text-purple-500 hover:text-purple-700" 
-            onClick={handleFaceRetouch}
-            title="Retouch Faces"
-            style={{ zIndex: 15 }}
-          >
-            <SparklesIcon className="h-4 w-4" />
-          </button>
-        )}
-        <button 
-          className="p-1.5 text-purple-500 hover:text-purple-700" 
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowInpaintModal(true);
-          }}
-          style={{ zIndex: 15 }}
-        >
-          <Wand2 className="h-4 w-4" />
-        </button>
-        <button 
-          className="p-1.5 text-purple-500 hover:text-purple-700" 
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowAIEditModal(true);
-          }}
-          style={{ zIndex: 15 }}
-        >
-          <Palette className="h-4 w-4" />
-        </button>
-        <button className="p-1.5 text-red-500 hover:text-red-700" onClick={handleDelete} style={{ zIndex: 15 }}><Trash2 className="h-4 w-4" /></button>
+        {getListViewButtons()}
       </div>
       {tip && showTip && (
         <div className="absolute right-14 top-1/2 -translate-y-1/2 bg-black/75 text-white text-sm p-2 rounded-lg max-w-xs z-10">

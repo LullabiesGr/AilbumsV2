@@ -892,63 +892,12 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
       )}
       {isHovered && (
         <div className="absolute top-1 left-1">
-          <button className="p-1 bg-blue-600 rounded text-white text-xs hover:bg-blue-700 transition-colors" 
-                  onClick={handleCull} style={{ zIndex: 15 }}><CheckCheck className="h-3 w-3" /></button>
-          <button 
-            className={`p-1 rounded text-white text-xs transition-all duration-300 ml-1 relative group ${
-              showTip 
-                ? 'bg-yellow-500 hover:bg-yellow-600 animate-glow' 
-                : 'bg-white/20 hover:bg-yellow-500/50'
-            }`} 
-            onClick={handleGetTip}
-            disabled={isLoadingTip}
-            style={{ zIndex: 15 }}
-          >
-            {isLoadingTip ? (
-              <div className="h-3 w-3 animate-spin rounded-full border-[1.5px] border-white border-t-transparent" />
-            ) : (
-              <Lightbulb className={`h-3 w-3 transition-transform duration-300 ${showTip ? '' : 'group-hover:scale-110'}`} />
-            )}
-            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-black/75 text-white text-[10px] py-1 px-1.5 rounded 
-                          opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
-              {tip ? 'Show AI Tip' : 'Get AI Tip'}
-            </div>
-          </button>
-          {photo.faces && photo.faces.length > 0 && (
-            <>
-            <button 
-              className="p-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded text-white text-xs 
-                       hover:from-purple-700 hover:to-pink-700 transition-all duration-200 ml-1" 
-              onClick={handleFaceRetouch}
-              title="Retouch Faces"
-              style={{ zIndex: 15 }}
-            >
-              <SparklesIcon className="h-3 w-3" />
-            </button>
-            <button 
-              className="p-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded text-white text-xs 
-                       hover:from-blue-700 hover:to-purple-700 transition-all duration-200 ml-1" 
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowAIEditModal(true);
-              }}
-              title="AI Edit & Relight"
-              style={{ zIndex: 15 }}
-            >
-              <Palette className="h-3 w-3" />
-            </button>
-            </>
-          )}
-          <button 
-            className="p-1 bg-purple-600 rounded text-white text-xs hover:bg-purple-700 transition-colors ml-1" 
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowInpaintModal(true);
-            }}
-            style={{ zIndex: 15 }}
-          >
-            <Wand2 className="h-3 w-3" />
-          </button>
+          {getCompactViewButtons().map((button, index) => (
+            <React.Fragment key={index}>
+              {index > 0 && ' '}
+              {button}
+            </React.Fragment>
+          ))}
         </div>
       )}
       {showModal && <ImageModal photo={photo} onClose={() => setShowModal(false)} />}

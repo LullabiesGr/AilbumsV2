@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Sparkles, Eye, EyeOff, Download, Save, RotateCcw, Settings, Users, Check, Minimize2, Maximize2 } from 'lucide-react';
 import { Photo, Face } from '../types';
 import { useToast } from '../context/ToastContext';
+import CreditsPreviewModal from './CreditsPreviewModal';
 
 interface FaceRetouchModalProps {
   photo: Photo;
@@ -30,6 +31,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
   const [isMinimized, setIsMinimized] = useState(false);
   const [isCompactMode, setIsCompactMode] = useState(true);
   const { showToast } = useToast();
+  const [showCreditsPreview, setShowCreditsPreview] = useState(false);
 
   const handleFaceClick = (face: Face, index: number) => {
     setSelectedFaceIndices(prev => {
@@ -53,12 +55,26 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
     }
   };
 
-  const handleCodeFormerEnhancement = async () => {
+  const handleCodeFormerClick = () => {
     if (selectedFaceIndices.length === 0 || !photo.faces) {
       showToast('Please select at least one face to enhance', 'warning');
       return;
     }
 
+    // Show credits preview before processing
+    setShowCreditsPreview(true);
+  };
+
+  const handleContinueAfterCreditsPreview = () => {
+    setShowCreditsPreview(false);
+    handleCodeFormerEnhancement();
+  };
+
+  const handleCloseCreditsPreview = () => {
+    setShowCreditsPreview(false);
+  };
+
+  const handleCodeFormerEnhancement = async () => {
     setIsProcessing(true);
     setProcessingProgress('Preparing image for CodeFormer...');
     
@@ -309,7 +325,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
           {!isProcessing && selectedFaceIndices.length > 0 && (
             <div className="flex space-x-2">
               <button
-                onClick={handleCodeFormerEnhancement}
+                onClick={handleCodeFormerClick}
                 className="flex-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-md"
               >
                 Enhance {selectedFaceIndices.length} Face(s)
@@ -499,7 +515,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
               <div className="flex-1 flex flex-col justify-end p-4">
                 <div className="space-y-2">
                   <button
-                    onClick={handleCodeFormerEnhancement}
+                    onClick={handleCodeFormerClick}
                     disabled={selectedFaceIndices.length === 0 || isProcessing}
                     className="w-full px-3 py-2 bg-gradient-to-r from-purple-600 to-pink-600 
                              hover:from-purple-700 hover:to-pink-700 disabled:from-gray-400 
@@ -771,7 +787,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
           <div className="flex-1 flex flex-col justify-end p-6">
             <div className="space-y-3">
               <button
-                onClick={handleCodeFormerEnhancement}
+                onClick={handleCodeFormerClick}
                 disabled={selectedFaceIndices.length === 0 || isProcessing}
                 className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 
                          hover:from-purple-700 hover:to-pink-700 disabled:from-gray-400 
@@ -822,6 +838,15 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
           </div>
         </div>
       </div>
+      
+      {/* Credits Preview Modal */}
+      <CreditsPreviewModal
+        isOpen={showCreditsPreview}
+        onClose={handleCloseCreditsPreview}
+        onContinue={handleContinueAfterCreditsPreview}
+        operationType="face-retouch"
+        imageCount={1}
+      />
     </div>
   );
 };

@@ -3,6 +3,7 @@ import { X, Wand2, Sun, Download, Save, RotateCcw, Eye, EyeOff, Lightbulb, Palet
 import { Photo } from '../types';
 import { falEdit, falRelight } from '../lib/api';
 import { useToast } from '../context/ToastContext';
+import CreditsPreviewModal from './CreditsPreviewModal';
 
 interface AIEditModalProps {
   photo: Photo;
@@ -28,6 +29,8 @@ const AIEditModal: React.FC<AIEditModalProps> = ({ photo, onClose, onSave }) => 
   const [sliderPosition, setSliderPosition] = useState(50);
   const [processingProgress, setProcessingProgress] = useState('');
   const { showToast } = useToast();
+  const [showCreditsPreview, setShowCreditsPreview] = useState(false);
+  const [pendingOperation, setPendingOperation] = useState<'edit' | 'relight' | null>(null);
 
   // Predefined prompts for quick selection
   const editPrompts = [
@@ -54,19 +57,33 @@ const AIEditModal: React.FC<AIEditModalProps> = ({ photo, onClose, onSave }) => 
 
   const currentPrompts = editMode === 'edit' ? editPrompts : relightPrompts;
 
-  const handleProcess = async () => {
+  const handleProcessClick = () => {
     if (!prompt.trim()) {
       showToast('Please enter a prompt', 'warning');
       return;
     }
 
+    // Show credits preview before processing
+    setPendingOperation(editMode);
+    setShowCreditsPreview(true);
+  };
+
+  const handleContinueAfterCreditsPreview = () => {
+    setShowCreditsPreview(false);
+    if (pendingOperation) {
+      handleProcess(pendingOperation);
+      setPendingOperation(null);
+    }
+  };
+
+  const handleProcess = async (mode: 'edit' | 'relight') => {
     setIsProcessing(true);
-    setProcessingProgress(`Processing ${editMode === 'edit' ? 'AI edit' : 'AI relight'}...`);
+    setProcessingProgress(`Processing ${mode === 'edit' ? 'AI edit' : 'AI relight'}...`);
     
     try {
       let result;
       
-      if (editMode === 'edit') {
+      if (mode === 'edit') {
         setProcessingProgress('Sending to FAL.AI for creative editing...');
         result = await falEdit(photo.file, prompt.trim());
       } else {
@@ -76,7 +93,7 @@ const AIEditModal: React.FC<AIEditModalProps> = ({ photo, onClose, onSave }) => 
       
       setEditResult({
         ...result,
-        mode: editMode,
+        mode: mode,
         prompt: prompt.trim()
       });
       
@@ -84,17 +101,25 @@ const AIEditModal: React.FC<AIEditModalProps> = ({ photo, onClose, onSave }) => 
       setProcessingProgress('');
       
       showToast(
-        `${editMode === 'edit' ? 'AI edit' : 'AI relight'} completed successfully!`, 
+        `${mode === 'edit' ? 'AI edit' : 'AI relight'} completed successfully!`, 
         'success'
       );
     } catch (error: any) {
-      console.error(`${editMode} error:`, error);
+      console.error(`${mode} error:`, error);
       showToast(error.message || `Failed to process ${editMode}`, 'error');
       setProcessingProgress('');
     } finally {
       setIsProcessing(false);
     }
   };
+
+  const handleCloseCreditsPreview = () => {
+    setShowCreditsPreview(false);
+    setPendingOperation(null);
+  };
+
+  // Get megapixels from photo file if available
+  const getImageMegapixels = () => 24; // Default, could be enhanced with EXIF reading
 
   const handleSave = () => {
     if (!editResult?.result_url || !onSave) {
@@ -400,7 +425,7 @@ const AIEditModal: React.FC<AIEditModalProps> = ({ photo, onClose, onSave }) => 
             <div className="space-y-2">
               {!editResult ? (
                 <button
-                  onClick={handleProcess}
+                  onClick={handleProcessClick}
                   disabled={!prompt.trim() || isProcessing}
                   className="w-full px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 
                            hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 
@@ -454,6 +479,16 @@ const AIEditModal: React.FC<AIEditModalProps> = ({ photo, onClose, onSave }) => 
           </div>
         </div>
       </div>
+      
+      {/* Credits Preview Modal */}
+      <CreditsPreviewModal
+        isOpen={showCreditsPreview}
+        onClose={handleCloseCreditsPreview}
+        onContinue={handleContinueAfterCreditsPreview}
+        operationType={pendingOperation === 'edit' ? 'ai-edit' : 'ai-relight'}
+        imageCount={1}
+        exifMegapixels={getImageMegapixels()}
+      />
     </div>
   );
 };

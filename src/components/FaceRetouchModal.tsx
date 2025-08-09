@@ -315,7 +315,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                     Ailbums Face Enhancement
                   </h2>
-                  </h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
                     The full original image is sent to the backend with your fidelity setting and face upsampling preference. 
                     CodeFormer will automatically detect and enhance all faces in the image.
                   </p>

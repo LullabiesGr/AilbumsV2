@@ -3,20 +3,6 @@ import { X, Sparkles, Eye, EyeOff, Download, Save, RotateCcw, Settings, Users, C
 import { Photo, Face } from '../types';
 import { useToast } from '../context/ToastContext';
 
-// Helper for ensuring real file
-const ENHANCE_URL = 'https://b455dac5621c.ngrok-free.app/enhance';
-
-async function ensureRealFile(maybeFile: File | undefined, url: string, filename: string): Promise<File> {
-  if (maybeFile instanceof File && maybeFile.size > 0) return maybeFile;
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`Failed to fetch source image: ${res.status}`);
-  const blob = await res.blob();
-  if (!blob || blob.size === 0) throw new Error('Empty image blob from URL');
-  const ext = (filename.split('.').pop() || '').toLowerCase();
-  const mime = blob.type || (ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg');
-  return new File([blob], filename || 'image.jpg', { type: mime });
-}
-
 // API URL configuration
 const API_URL =
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
@@ -83,8 +69,9 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
     setProcessingProgress('Preparing image for CodeFormer...');
     
     try {
-      // Get real file from URL if needed
-      const originalImageFile = await ensureRealFile(photo.file as any, photo.url, photo.filename);
+      // Always send the full original image file (not cropped)
+      // This is the key requirement for CodeFormer integration
+      const originalImageFile = photo.file;
       
       console.log('CodeFormer Enhancement Started:', {
         filename: photo.filename,
@@ -119,11 +106,18 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
         // Prepare form data exactly as specified for CodeFormer backend
         const formData = new FormData();
         
-        // Send the FULL original image with proper filename
-        formData.append('file', currentImageFile, currentImageFile.name);
+        // Send the FULL original image (not cropped) - this is critical for CodeFormer
+        formData.append('file', currentImageFile);
         
-        // Include fidelity parameter as expected by backend
-        formData.append('fidelity', String(Math.min(1, Math.max(0, Number(settings.fidelity) || 0.5))));
+        // Include the user's selected retouch fidelity value (w parameter for CodeFormer)
+        formData.append('w', settings.fidelity.toString());
+        
+        // Optional: Include face coordinates if backend supports targeted enhancement
+        // These coordinates are in original image resolution
+        formData.append('x1', Math.round(x1).toString());
+        formData.append('y1', Math.round(y1).toString());
+        formData.append('x2', Math.round(x2).toString());
+        formData.append('y2', Math.round(y2).toString());
 
         console.log(`CodeFormer API Call ${i + 1}/${selectedFaceIndices.length}:`, {
           filename: photo.filename,
@@ -135,12 +129,14 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
           endpoint: `${API_URL}/enhance`
         });
 
-        // Call the enhance endpoint for CodeFormer processing
-        const response = await fetch(ENHANCE_URL, {
+        // Call the /enhance endpoint for CodeFormer processing
+        const response = await fetch(`${API_URL}/enhance`, {
           method: 'POST',
           body: formData,
           mode: 'cors',
-          cache: 'no-store'
+          headers: {
+            'ngrok-skip-browser-warning': 'true'
+          }
         });
 
         if (!response.ok) {

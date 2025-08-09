@@ -1,8 +1,9 @@
 import React from 'react';
 import { useState } from 'react';
-import { BookOpen, FolderOpen } from 'lucide-react';
+import { BookOpen, FolderOpen, CreditCard } from 'lucide-react';
 import Tutorial from './Tutorial';
 import MyAilbumsModal from './MyAilbumsModal';
+import MyCreditsModal from './MyCreditsModal';
 import UserMenu from './UserMenu';
 import { useAuth } from '../context/AuthContext';
 import { usePhoto } from '../context/PhotoContext';
@@ -11,6 +12,7 @@ import { SavedAlbum } from './MyAilbumsModal';
 const Header: React.FC = () => {
   const [showTutorial, setShowTutorial] = useState(false);
   const [showMyAilbums, setShowMyAilbums] = useState(false);
+  const [showMyCredits, setShowMyCredits] = useState(false);
   const { isAuthenticated } = useAuth();
   const { loadAlbumForReview } = usePhoto();
 
@@ -35,6 +37,19 @@ const Header: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-3">
+              {isAuthenticated && (
+                <button 
+                  onClick={() => setShowMyCredits(true)}
+                  className="px-4 py-2 text-sm bg-gradient-to-r from-green-600 to-emerald-600 
+                           hover:from-green-700 hover:to-emerald-700 text-white rounded-md 
+                           transition-all duration-200 flex items-center space-x-2 font-medium
+                           shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <CreditCard className="h-4 w-4" />
+                  <span>My Credits</span>
+                </button>
+              )}
+              
               {isAuthenticated && (
                 <button 
                   onClick={() => setShowMyAilbums(true)}
@@ -72,6 +87,11 @@ const Header: React.FC = () => {
         isOpen={showMyAilbums} 
         onClose={() => setShowMyAilbums(false)} 
         onOpenAlbumReview={handleOpenAlbumReview}
+      />
+      
+      <MyCreditsModal 
+        isOpen={showMyCredits} 
+        onClose={() => setShowMyCredits(false)} 
       />
     </>
   );

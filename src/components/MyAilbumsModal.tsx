@@ -117,6 +117,88 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
     setViewMode('review');
   };
 
+  // Handle loading album into main interface
+  const handleLoadToMainInterface = (album: SavedAlbum) => {
+    // Close the modal first
+    onClose();
+    
+    // Load album data into main photo context
+    loadAlbumIntoMainInterface(album);
+  };
+
+  const loadAlbumIntoMainInterface = async (album: SavedAlbum) => {
+    try {
+      showToast('Loading album into main interface...', 'info');
+      
+      // Convert SavedPhoto to Photo format for main interface
+      const convertedPhotos: Photo[] = album.results.map((savedPhoto, index) => {
+        const photoUrl = getPhotoUrl(savedPhoto.filename, album.album_dir);
+        
+        // Create a dummy File object since we don't have the original file
+        const dummyFile = new File([''], savedPhoto.filename, { type: 'image/jpeg' });
+        
+        return {
+          id: `${album.id}-${index}`,
+          filename: savedPhoto.filename,
+          file: dummyFile,
+          url: photoUrl,
+          score: savedPhoto.ai_score,
+          basic_score: savedPhoto.basic_score,
+          ml_score: savedPhoto.ml_score,
+          ai_score: savedPhoto.ai_score,
+          score_type: savedPhoto.score_type || 'ai',
+          blur_score: savedPhoto.blur_score,
+          personalized_similarity: savedPhoto.personalized_similarity,
+          tags: savedPhoto.tags || [],
+          faces: savedPhoto.faces || [],
+          face_summary: savedPhoto.face_summary,
+          clip_vector: savedPhoto.clip_vector,
+          phash: savedPhoto.phash,
+          caption: savedPhoto.caption,
+          event_type: album.event_type,
+          color_label: savedPhoto.color_label as any,
+          blip_flags: savedPhoto.blip_flags || [],
+          blip_highlights: savedPhoto.blip_highlights || [],
+          deep_prompts: savedPhoto.deep_prompts || {},
+          ai_categories: savedPhoto.ai_categories || [],
+          approved: savedPhoto.approved,
+          dateCreated: album.date_created,
+          selected: false,
+          albumId: album.id,
+          albumName: album.name || album.id
+        };
+      });
+      
+      // Use the photo context to load these photos
+      // We'll need to add a method to PhotoContext for this
+      if (window.loadAlbumToMainInterface) {
+        window.loadAlbumToMainInterface(convertedPhotos, album);
+      } else {
+        // Fallback: store in localStorage and reload page
+        localStorage.setItem('loadAlbumData', JSON.stringify({
+          photos: convertedPhotos,
+          album: {
+            name: album.name || album.id,
+            eventType: album.event_type,
+            id: album.id
+          }
+        }));
+        
+        // Reload the page to trigger loading
+        window.location.reload();
+      }
+      
+      showToast(`Album "${album.name || album.id}" loaded for editing!`, 'success');
+    } catch (error: any) {
+      console.error('Failed to load album to main interface:', error);
+      showToast('Failed to load album for editing', 'error');
+    }
+  };
+
+  const getPhotoUrl = (filename: string, albumDir: string) => {
+    return `${API_URL}/album-photo?album_dir=${encodeURIComponent(albumDir)}&filename=${encodeURIComponent(filename)}`;
+  };
+
   // Handle back from detail view
   const handleBackToAlbums = () => {
     setSelectedAlbum(null);
@@ -165,7 +247,13 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {albums.map((album) => ( // Pass userId to AlbumCard
-          <AlbumCard key={album.id} album={album} userId={user!.email} onViewDetail={handleViewAlbumDetail} />
+          <AlbumCard 
+            key={album.id} 
+            album={album} 
+            userId={user!.email} 
+            onViewDetail={handleViewAlbumDetail}
+            onLoadToMainInterface={handleLoadToMainInterface}
+          />
         ))} 
       </div>
     );

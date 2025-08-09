@@ -91,8 +91,8 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
       });
 
       for (let i = 0; i < selectedFaceIndices.length; i++) {
-        // Face coordinates from AI analysis (already in original image coordinates)
-        const [x1, y1, x2, y2] = selectedFace.box;
+        const selectedFace = photo.faces[selectedFaceIndices[i]];
+        
         if (finalImageBlob) {
           currentImageFile = new File([finalImageBlob], photo.filename, { type: currentImageFile.type });
         }

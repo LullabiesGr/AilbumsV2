@@ -1361,6 +1361,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     addPhotosToAlbum,
     removePhotosFromAlbum,
     saveAlbumAndTrainAI,
+    loadAlbumFromSaved,
     markDuplicateAsKeep,
     deleteDuplicateGroup
   }), [
@@ -1421,6 +1422,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     addPhotosToAlbum,
     removePhotosFromAlbum,
     saveAlbumAndTrainAI,
+    loadAlbumFromSaved,
     markDuplicateAsKeep,
     deleteDuplicateGroup
   ]);

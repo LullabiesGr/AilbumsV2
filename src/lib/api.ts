@@ -5,6 +5,7 @@ import { DuplicateCluster } from '../types';
 
 // API URL configuration for different environments
 const API_URL =
+  import.meta.env.VITE_API_URL ||
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:8000"
     : "https://b455dac5621c.ngrok-free.app";

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Coins, Calendar, Plus, CreditCard, Zap, Gift, TrendingUp, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { getUserCredits, UserCredits } from '../lib/credits';
+import { getUserCredits, UserCredits } from '../lib/supabase';
 
 interface MyCreditsModalProps {
   isOpen: boolean;
@@ -21,16 +21,16 @@ const MyCreditsModal: React.FC<MyCreditsModalProps> = ({ isOpen, onClose }) => {
     if (isOpen && user?.email) {
       loadUserCredits();
     }
-  }, [isOpen, user]);
+  }, [isOpen, user?.email]);
 
   const loadUserCredits = async () => {
-    if (!user) return;
+    if (!user?.email) return;
 
     setIsLoading(true);
     setError(null);
     
     try {
-      const credits = await getUserCredits();
+      const credits = await getUserCredits(user.email);
       setUserCredits(credits);
     } catch (error: any) {
       console.error('Failed to load user credits:', error);
@@ -288,7 +288,7 @@ const MyCreditsModal: React.FC<MyCreditsModalProps> = ({ isOpen, onClose }) => {
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Email:</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">{user?.email || 'N/A'}</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">{user?.email}</span>
                   </div>
                   
                   <div className="flex justify-between">

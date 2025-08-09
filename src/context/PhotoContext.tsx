@@ -1365,7 +1365,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     removePhotosFromAlbum,
     saveAlbumAndTrainAI,
     markDuplicateAsKeep,
-    deleteDuplicateGroup
+    deleteDuplicateGroup,
+    loadAlbumForReview
   }), [
     photos,
     currentAlbumName,
@@ -1425,7 +1426,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     removePhotosFromAlbum,
     saveAlbumAndTrainAI,
     markDuplicateAsKeep,
-    deleteDuplicateGroup
+    deleteDuplicateGroup,
+    loadAlbumForReview
   ]);
 
   return <PhotoContext.Provider value={value}>{children}</PhotoContext.Provider>;

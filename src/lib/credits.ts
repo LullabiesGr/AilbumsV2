@@ -13,16 +13,17 @@ export interface UserCredits {
 
 // Get current authenticated user
 const getCurrentUser = async () => {
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const { data: { session }, error } = await supabase.auth.getSession();
   if (error) throw error;
-  if (!user) throw new Error('User not authenticated');
-  return user;
+  if (!session?.user) throw new Error('User not authenticated');
+  return session.user;
 };
 
 // Credits API functions
 export const getUserCredits = async (): Promise<UserCredits | null> => {
   try {
     const user = await getCurrentUser();
+    console.log('Getting credits for user ID:', user.id);
     
     const { data, error } = await supabase
       .from('user_credits')
@@ -33,11 +34,14 @@ export const getUserCredits = async (): Promise<UserCredits | null> => {
     if (error) {
       if (error.code === 'PGRST116') {
         // No record found - create default credits
+        console.log('No credits record found, creating default for user:', user.id);
         return await createDefaultUserCredits();
       }
+      console.error('Error fetching user credits:', error);
       throw error;
     }
 
+    console.log('User credits loaded:', data);
     return data;
   } catch (error) {
     console.error('Error fetching user credits:', error);
@@ -48,6 +52,7 @@ export const getUserCredits = async (): Promise<UserCredits | null> => {
 export const createDefaultUserCredits = async (): Promise<UserCredits> => {
   try {
     const user = await getCurrentUser();
+    console.log('Creating default credits for user ID:', user.id);
     
     const defaultCredits = {
       user_id: user.id,
@@ -64,6 +69,7 @@ export const createDefaultUserCredits = async (): Promise<UserCredits> => {
 
     if (error) throw error;
 
+    console.log('Default credits created:', data);
     return data;
   } catch (error) {
     console.error('Error creating default user credits:', error);

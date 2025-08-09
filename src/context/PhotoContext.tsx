@@ -62,7 +62,6 @@ interface PhotoContextType {
   addPhotosToAlbum: (photoIds: string[], albumId: string) => void;
   removePhotosFromAlbum: (photoIds: string[], albumId: string) => void;
   saveAlbumAndTrainAI: (event: string) => Promise<void>;
-  loadAlbumFromSaved: (photos: Photo[], albumInfo: { name: string; eventType: EventType; id: string }) => void;
   markDuplicateAsKeep: (filename: string, duplicateGroup: string[]) => void;
   deleteDuplicateGroup: (duplicateGroup: string[]) => void;
 }
@@ -102,58 +101,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const { showToast } = useToast();
   const { user } = useAuth();
-
-  // Load album from saved data (from My Albums)
-  const loadAlbumFromSaved = useCallback((albumPhotos: Photo[], albumInfo: { name: string; eventType: EventType; id: string }) => {
-    console.log('Loading saved album into main interface:', {
-      albumName: albumInfo.name,
-      eventType: albumInfo.eventType,
-      photosCount: albumPhotos.length
-    });
-    
-    // Reset current state
-    setPhotos([]);
-    setDuplicateClusters([]);
-    setPersonGroups([]);
-    setShowAnalysisOverlay(false);
-    setFilterOption('all');
-    setCaptionFilter('');
-    setStarRatingFilterState({ min: null, max: null });
-    setSelectedPersonGroup(null);
-    setAnalysisProgress({ processed: 0, total: 0, currentPhoto: '' });
-    
-    // Load album data
-    setPhotos(albumPhotos);
-    setCurrentAlbumName(albumInfo.name);
-    setCurrentAlbumId(albumInfo.id);
-    setEventType(albumInfo.eventType);
-    setCullingMode('deep'); // Assume deep analysis was used for saved albums
-    setWorkflowStage('review'); // Go directly to review stage
-    
-    // Group people by faces after loading
-    setTimeout(() => {
-      groupPeopleByFaces();
-    }, 500);
-    
-    showToast(`Album "${albumInfo.name}" loaded successfully! ${albumPhotos.length} photos ready for editing.`, 'success');
-  }, [showToast, setEventType, groupPeopleByFaces]);
-
-  // Check for album data in localStorage on mount
-  React.useEffect(() => {
-    const loadAlbumData = localStorage.getItem('loadAlbumData');
-    if (loadAlbumData) {
-      try {
-        const { photos: albumPhotos, album: albumInfo } = JSON.parse(loadAlbumData);
-        localStorage.removeItem('loadAlbumData'); // Clean up
-        
-        // Load the album data
-        loadAlbumFromSaved(albumPhotos, albumInfo);
-      } catch (error) {
-        console.error('Failed to load album data from localStorage:', error);
-        localStorage.removeItem('loadAlbumData'); // Clean up corrupted data
-      }
-    }
-  }, [loadAlbumFromSaved]);
 
   const resetWorkflow = useCallback(() => {
     setPhotos([]);
@@ -1361,7 +1308,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     addPhotosToAlbum,
     removePhotosFromAlbum,
     saveAlbumAndTrainAI,
-    loadAlbumFromSaved,
     markDuplicateAsKeep,
     deleteDuplicateGroup
   }), [
@@ -1422,7 +1368,6 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     addPhotosToAlbum,
     removePhotosFromAlbum,
     saveAlbumAndTrainAI,
-    loadAlbumFromSaved,
     markDuplicateAsKeep,
     deleteDuplicateGroup
   ]);

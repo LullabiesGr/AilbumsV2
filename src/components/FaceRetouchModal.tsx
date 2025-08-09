@@ -92,36 +92,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
         
         setProcessingProgress(`Enhancing face ${i + 1} of ${selectedFaceIndices.length} with CodeFormer...`);
 
-        // Prepare form data exactly as specified for CodeFormer backend
-        const formData = new FormData();
-        
-        // For subsequent faces, use the result from the previous enhancement
-        if (finalImageBlob) {
-          // Create a proper File object from the blob with correct MIME type
-          const enhancedFile = new File([finalImageBlob], photo.filename, { 
-            type: 'image/jpeg',
-            lastModified: Date.now()
-          });
-          formData.append('file', enhancedFile);
-        } else {
-          // For the first face, convert the original photo URL to a proper file
-          try {
-            const response = await fetch(photo.url);
-            const blob = await response.blob();
-            const imageFile = new File([blob], photo.filename, { 
-              type: blob.type || 'image/jpeg',
-              lastModified: Date.now()
-            });
-            formData.append('file', imageFile);
-          } catch (error) {
-            console.error('Failed to convert photo URL to file:', error);
-            // Fallback to original file
-            formData.append('file', photo.file);
-          }
-        }
-        
-        // Include the user's selected retouch fidelity value (w parameter for CodeFormer)
-        formData.append('w', settings.fidelity.toString());
+        // Prepare form data for CodeFormer backend
         const fd = new FormData();
         const fidelity = Math.min(1, Math.max(0, Number(settings.fidelity) || 0.5));
 
@@ -133,30 +104,17 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
           });
           fd.append('file', enhancedFile, photo.filename);
         } else {
-          // For the first face, use original file or URL
-          if (photo.file instanceof File && photo.file.size > 0) {
-            fd.append('file', photo.file, photo.filename || photo.file.name);
-          } else {
-            fd.append('url', photo.url); // ο server θα το κατεβάσει
-          }
+          // For the first face, use the original photo file
+          fd.append('file', photo.file, photo.filename || photo.file.name);
         }
         fd.append('w', String(fidelity));
-        
-        // Optional: Include face coordinates if backend supports targeted enhancement
-        // These coordinates are in original image resolution
-        fd.append('x1', Math.round(x1).toString());
-        fd.append('y1', Math.round(y1).toString());
-        fd.append('x2', Math.round(x2).toString());
-        fd.append('y2', Math.round(y2).toString());
 
         console.log(`CodeFormer API Call ${i + 1}/${selectedFaceIndices.length}:`, {
           filename: photo.filename,
           faceIndex: faceIndex + 1,
-          faceBox: [Math.round(x1), Math.round(y1), Math.round(x2), Math.round(y2)],
           fidelity: fidelity,
-          hasFile: photo.file instanceof File && photo.file.size > 0,
-          fileSize: photo.file instanceof File ? photo.file.size : 'N/A',
-          usingURL: !(photo.file instanceof File && photo.file.size > 0)
+          fileSize: photo.file.size,
+          hasBlob: !!finalImageBlob
         });
 
         // Call the /enhance endpoint for CodeFormer processing
@@ -165,9 +123,6 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
           body: fd,
           mode: 'cors',
           cache: 'no-store',
-          headers: {
-            'ngrok-skip-browser-warning': 'true'
-          }
         });
 
         if (!response.ok) {

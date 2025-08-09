@@ -65,38 +65,55 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
     try {
       setProcessingProgress('Enhancing faces with CodeFormer...');
 
-      // Ensure we have a valid file - download from URL if needed
-      const file = photo.file ?? new File([await (await fetch(photo.url)).blob()], photo.filename, {type:'image/jpeg'});
+      // Ensure we have a valid binary file - download from URL if needed
+      let file = photo.file;
+      if (!file || file.size === 0) {
+        console.log('Photo file missing or empty, downloading from URL:', photo.url);
+        const response = await fetch(photo.url);
+        if (!response.ok) {
+          throw new Error(`Failed to download image: ${response.status}`);
+        }
+        const blob = await response.blob();
+        if (blob.size === 0) {
+          throw new Error('Downloaded image is empty');
+        }
+        file = new File([blob], photo.filename, { type: blob.type || 'image/jpeg' });
+        console.log('Created file from URL:', {
+          filename: file.name,
+          size: file.size,
+          type: file.type
+        });
+      }
       
       console.log('CodeFormer Enhancement Started:', {
         filename: photo.filename,
         fileSize: file.size,
-        selectedFaces: selectedFaceIndices.length,
         fidelity: settings.fidelity,
-        face_upsample: settings.keepOriginalResolution
+        face_upsample: settings.keepOriginalResolution,
+        fileType: file.type
       });
 
       // Prepare form data for CodeFormer backend
       const formData = new FormData();
       
-      // 1. Send the FULL original image file with filename
-      formData.append('file', file, file.name);
+      // Send the binary file with proper filename
+      formData.append('file', file, photo.filename);
       
-      // 2. Include fidelity parameter
+      // Send fidelity as string
       formData.append('fidelity', settings.fidelity.toString());
       
-      // 3. Include face_upsample setting
+      // Send face_upsample as string
       formData.append('face_upsample', settings.keepOriginalResolution.toString());
 
       console.log('CodeFormer API Call:', {
         filename: photo.filename,
-        fidelity: settings.fidelity,
-        face_upsample: settings.keepOriginalResolution,
         fileSize: file.size,
-        fileType: file.type
+        fileType: file.type,
+        fidelity: settings.fidelity,
+        face_upsample: settings.keepOriginalResolution
       });
 
-      // Call the /enhance endpoint for CodeFormer processing
+      // Call the enhance endpoint
       const response = await fetch('https://b455dac5621c.ngrok-free.app/enhance', {
         method: 'POST',
         body: formData,
@@ -298,7 +315,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                     Ailbums Face Enhancement
                   </h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  </h2>
                     The full original image is sent to the backend with your fidelity setting and face upsampling preference. 
                     CodeFormer will automatically detect and enhance all faces in the image.
                   </p>

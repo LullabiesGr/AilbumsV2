@@ -790,8 +790,8 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
                 <Sparkles className="h-5 w-5" />
                 <span>
                   {isProcessing 
-                    ? `Ailbums Processing...` 
-                    : `Magic Retouch ${selectedFaceIndices.length > 0 ? `(${selectedFaceIndices.length})` : ''}`
+                    ? `Processing...` 
+                    : `Magic Enhance ${selectedFaceIndices.length > 0 ? `(${selectedFaceIndices.length})` : ''}`
                   }
                 </span>
               </button>

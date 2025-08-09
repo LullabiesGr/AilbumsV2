@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Sparkles, Eye, EyeOff, Download, Save, RotateCcw, Settings, Users, Check, Minimize2, Maximize2 } from 'lucide-react';
 import { Photo, Face } from '../types';
 import { useToast } from '../context/ToastContext';
+import { API_URL } from '../lib/api';
 
 interface FaceRetouchModalProps {
   photo: Photo;
@@ -174,7 +175,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
         });
 
         // Call the /enhance endpoint for CodeFormer processing
-        const response = await fetch('https://b455dac5621c.ngrok-free.app/enhance', {
+        const response = await fetch(`${API_URL}/enhance`, {
           method: 'POST',
           body: formData,
           headers: {

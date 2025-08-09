@@ -54,7 +54,7 @@ interface MyAilbumsModalProps {
 const API_URL =
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:8000"
-    : "https://3a202ff8dda3.ngrok-free.app";
+    : "https://b455dac5621c.ngrok-free.app";
 
 // Helper to construct album folder name (assuming format like event_type-deep_timestamp)
 // DEPRECATED: Use album.album_dir from backend instead

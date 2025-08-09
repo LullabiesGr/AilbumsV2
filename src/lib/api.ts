@@ -4,7 +4,7 @@ import { promisePoolWithProgress } from './promisePool'; // Keep this import
 import { DuplicateCluster } from '../types';
 
 // API URL configuration for different environments
-const API_URL =
+export const API_URL =
   import.meta.env.VITE_API_URL ||
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:8000"

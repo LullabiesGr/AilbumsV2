@@ -63,24 +63,38 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
     setProcessingProgress('Preparing image for CodeFormer...');
     
     try {
-      // Convert photo URL to proper File object for /enhance endpoint
-      let imageFile: File;
+      // Fetch the image from the album-photo URL and convert to File
+      setProcessingProgress('Fetching image from album...');
       
-      if (photo.file && photo.file.size > 0) {
-        // Use original file if available
-        imageFile = photo.file;
-      } else {
-        // Convert URL to File object (for cases where we only have URL)
-        const blob = await (await fetch(photo.url)).blob();
-        imageFile = new File([blob], photo.filename, { type: blob.type || 'image/jpeg' });
+      const imageResponse = await fetch(photo.url, {
+        method: 'GET',
+        headers: {
+          'ngrok-skip-browser-warning': 'true'
+        },
+        mode: 'cors'
+      });
+      
+      if (!imageResponse.ok) {
+        throw new Error(`Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText}`);
       }
+      
+      const imageBlob = await imageResponse.blob();
+      if (!imageBlob || imageBlob.size === 0) {
+        throw new Error('Received empty image from album');
+      }
+      
+      // Create proper File object with correct filename and type
+      const imageFile = new File([imageBlob], photo.filename, { 
+        type: imageBlob.type || 'image/jpeg' 
+      });
       
       console.log('CodeFormer Enhancement Started:', {
         filename: photo.filename,
         fileSize: imageFile.size,
         fileType: imageFile.type,
         selectedFaces: selectedFaceIndices.length,
-        fidelity: settings.fidelity
+        fidelity: settings.fidelity,
+        sourceUrl: photo.url
       });
 
       setProcessingProgress('Enhancing faces with CodeFormer...');
@@ -101,8 +115,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
         filename: imageFile.name,
         fileSize: imageFile.size,
         fileType: imageFile.type,
-        fidelity: settings.fidelity,
-        selectedFaces: selectedFaceIndices.length
+        fidelity: settings.fidelity
       });
 
       // Call the /enhance endpoint
@@ -128,7 +141,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
       }
 
       console.log('CodeFormer enhancement successful:', {
-        originalSize: imageFile.size,
+        originalSize: imageBlob.size,
         enhancedSize: enhancedBlob.size
       });
 
@@ -146,9 +159,9 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
       
       console.log('CodeFormer Enhancement Complete:', {
         originalFilename: photo.filename,
-        facesSelected: selectedFaceIndices.length,
         finalImageSize: enhancedBlob.size,
-        fidelity: settings.fidelity
+        fidelity: settings.fidelity,
+        sourceUrl: photo.url
       });
       
       showToast(

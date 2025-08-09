@@ -47,6 +47,7 @@ export interface SavedAlbum {
 interface MyAilbumsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenAlbumReview?: (album: SavedAlbum) => void;
 }
 
 // Base URL for backend API
@@ -65,7 +66,7 @@ export const getAlbumFolder = (eventType: EventType, createdAt: string): string 
   return `${eventType}-deep_${Math.floor(timestamp / 1000)}`;
 };
 
-const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
+const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose, onOpenAlbumReview }) => {
   const [albums, setAlbums] = useState<SavedAlbum[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedAlbum, setSelectedAlbum] = useState<SavedAlbum | null>(null);
@@ -113,8 +114,15 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
 
   // Handle opening album in review mode
   const handleOpenAlbumReview = (album: SavedAlbum) => {
-    setSelectedAlbum(album);
-    setViewMode('review');
+    if (onOpenAlbumReview) {
+      // Close modal and open in main interface
+      onClose();
+      onOpenAlbumReview(album);
+    } else {
+      // Fallback to internal review mode
+      setSelectedAlbum(album);
+      setViewMode('review');
+    }
   };
 
   // Handle back from detail view
@@ -165,7 +173,13 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {albums.map((album) => ( // Pass userId to AlbumCard
-          <AlbumCard key={album.id} album={album} userId={user!.email} onViewDetail={handleViewAlbumDetail} />
+          <AlbumCard 
+            key={album.id} 
+            album={album} 
+            userId={user!.email} 
+            onViewDetail={handleViewAlbumDetail}
+            onOpenReview={handleOpenAlbumReview}
+          />
         ))} 
       </div>
     );
@@ -213,7 +227,7 @@ const MyAilbumsModal: React.FC<MyAilbumsModalProps> = ({ isOpen, onClose }) => {
               album={selectedAlbum} 
               userId={user!.email} 
               onBack={handleBackToAlbums}
-              onOpenReview={() => setViewMode('review')}
+              onOpenReview={handleOpenAlbumReview}
             />
           ) : viewMode === 'review' && selectedAlbum ? (
             <AlbumReviewInterface 

@@ -3,6 +3,7 @@ import { Photo, Filter, Album, ColorLabel, EventType, CullingMode, WorkflowStage
 import { analyzePhotosSingle, deepAnalyzePhotosSingle, cullPhotos, findDuplicatesAPI } from '../lib/api';
 import { useToast } from './ToastContext';
 import { useAuth } from './AuthContext';
+import { SavedAlbum, SavedPhoto } from '../components/MyAilbumsModal';
 
 interface PhotoContextType {
   photos: Photo[];
@@ -64,6 +65,7 @@ interface PhotoContextType {
   saveAlbumAndTrainAI: (event: string) => Promise<void>;
   markDuplicateAsKeep: (filename: string, duplicateGroup: string[]) => void;
   deleteDuplicateGroup: (duplicateGroup: string[]) => void;
+  loadAlbumForReview: (album: SavedAlbum) => void;
 }
 
 const PhotoContext = createContext<PhotoContextType | undefined>(undefined);
@@ -102,6 +104,60 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const { showToast } = useToast();
   const { user } = useAuth();
 
+  // API URL configuration
+  const API_URL =
+    window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+      ? "http://localhost:8000"
+      : "https://438aeaff2b7a.ngrok-free.app";
+
+  const loadAlbumForReview = useCallback((album: SavedAlbum) => {
+    console.log('🔄 Loading album for review:', album);
+    
+    try {
+      // Convert SavedPhoto to Photo format for the main interface
+      const convertedPhotos: Photo[] = album.results.map((savedPhoto, index) => {
+        const photoUrl = `${API_URL}/album-photo?album_dir=${encodeURIComponent(album.album_dir)}&filename=${encodeURIComponent(savedPhoto.filename)}`;
+        
+        return {
+          id: `${album.id}-${index}`,
+          filename: savedPhoto.filename,
+          file: new File([], savedPhoto.filename), // Dummy file object
+          url: photoUrl,
+          score: savedPhoto.ai_score,
+          basic_score: savedPhoto.basic_score,
+          ml_score: savedPhoto.ml_score,
+          ai_score: savedPhoto.ai_score,
+          score_type: savedPhoto.score_type || 'ai',
+          blur_score: savedPhoto.blur_score,
+          tags: savedPhoto.tags || [],
+          faces: savedPhoto.faces || [],
+          face_summary: savedPhoto.face_summary,
+          caption: savedPhoto.caption,
+          event_type: album.event_type,
+          blip_flags: savedPhoto.blip_flags || [],
+          blip_highlights: savedPhoto.blip_highlights || [],
+          ai_categories: savedPhoto.ai_categories || [],
+          approved: savedPhoto.approved,
+          color_label: savedPhoto.color_label as ColorLabel,
+          dateCreated: album.date_created,
+          selected: false
+        };
+      });
+      
+      // Load the photos into the main interface
+      setPhotos(convertedPhotos);
+      setCurrentAlbumName(album.name || album.id);
+      setCurrentAlbumId(album.id);
+      setEventType(album.event_type);
+      setWorkflowStage('review');
+      
+      showToast(`Loaded album "${album.name || album.id}" with ${convertedPhotos.length} photos for review`, 'success');
+      
+    } catch (error: any) {
+      console.error('Failed to load album for review:', error);
+      showToast('Failed to load album for review', 'error');
+    }
+  }, [showToast, setWorkflowStage, API_URL]);
   const resetWorkflow = useCallback(() => {
     setPhotos([]);
     setCurrentAlbumName('');

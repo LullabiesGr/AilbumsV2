@@ -13,9 +13,10 @@ interface AlbumCardProps {
   album: SavedAlbum;
   userId: string;
   onViewDetail: (album: SavedAlbum) => void;
+  onOpenReview: (album: SavedAlbum) => void;
 }
 
-const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) => {
+const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail, onOpenReview }) => {
   const [hoveredPhoto, setHoveredPhoto] = useState<SavedPhoto | null>(null);
 
 
@@ -234,15 +235,28 @@ const AlbumCard: React.FC<AlbumCardProps> = ({ album, userId, onViewDetail }) =>
         )}
 
         {/* Action Button */}
-        <button
-          onClick={() => onViewDetail(album)}
-          className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white 
-                     rounded-lg flex items-center justify-center space-x-1 
-                     transition-colors duration-200 text-sm"
-        >
-          <Eye className="h-4 w-4" />
-          <span>View Details</span>
-        </button>
+        <div className="space-y-2">
+          <button
+            onClick={() => onViewDetail(album)}
+            className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white 
+                       rounded-lg flex items-center justify-center space-x-1 
+                       transition-colors duration-200 text-sm"
+          >
+            <Eye className="h-4 w-4" />
+            <span>View Details</span>
+          </button>
+          
+          <button
+            onClick={() => onOpenReview(album)}
+            className="w-full px-3 py-2 bg-gradient-to-r from-purple-600 to-pink-600 
+                       hover:from-purple-700 hover:to-pink-700 text-white rounded-lg 
+                       flex items-center justify-center space-x-1 transition-all duration-200 text-sm
+                       shadow-md hover:shadow-lg transform hover:scale-105"
+          >
+            <Sparkles className="h-4 w-4" />
+            <span>Open in Review Mode</span>
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -5,11 +5,18 @@ import Tutorial from './Tutorial';
 import MyAilbumsModal from './MyAilbumsModal';
 import UserMenu from './UserMenu';
 import { useAuth } from '../context/AuthContext';
+import { usePhoto } from '../context/PhotoContext';
+import { SavedAlbum } from './MyAilbumsModal';
 
 const Header: React.FC = () => {
   const [showTutorial, setShowTutorial] = useState(false);
   const [showMyAilbums, setShowMyAilbums] = useState(false);
   const { isAuthenticated } = useAuth();
+  const { loadAlbumForReview } = usePhoto();
+
+  const handleOpenAlbumReview = (album: SavedAlbum) => {
+    loadAlbumForReview(album);
+  };
 
   return (
     <>
@@ -64,6 +71,7 @@ const Header: React.FC = () => {
       <MyAilbumsModal 
         isOpen={showMyAilbums} 
         onClose={() => setShowMyAilbums(false)} 
+        onOpenAlbumReview={handleOpenAlbumReview}
       />
     </>
   );

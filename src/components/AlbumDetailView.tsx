@@ -13,6 +13,7 @@ interface AlbumDetailViewProps {
   album: SavedAlbum;
   userId: string;
   onBack: () => void;
+  onOpenReview: (album: SavedAlbum) => void;
 }
 
 const getEventTypeIcon = (eventType: string) => {
@@ -33,7 +34,7 @@ const getEventTypeIcon = (eventType: string) => {
   }
 };
 
-const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack }) => {
+const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack, onOpenReview }) => {
   const [selectedPhoto, setSelectedPhoto] = useState<SavedPhoto | null>(null);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
 
@@ -268,8 +269,16 @@ const AlbumDetailView: React.FC<AlbumDetailViewProps> = ({ album, userId, onBack
           </p>
         </div>
 
-        {/* Placeholder for future actions */}
-        <div className="w-24"></div>
+        <button
+          onClick={() => onOpenReview(album)}
+          className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 
+                     hover:from-purple-700 hover:to-pink-700 text-white rounded-lg 
+                     flex items-center space-x-2 transition-all duration-200 font-medium
+                     shadow-lg hover:shadow-xl transform hover:scale-105"
+        >
+          <Sparkles className="h-5 w-5" />
+          <span>Open in Review Mode</span>
+        </button>
       </div>
 
       {/* Album Stats */}

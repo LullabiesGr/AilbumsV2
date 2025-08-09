@@ -101,7 +101,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
         const formData = new FormData();
         
         // Send the FULL original image (not cropped) - this is critical for CodeFormer
-        formData.append('file', currentImageFile, currentImageFile.name);
+        formData.append('file', currentImageFile);
         
         // Include the user's selected retouch fidelity value (w parameter for CodeFormer)
         formData.append('w', settings.fidelity.toString());
@@ -126,10 +126,10 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
         const response = await fetch('https://b455dac5621c.ngrok-free.app/enhance', {
           method: 'POST',
           body: formData,
+          mode: 'cors',
           headers: {
             'ngrok-skip-browser-warning': 'true'
-          },
-          mode: 'cors'
+          }
         });
 
         if (!response.ok) {

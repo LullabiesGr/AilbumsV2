@@ -104,23 +104,23 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
       });
 
       // Call the /enhance endpoint with clean request
-      const response = await fetch('https://b455dac5621c.ngrok-free.app/enhance', {
+      const enhanceResponse = await fetch('https://b455dac5621c.ngrok-free.app/enhance', {
         method: 'POST',
         body: formData,
         mode: 'cors'
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
+      if (!enhanceResponse.ok) {
+        const errorText = await enhanceResponse.text();
         console.error('CodeFormer Enhancement API Error:', {
-          status: response.status,
-          statusText: response.statusText,
+          status: enhanceResponse.status,
+          statusText: enhanceResponse.statusText,
           error: errorText
         });
-        throw new Error(`CodeFormer enhancement failed: ${errorText || `HTTP ${response.status}`}`);
+        throw new Error(`CodeFormer enhancement failed: ${errorText || `HTTP ${enhanceResponse.status}`}`);
       }
 
-      const enhancedBlob = await response.blob();
+      const enhancedBlob = await enhanceResponse.blob();
       if (!enhancedBlob || enhancedBlob.size === 0) {
         throw new Error('CodeFormer returned empty response');
       }

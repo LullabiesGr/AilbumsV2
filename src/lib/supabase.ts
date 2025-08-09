@@ -26,37 +26,43 @@ export const getUserCredits = async (userEmail: string): Promise<UserCredits | n
   try {
     console.log('🔍 Getting credits for user email:', userEmail);
     
-    // First, get the user's UID from auth.users table using email
-    const { data: authUser, error: authError } = await supabase.auth.admin.listUsers();
+    // First, get the user's ID from user_profiles table using email
+    const { data: userProfile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('user_id')
+      .eq('email', userEmail)
+      .single();
     
-    if (authError) {
-      console.error('❌ Failed to get auth users:', authError);
-      throw new Error('Failed to authenticate user');
+    if (profileError) {
+      console.error('❌ Failed to get user profile:', profileError);
+      if (profileError.code === 'PGRST116') {
+        console.warn('⚠️ User profile not found for email:', userEmail);
+        return null;
+      }
+      throw new Error('Failed to find user profile');
     }
     
-    // Find user by email
-    const user = authUser.users.find(u => u.email === userEmail);
-    if (!user) {
-      console.warn('⚠️ User not found in auth.users:', userEmail);
+    if (!userProfile) {
+      console.warn('⚠️ User profile not found for email:', userEmail);
       return null;
     }
     
-    console.log('✅ Found user UID:', user.id, 'for email:', userEmail);
+    console.log('✅ Found user_id:', userProfile.user_id, 'for email:', userEmail);
     
-    // Now get credits using the UID
+    // Now get credits using the user_id from user_profiles
     const { data: credits, error: creditsError } = await supabase
       .from('user_credits')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userProfile.user_id)
       .single();
     
     if (creditsError) {
       if (creditsError.code === 'PGRST116') {
-        // No credits record found - create default one
-        console.log('📝 Creating default credits record for user:', user.id);
+        // No credits record found - create default one  
+        console.log('📝 Creating default credits record for user_id:', userProfile.user_id);
         
         const defaultCredits: Partial<UserCredits> = {
-          user_id: user.id,
+          user_id: userProfile.user_id,
           credits: 100, // Default starting credits
           monthly_credits: 100,
           extra_credits: 0,

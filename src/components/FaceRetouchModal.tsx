@@ -65,82 +65,48 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
     try {
       setProcessingProgress('Enhancing faces with CodeFormer...');
 
-      // Ensure we have a valid binary file - download from URL if needed
-      let file = photo.file;
-      if (!file || file.size === 0) {
-        console.log('Photo file missing or empty, downloading from URL:', photo.url);
-        const response = await fetch(photo.url);
-        if (!response.ok) {
-          throw new Error(`Failed to download image: ${response.status}`);
-        }
-        const blob = await response.blob();
-        if (blob.size === 0) {
-          throw new Error('Downloaded image is empty');
-        }
-        file = new File([blob], photo.filename, { type: blob.type || 'image/jpeg' });
-        console.log('Created file from URL:', {
-          filename: file.name,
-          size: file.size,
-          type: file.type
-        });
-      }
+      // Download image from URL and create proper File object
+      console.log('Downloading image from URL:', photo.url);
+      const blob = await (await fetch(photo.url)).blob();
+      const file = new File([blob], photo.filename, { type: blob.type || 'image/png' });
       
-      console.log('CodeFormer Enhancement Started:', {
+      console.log('Face Enhancement Started:', {
         filename: photo.filename,
         fileSize: file.size,
-        fidelity: settings.fidelity,
-        face_upsample: settings.keepOriginalResolution,
-        fileType: file.type
+        fidelity: settings.fidelity.toString(),
+        face_upsample: settings.keepOriginalResolution.toString()
       });
 
-      // Prepare form data for CodeFormer backend
-      const formData = new FormData();
-      
-      // Send the binary file with proper filename
-      formData.append('file', file, photo.filename);
-      
-      // Send fidelity as string
-      formData.append('fidelity', settings.fidelity.toString());
-      
-      // Send face_upsample as string
-      formData.append('face_upsample', settings.keepOriginalResolution.toString());
-
-      console.log('CodeFormer API Call:', {
-        filename: photo.filename,
-        fileSize: file.size,
-        fileType: file.type,
-        fidelity: settings.fidelity,
-        face_upsample: settings.keepOriginalResolution
-      });
+      // Create FormData exactly as backend expects
+      const fd = new FormData();
+      fd.append('file', file, file.name);
+      fd.append('fidelity', settings.fidelity.toString());
+      fd.append('face_upsample', settings.keepOriginalResolution.toString());
 
       // Call the enhance endpoint
       const response = await fetch('https://b455dac5621c.ngrok-free.app/enhance', {
         method: 'POST',
-        body: formData,
+        body: fd,
         mode: 'cors'
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('CodeFormer Enhancement API Error:', {
+        console.error('Face Enhancement API Error:', {
           status: response.status,
           statusText: response.statusText,
           error: errorText,
-          requestDetails: {
-            filename: photo.filename,
-            fidelity: settings.fidelity,
-            face_upsample: settings.keepOriginalResolution
-          }
+          filename: photo.filename
         });
-        throw new Error(`CodeFormer enhancement failed: ${errorText || `HTTP ${response.status}`}`);
+        throw new Error(`Face enhancement failed: ${errorText || `HTTP ${response.status}`}`);
       }
 
       const finalImageBlob = await response.blob();
       if (!finalImageBlob || finalImageBlob.size === 0) {
-        throw new Error('CodeFormer returned empty response');
+        throw new Error('Face enhancement returned empty response');
       }
 
-      console.log('CodeFormer enhancement successful:', {
+      console.log('Face enhancement successful:', {
         originalSize: file.size,
         enhancedSize: finalImageBlob.size
       });
@@ -157,11 +123,11 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
       setRetouchedImageUrl(retouchedUrl);
       setSettings(prev => ({ ...prev, showPreview: true }));
       
-      console.log('CodeFormer Enhancement Complete:', {
+      console.log('Face Enhancement Complete:', {
         originalFilename: photo.filename,
         finalImageSize: finalImageBlob.size,
-        fidelity: settings.fidelity,
-        face_upsample: settings.keepOriginalResolution
+        fidelity: settings.fidelity.toString(),
+        face_upsample: settings.keepOriginalResolution.toString()
       });
       
       showToast(
@@ -169,7 +135,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
         'success'
       );
     } catch (error: any) {
-      console.error('CodeFormer enhancement error:', error);
+      console.error('Face enhancement error:', error);
       showToast(error.message || 'Face enhancement failed', 'error');
     } finally {
       setIsProcessing(false);

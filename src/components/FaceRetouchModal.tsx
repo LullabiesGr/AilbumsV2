@@ -63,23 +63,26 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
     setProcessingProgress('Preparing image for CodeFormer...');
     
     try {
+      setProcessingProgress('Enhancing faces with CodeFormer...');
+
+      // Ensure we have a valid file - download from URL if needed
+      const file = photo.file ?? new File([await (await fetch(photo.url)).blob()], photo.filename, {type:'image/jpeg'});
+      
       console.log('CodeFormer Enhancement Started:', {
         filename: photo.filename,
-        originalFileSize: photo.file.size,
+        fileSize: file.size,
         selectedFaces: selectedFaceIndices.length,
         fidelity: settings.fidelity,
         face_upsample: settings.keepOriginalResolution
       });
 
-      setProcessingProgress('Enhancing faces with CodeFormer...');
-
-      // Prepare form data exactly as specified for CodeFormer backend
+      // Prepare form data for CodeFormer backend
       const formData = new FormData();
       
-      // 1. Send the FULL original image file
-      formData.append('file', photo.file);
+      // 1. Send the FULL original image file with filename
+      formData.append('file', file, file.name);
       
-      // 2. Include the user's selected retouch fidelity value
+      // 2. Include fidelity parameter
       formData.append('fidelity', settings.fidelity.toString());
       
       // 3. Include face_upsample setting
@@ -89,18 +92,15 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
         filename: photo.filename,
         fidelity: settings.fidelity,
         face_upsample: settings.keepOriginalResolution,
-        fileSize: photo.file.size,
-        fileType: photo.file.type
+        fileSize: file.size,
+        fileType: file.type
       });
 
       // Call the /enhance endpoint for CodeFormer processing
       const response = await fetch('https://b455dac5621c.ngrok-free.app/enhance', {
         method: 'POST',
         body: formData,
-        mode: 'cors',
-        headers: {
-          'ngrok-skip-browser-warning': 'true'
-        }
+        mode: 'cors'
       });
 
       if (!response.ok) {
@@ -124,7 +124,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
       }
 
       console.log('CodeFormer enhancement successful:', {
-        originalSize: photo.file.size,
+        originalSize: file.size,
         enhancedSize: finalImageBlob.size
       });
 

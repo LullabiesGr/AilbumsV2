@@ -122,28 +122,49 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
         
         // Include the user's selected retouch fidelity value (w parameter for CodeFormer)
         formData.append('w', settings.fidelity.toString());
+        const fd = new FormData();
+        const fidelity = Math.min(1, Math.max(0, Number(settings.fidelity) || 0.5));
+
+        if (finalImageBlob) {
+          // For subsequent faces, use the result from the previous enhancement
+          const enhancedFile = new File([finalImageBlob], photo.filename, { 
+            type: 'image/jpeg',
+            lastModified: Date.now()
+          });
+          fd.append('file', enhancedFile, photo.filename);
+        } else {
+          // For the first face, use original file or URL
+          if (photo.file instanceof File && photo.file.size > 0) {
+            fd.append('file', photo.file, photo.filename || photo.file.name);
+          } else {
+            fd.append('url', photo.url); // ο server θα το κατεβάσει
+          }
+        }
+        fd.append('w', String(fidelity));
         
         // Optional: Include face coordinates if backend supports targeted enhancement
         // These coordinates are in original image resolution
-        formData.append('x1', Math.round(x1).toString());
-        formData.append('y1', Math.round(y1).toString());
-        formData.append('x2', Math.round(x2).toString());
-        formData.append('y2', Math.round(y2).toString());
+        fd.append('x1', Math.round(x1).toString());
+        fd.append('y1', Math.round(y1).toString());
+        fd.append('x2', Math.round(x2).toString());
+        fd.append('y2', Math.round(y2).toString());
 
         console.log(`CodeFormer API Call ${i + 1}/${selectedFaceIndices.length}:`, {
           filename: photo.filename,
           faceIndex: faceIndex + 1,
           faceBox: [Math.round(x1), Math.round(y1), Math.round(x2), Math.round(y2)],
-          fidelity: settings.fidelity,
-          fileSize: currentImageFile.size,
-          fileType: currentImageFile.type
+          fidelity: fidelity,
+          hasFile: photo.file instanceof File && photo.file.size > 0,
+          fileSize: photo.file instanceof File ? photo.file.size : 'N/A',
+          usingURL: !(photo.file instanceof File && photo.file.size > 0)
         });
 
         // Call the /enhance endpoint for CodeFormer processing
         const response = await fetch('https://b455dac5621c.ngrok-free.app/enhance', {
           method: 'POST',
-          body: formData,
+          body: fd,
           mode: 'cors',
+          cache: 'no-store',
           headers: {
             'ngrok-skip-browser-warning': 'true'
           }

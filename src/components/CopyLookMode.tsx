@@ -42,49 +42,35 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
   };
 
   const handleApplyCopyLook = async () => {
-  if (!referencePhoto || targetPhotos.size === 0) {
-    showToast('Please select a reference photo and target photos', 'warning');
-    return;
-  }
-
-  setIsProcessing(true);
-  try {
-    const targetPhotoObjects = photos.filter(p => targetPhotos.has(p.id));
-    const targetFiles = targetPhotoObjects.map(p => p.file);
-
-    console.log('Starting color transfer:', {
-      reference: referencePhoto.filename,
-      targets: targetPhotoObjects.map(p => p.filename)
-    });
-
-    const formData = new FormData();
-    formData.append('reference', referencePhoto.file);
-    targetFiles.forEach((file, idx) => {
-      formData.append('targets', file);
-    });
-
-    const response = await fetch('/api/color-transfer', {
-      method: 'POST',
-      body: formData
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`LUT and Apply failed: ${response.status} ${response.statusText} - ${errText}`);
+    if (!referencePhoto || targetPhotos.size === 0) {
+      showToast('Please select a reference photo and target photos', 'warning');
+      return;
     }
 
-    const data = await response.json();
-    const transferResults = data.results || data;
+    setIsProcessing(true);
+    try {
+      const targetPhotoObjects = photos.filter(p => targetPhotos.has(p.id));
+      const targetFiles = targetPhotoObjects.map(p => p.file);
+      
+      console.log('Starting color transfer:', {
+        reference: referencePhoto.filename,
+        targets: targetPhotoObjects.map(p => p.filename)
+      });
 
-    setResults(transferResults);
-    showToast(`Color transfer completed for ${transferResults.length} photos!`, 'success');
-  } catch (error: any) {
-    console.error('CopyLook error detail:', error);
-    showToast(error.message || 'Color transfer failed', 'error');
-  } finally {
-    setIsProcessing(false);
-  }
-};
+      const response = await colorTransfer(referencePhoto.file, targetFiles);
+      
+      // Handle the backend response format: { results: [...] }
+      const transferResults = response.results || response;
+      
+      setResults(transferResults);
+      showToast(Color transfer completed for ${transferResults.length} photos!, 'success');
+    } catch (error: any) {
+      console.error('Color transfer failed:', error);
+      showToast(error.message || 'Color transfer failed', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   
   const handleDownload = (result: ColorTransferResult) => {

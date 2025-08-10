@@ -40,6 +40,12 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSuccess }) => {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Stripe checkout response error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
         const error = await response.json();
         throw new Error(error.error || 'Failed to create checkout session');
       }

@@ -57,7 +57,7 @@ export interface UserPlan {
 const PLAN_CONFIGS = {
   'price_1RFMJNCtJc6njTYQJUh6T8bQ': {
     name: 'Starter',
-    monthly_credits: 75,
+    monthly_credits: 100,
     features: ['Basic AI Analysis', 'Face Detection', 'Quality Scoring', 'Standard Support']
   },
   'price_1RFMKaCtJc6njTYQvFfgEt3N': {
@@ -150,20 +150,9 @@ export const getUserPlan = async (userEmail: string): Promise<UserPlan | null> =
       .eq('status', 'active')
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
     
     if (subscriptionError) {
-      if (subscriptionError.code === 'PGRST116') {
-        console.warn('⚠️ No active subscription found for customer:', stripeCustomer.customer_id);
-        return {
-          plan_name: 'Free',
-          price_id: '',
-          status: 'inactive',
-          monthly_credits: 100,
-          current_period_end: '',
-          is_active: false
-        };
-      }
       console.error('❌ Failed to get subscription:', subscriptionError);
       throw new Error('Failed to get subscription');
     }
@@ -260,38 +249,38 @@ export const getUserCredits = async (userEmail: string): Promise<UserCredits | n
       .from('user_credits')
       .select('*')
       .eq('user_id', userProfile.user_id)
-      .single();
+      .maybeSingle();
     
     if (creditsError) {
-      if (creditsError.code === 'PGRST116') {
-        // No credits record found - create default one  
-        console.log('📝 Creating default credits record for user_id:', userProfile.user_id);
-        
-        const defaultCredits: Partial<UserCredits> = {
-          user_id: userProfile.user_id,
-          credits: 100, // Default starting credits
-          monthly_credits: 100,
-          extra_credits: 0,
-          next_reset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
-        };
-        
-        const { data: newCredits, error: createError } = await supabase
-          .from('user_credits')
-          .insert(defaultCredits)
-          .select()
-          .single();
-        
-        if (createError) {
-          console.error('❌ Failed to create default credits:', createError);
-          throw new Error('Failed to create user credits');
-        }
-        
-        console.log('✅ Created default credits:', newCredits);
-        return newCredits;
-      } else {
-        console.error('❌ Failed to get user credits:', creditsError);
-        throw new Error('Failed to get user credits');
+      console.error('❌ Failed to get user credits:', creditsError);
+      throw new Error('Failed to get user credits');
+    }
+    
+    if (!credits) {
+      // No credits record found - create default one  
+      console.log('📝 Creating default credits record for user_id:', userProfile.user_id);
+      
+      const defaultCredits: Partial<UserCredits> = {
+        user_id: userProfile.user_id,
+        credits: 100, // Default starting credits
+        monthly_credits: 100,
+        extra_credits: 0,
+        next_reset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
+      };
+      
+      const { data: newCredits, error: createError } = await supabase
+        .from('user_credits')
+        .insert(defaultCredits)
+        .select()
+        .single();
+      
+      if (createError) {
+        console.error('❌ Failed to create default credits:', createError);
+        throw new Error('Failed to create user credits');
       }
+      
+      console.log('✅ Created default credits:', newCredits);
+      return newCredits;
     }
     
     console.log('✅ User credits loaded:', credits);
@@ -385,6 +374,65 @@ export const addExtraCredits = async (userEmail: string, extraCredits: number): 
     
   } catch (error: any) {
     console.error('❌ addExtraCredits error:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};
+
+// Get user's current subscription
+export const getUserSubscription = async (userEmail: string) => {
+  try {
+    console.log('🔍 Getting subscription for user:', userEmail);
+    
+    // First, get the user's ID from user_profiles table using email
+    const { data: userProfile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('user_id')
+      .eq('email', userEmail)
+      .single();
+    
+    if (profileError) {
+      console.error('❌ Failed to get user profile:', profileError);
+      throw new Error('Failed to find user profile');
+    }
+    
+    if (!userProfile) {
+      console.warn('⚠️ User profile not found for email:', userEmail);
+      return null;
+    }
+    
+    // Get Stripe customer ID
+    const { data: stripeCustomer, error: customerError } = await supabase
+      .from('stripe_customers')
+      .select('customer_id')
+      .eq('user_id', userProfile.user_id)
+      .maybeSingle();
+    
+    if (customerError) {
+      console.error('❌ Failed to get stripe customer:', customerError);
+      throw new Error('Failed to get Stripe customer');
+    }
+    
+    if (!stripeCustomer) {
+      console.warn('⚠️ No Stripe customer found for user_id:', userProfile.user_id);
+      return null;
+    }
+    
+    // Get subscription data
+    const { data: subscription, error: subscriptionError } = await supabase
+      .from('stripe_subscriptions')
+      .select('*')
+      .eq('customer_id', stripeCustomer.customer_id)
+      .order('created_at', { ascending: false })
+      .maybeSingle();
+    
+    if (subscriptionError) {
+      console.error('❌ Failed to get subscription:', subscriptionError);
+      throw new Error('Failed to get subscription');
+    }
+    
+    return subscription;
+  } catch (error: any) {
+    console.error('❌ getUserSubscription error:', error);
     throw error instanceof Error ? error : new Error(error.toString());
   }
 };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Copy, Download, RotateCcw, Eye, EyeOff, Check, Palette, ArrowLeftRight } from 'lucide-react';
+import { ArrowLeft, Copy, Download, RotateCcw, Check, Palette, ArrowLeftRight } from 'lucide-react';
 import { Photo, ColorTransferResult } from '../types';
 import { usePhoto } from '../context/PhotoContext';
 import { useToast } from '../context/ToastContext';
@@ -23,7 +23,7 @@ const guessByExt = (name: string) => {
   return 'image/jpeg';
 };
 
-// ➜ Typing με πεδία άλμπουμ
+// ➜ Photo με πληροφορίες album
 type PhotoWithAlbum = Photo & {
   userId?: string;     // π.χ. "lullabiesgr@gmail.com"
   folder?: string;     // π.χ. "reyb"
@@ -31,7 +31,7 @@ type PhotoWithAlbum = Photo & {
   album?: string;      // αν το έχεις έτσι ήδη
 };
 
-// Φτιάχνει σωστό backend URL για /album-photo
+// Backend URL για /album-photo (υποστηρίζει και τα 2 σχήματα)
 const buildAlbumUrl = (p: PhotoWithAlbum) => {
   if (p.userId && p.folder) {
     return `${API_URL}/album-photo?user_id=${encodeURIComponent(p.userId)}&folder=${encodeURIComponent(p.folder)}&filename=${encodeURIComponent(p.filename)}`;
@@ -45,7 +45,7 @@ const buildAlbumUrl = (p: PhotoWithAlbum) => {
   return '';
 };
 
-/** Fetch -> Blob -> File, ΜΟΝΟ αν είναι image/*. */
+/** Fetch -> Blob -> File ΜΟΝΟ αν είναι image/* */
 async function urlToFile(url: string, filename: string): Promise<File> {
   const needsNgrokHeader = url.startsWith(API_URL);
   const res = await fetch(url, {
@@ -65,7 +65,7 @@ async function urlToFile(url: string, filename: string): Promise<File> {
 }
 
 /** 1) αν υπάρχει File -> “φρέσκο”
- *  2) αλλιώς δοκίμασε από p.url
+ *  2) αλλιώς από p.url
  *  3) αλλιώς fallback /album-photo (userId+folder ή album_path/album)
  */
 async function fileFromPhoto(p: PhotoWithAlbum): Promise<File> {
@@ -77,14 +77,12 @@ async function fileFromPhoto(p: PhotoWithAlbum): Promise<File> {
     return new File([buf], cleanName(p.filename), { type });
   }
 
-  // 2) url πρώτα (blob:/data:/http)
   try {
     if (p.url) return await urlToFile(p.url, p.filename);
   } catch {
-    /* συνεχίζουμε στο fallback */
+    // συνεχίζουμε στο fallback
   }
 
-  // 3) backend fallback
   const fallback = buildAlbumUrl(p);
   if (!fallback) throw new Error('Missing album info (userId/folder or album_path/album).');
   return await urlToFile(fallback, p.filename);
@@ -106,9 +104,9 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
 
   const handleReferenceSelect = (photo: Photo) => {
     setReferencePhoto(photo);
-    const newTargets = new Set(targetPhotos);
-    newTargets.delete(photo.id);
-    setTargetPhotos(newTargets);
+    const next = new Set(targetPhotos);
+    next.delete(photo.id);
+    setTargetPhotos(next);
   };
 
   const handleTargetToggle = (photo: Photo) => {
@@ -134,14 +132,12 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
         targets: targetPhotoObjects.map(p => p.filename),
       });
 
-      // 1) Ετοίμασε ΜΙΑ φορά το reference
       const referenceFixed = await fileFromPhoto(referencePhoto as PhotoWithAlbum);
 
-      // 2) Για κάθε target: source -> apply_on -> FormData -> POST
       for (const target of targetPhotoObjects) {
         const sourceFixed = await fileFromPhoto(target as PhotoWithAlbum);
 
-        // apply_on: καινούριο File από το ίδιο buffer (μην είναι consumed)
+        // apply_on: νέο File από το ίδιο buffer (να μην είναι consumed)
         const applyOnFixed = new File(
           [await sourceFixed.arrayBuffer()],
           cleanName(sourceFixed.name),
@@ -168,7 +164,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
 
         const data = await resp.json();
 
-        // Αν γύρισε μόνο path, φέρε το αρχείο & κάν’ το base64 για το UI
+        // αν γύρισε μόνο path, φέρε τη φωτό & κάν’ την base64 για το UI
         let image_base64: string | undefined = data.result_image_base64;
         if (!image_base64 && data.result_image_file) {
           try {
@@ -485,7 +481,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
                   <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                     <div className="bg-white/90 rounded-lg p-2 space-y-1">
                       <button
-                        onClick={() => handleReferenceSelect(photo)}
+                        onClick={() => setReferencePhoto(photo)}
                         disabled={isReference}
                         className={`w-full px-3 py-1.5 text-xs rounded ${
                           isReference ? 'bg-orange-500 text-white cursor-default' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'

@@ -44,10 +44,20 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSuccess }) => {
         console.error('Stripe checkout response error:', {
           status: response.status,
           statusText: response.statusText,
-          error: errorText
+          error: errorText,
+          url: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`,
+          priceId: product.priceId,
+          mode: product.mode
         });
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create checkout session');
+        
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
+        
+        throw new Error(errorData.error || 'Failed to create checkout session');
       }
 
       const { url } = await response.json();

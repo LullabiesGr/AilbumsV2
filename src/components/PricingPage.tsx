@@ -72,7 +72,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                 Secure & Private
               </h3>
               <p className="text-gray-600 dark:text-gray-400">
-                Your photos are processed securely and never stored permanently
+                Your photos are processed local & securely , Zero Cloud Storage!
               </p>
             </div>
 

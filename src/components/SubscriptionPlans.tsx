@@ -16,6 +16,18 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSuccess }) => {
   const subscriptionProducts = products.filter(p => p.mode === 'subscription');
   const creditProducts = products.filter(p => p.mode === 'payment');
 
+  // Beta discount percentages
+  const betaDiscounts = {
+    'Starter': 10,
+    'Pro': 20,
+    'Studio': 30
+  };
+
+  // Calculate discounted price
+  const getDiscountedPrice = (product: Product) => {
+    const discount = betaDiscounts[product.name as keyof typeof betaDiscounts] || 0;
+    return product.price * (1 - discount / 100);
+  };
   const handleCheckout = async (product: Product) => {
     if (!user || !accessToken) {
       showToast('Please log in to continue', 'error');
@@ -128,6 +140,50 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSuccess }) => {
 
   return (
     <div className="space-y-8">
+      {/* Beta Banner */}
+      <div className="relative overflow-hidden">
+        {/* Beta Ribbon */}
+        <div className="absolute top-0 right-0 z-10">
+          <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-8 py-2 
+                        transform rotate-12 translate-x-4 -translate-y-2 shadow-lg">
+            <span className="font-bold text-sm">BETA VERSION</span>
+          </div>
+        </div>
+        
+        {/* Beta Info Bar */}
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 
+                      border-2 border-amber-200 dark:border-amber-800 rounded-xl p-6 mb-8">
+          <div className="text-center">
+            <div className="flex items-center justify-center space-x-2 mb-3">
+              <div className="w-3 h-3 bg-amber-500 rounded-full animate-pulse" />
+              <h3 className="text-xl font-bold text-amber-800 dark:text-amber-200">
+                🎉 Beta Launch Special
+              </h3>
+              <div className="w-3 h-3 bg-amber-500 rounded-full animate-pulse" />
+            </div>
+            <p className="text-lg text-amber-700 dark:text-amber-300 mb-4">
+              Είμαστε σε Beta. Όσοι εγγραφούν τώρα κλειδώνουν <strong>Lifetime έκπτωση</strong>:
+            </p>
+            <div className="flex items-center justify-center space-x-6 text-amber-800 dark:text-amber-200">
+              <div className="flex items-center space-x-2">
+                <span className="font-semibold">Starter</span>
+                <span className="px-3 py-1 bg-green-500 text-white rounded-full font-bold">−10%</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="font-semibold">Pro</span>
+                <span className="px-3 py-1 bg-blue-500 text-white rounded-full font-bold">−20%</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="font-semibold">Studio</span>
+                <span className="px-3 py-1 bg-purple-500 text-white rounded-full font-bold">−30%</span>
+              </div>
+            </div>
+            <p className="text-sm text-amber-600 dark:text-amber-400 mt-3">
+              ⏰ Περιορισμένη προσφορά - Η έκπτωση ισχύει για όσο διατηρείς ενεργή τη συνδρομή στο ίδιο πλάνο
+            </p>
+          </div>
+        </div>
+      </div>
       {/* Subscription Plans */}
       <div>
         <div className="text-center mb-8">
@@ -143,20 +199,43 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSuccess }) => {
           {subscriptionProducts.map((product) => {
             const colors = getPlanColors(product.name);
             const isPopular = product.name === 'Pro';
+            const isBestValue = product.name === 'Studio';
+            const discount = betaDiscounts[product.name as keyof typeof betaDiscounts] || 0;
+            const discountedPrice = getDiscountedPrice(product);
             
             return (
               <div
                 key={product.id}
                 className={`relative rounded-2xl border-2 ${colors.border} ${colors.bg} p-8 shadow-lg 
                           hover:shadow-xl transition-all duration-200 ${
-                  isPopular ? 'scale-105 ring-2 ring-blue-500/20' : 'hover:scale-105'
+                  isPopular ? 'scale-105 ring-2 ring-blue-500/20' : 
+                  isBestValue ? 'scale-105 ring-2 ring-purple-500/20' : 'hover:scale-105'
                 }`}
               >
+                {/* Lifetime Discount Badge */}
+                {discount > 0 && (
+                  <div className="absolute -top-3 -right-3">
+                    <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-1 
+                                   rounded-full text-xs font-bold shadow-lg transform rotate-12">
+                      Lifetime Discount
+                    </div>
+                  </div>
+                )}
+
                 {isPopular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                     <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 
                                    rounded-full text-sm font-medium shadow-lg">
-                      Most Popular
+                      Popular
+                    </span>
+                  </div>
+                )}
+
+                {isBestValue && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <span className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 
+                                   rounded-full text-sm font-medium shadow-lg">
+                      Best Value
                     </span>
                   </div>
                 )}
@@ -171,11 +250,40 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSuccess }) => {
                   <p className="text-gray-600 dark:text-gray-400 mb-4">
                     {product.description}
                   </p>
-                  <div className="flex items-baseline justify-center">
-                    <span className="text-4xl font-bold text-gray-900 dark:text-gray-100">
-                      €{product.price.toFixed(2)}
-                    </span>
-                    <span className="text-gray-600 dark:text-gray-400 ml-2">/month</span>
+                  <div className="flex flex-col items-center justify-center">
+                    {discount > 0 ? (
+                      <div className="space-y-2">
+                        <div className="flex items-baseline justify-center space-x-2">
+                          <span className="text-2xl font-bold text-gray-400 dark:text-gray-500 line-through">
+                            €{product.price.toFixed(2)}
+                          </span>
+                          <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full font-bold">
+                            -{discount}%
+                          </span>
+                        </div>
+                        <div className="flex items-baseline justify-center">
+                          <span className="text-4xl font-bold text-gray-900 dark:text-gray-100">
+                            €{discountedPrice.toFixed(2)}
+                          </span>
+                          <span className="text-gray-600 dark:text-gray-400 ml-2">/month</span>
+                        </div>
+                        <div className="flex items-center justify-center space-x-1">
+                          <span className="px-2 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs rounded-full font-bold">
+                            Lifetime
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            έκπτωση
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-baseline justify-center">
+                        <span className="text-4xl font-bold text-gray-900 dark:text-gray-100">
+                          €{product.price.toFixed(2)}
+                        </span>
+                        <span className="text-gray-600 dark:text-gray-400 ml-2">/month</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -191,6 +299,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSuccess }) => {
                 <button
                   onClick={() => handleCheckout(product)}
                   disabled={isLoading === product.priceId}
+                  title={discount > 0 ? "Η έκπτωση ισχύει για όσο διατηρείς ενεργή τη συνδρομή στο ίδιο πλάνο." : undefined}
                   className={`w-full py-3 px-6 rounded-lg font-medium text-white transition-all duration-200 
                             disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2
                             ${colors.button} shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none`}
@@ -201,7 +310,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSuccess }) => {
                       <span>Processing...</span>
                     </>
                   ) : (
-                    <span>Get Started</span>
+                    <span>{discount > 0 ? 'Κλείδωσε Lifetime Έκπτωση' : 'Get Started'}</span>
                   )}
                 </button>
               </div>

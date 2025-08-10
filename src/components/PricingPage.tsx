@@ -40,6 +40,293 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
         {/* Subscription Plans */}
         <SubscriptionPlans />
 
+        {/* Features Comparison Table */}
+        <div className="mt-16 max-w-6xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              Σύγκριση Λειτουργιών
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Δείτε τι περιλαμβάνει κάθε πλάνο και πόσα credits χρειάζεται κάθε λειτουργία
+            </p>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      Λειτουργία
+                    </th>
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      <div className="flex flex-col items-center">
+                        <span>Beta Free</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">100 credits/μήνα</span>
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      <div className="flex flex-col items-center">
+                        <span>Starter</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">75 credits/μήνα</span>
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      <div className="flex flex-col items-center">
+                        <span>Pro</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">200 credits/μήνα</span>
+                        <span className="px-2 py-1 bg-blue-500 text-white text-xs rounded-full mt-1">Popular</span>
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      <div className="flex flex-col items-center">
+                        <span>Studio</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">500 credits/μήνα</span>
+                        <span className="px-2 py-1 bg-purple-500 text-white text-xs rounded-full mt-1">Best Value</span>
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
+                      Face Retouch
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Πρώην CodeFormer</div>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">
+                        2 credits
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">
+                        1 credit
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
+                      Copy AI Look
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Πρώην Copy Look</div>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">
+                        1 credit
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
+                      AI Edit
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Credits ανά εικόνα</div>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">
+                        2 credits
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">
+                        1 credit
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">
+                        1 credit
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">
+                        1 credit
+                      </span>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
+                      AI Mask Edit
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Credits ανά εικόνα</div>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">
+                        2 credits
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">
+                        1 credit
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">
+                        1 credit
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">
+                        1 credit
+                      </span>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
+                      AI Relight
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Credits ανά MegaPixel</div>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">
+                        1 credit/Mp
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">
+                        1 credit/Mp
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">
+                        1 credit/Mp
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">
+                        1 credit/Mp
+                      </span>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
+                      Analyze / Deep Analyze
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Βασική ανάλυση φωτογραφιών</div>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
+                      Duplicates
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Εύρεση διπλότυπων</div>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
+                      AI Labels
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Έξυπνη κατηγοριοποίηση</div>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
+                      Unlimited AI Culling
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Απεριόριστη επιλογή φωτογραφιών</div>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
+                        FREE
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
         {/* Features Comparison */}
         <div className="mt-16 max-w-6xl mx-auto">
           <div className="text-center mb-8">

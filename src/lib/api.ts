@@ -1147,91 +1147,12 @@ export const batchAutofix = async (files: File[]): Promise<BatchResult[]> => {
 };
 
 // AI Edit & Relighting endpoints
-export const falEdit = async (file: File, prompt: string): Promise<{ result_url: string; full_response: any }> => {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('prompt', prompt);
-
-  try {
-    const response = await fetch(`${API_URL}/fal-edit`, {
-      method: 'POST',
-      body: formData,
-      mode: 'cors',
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Failed to process AI edit');
-    }
-
-    const result = await response.json();
-    if (!result.result_url) {
-      throw new Error('Invalid response: missing result_url');
-    }
-    
-    return result;
-  } catch (error: any) {
-    console.error('FAL Edit error:', error);
-    throw error instanceof Error ? error : new Error(error.toString());
-  }
-};
-
-export const falRelight = async (file: File, prompt: string): Promise<{ result_url: string; full_response: any }> => {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('prompt', prompt);
-
-  try {
-    const response = await fetch(`${API_URL}/fal-relight`, {
-      method: 'POST',
-      body: formData,
-      mode: 'cors',
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Failed to process AI relight');
-    }
-
-    const result = await response.json();
-    if (!result.result_url) {
-      throw new Error('Invalid response: missing result_url');
-    }
-    
-    return result;
-  } catch (error: any) {
-    console.error('FAL Relight error:', error);
-    throw error instanceof Error ? error : new Error(error.toString());
-  }
-};
-
-// LUT and Apply endpoint for Copy Look Mode
-export const lutAndApply = async (
-  reference: File | string,
-  target: File | string,
-  strength: number = 0.5
-): Promise<{
-  lut_cube_file: string;
-  result_image_file: string;
-  result_image_base64: string;
-  strength_used: number;
-  info: string;
-}> => {
-  console.log('🎨 lutAndApply called with:', {
-    reference: typeof reference === 'string' ? reference : `${reference.name} (${reference.type}, ${reference.size} bytes)`,
-    target: typeof target === 'string' ? target : `${target.name} (${target.type}, ${target.size} bytes)`,
-    strength,
-    apiUrl: API_URL
-  });
-
-  // Μετατροπή URL -> File (αν έρθει url)
-  let referenceFile: File = typeof reference === 'string'
   let refFile0: File;
   let tgtFile0: File;
   
   try {
     refFile0 = typeof reference === 'string'
-      ? await urlToFile(reference)
+      ? await fileFromUrl(reference)
       : reference;
     console.log('✅ Reference file prepared:', { name: refFile0.name, type: refFile0.type, size: refFile0.size });
   } catch (error) {
@@ -1241,7 +1162,7 @@ export const lutAndApply = async (
   
   try {
     tgtFile0 = typeof target === 'string'
-      ? await urlToFile(target)
+      ? await fileFromUrl(target)
       : target;
     console.log('✅ Target file prepared:', { name: tgtFile0.name, type: tgtFile0.type, size: tgtFile0.size });
   } catch (error) {
@@ -1249,49 +1170,35 @@ export const lutAndApply = async (
     throw new Error(`Failed to prepare target file: ${error}`);
   }
 
-  // Βεβαιώσου ότι έχουν σωστό MIME & "καθαρά" ονόματα
-  referenceFile = await ensureFileWithType(referenceFile);
-  targetFile    = await ensureFileWithType(targetFile);
-
+  // Ensure proper MIME types
+  const referenceFile = await ensureFileWithType(refFile0);
+  const targetFile = await ensureFileWithType(tgtFile0);
   
   console.log('🔧 Files after MIME type correction:', {
-    reference: { name: refFile.name, type: refFile.type, size: refFile.size },
-    target: { name: tgtFile.name, type: tgtFile.type, size: tgtFile.size }
+    reference: { name: referenceFile.name, type: referenceFile.type, size: referenceFile.size },
+    target: { name: targetFile.name, type: targetFile.type, size: targetFile.size }
   });
-  // ΜΗ βάλεις το ίδιο File δύο φορές στο FormData — κάνε clone
-  const applyOnFile = await cloneFile(targetFile);
-  let applyOnFile: File;
-  try {
-    const tgtBuffer = await tgtFile.arrayBuffer();
-    applyOnFile = new File([tgtBuffer], tgtFile.name, { type: tgtFile.type });
-    console.log('✅ Apply-on file cloned:', { name: applyOnFile.name, type: applyOnFile.type, size: applyOnFile.size });
-  } catch (error) {
-    console.error('❌ Failed to clone target file:', error);
-    throw new Error(`Failed to clone target file: ${error}`);
-  }
-  formData.append('reference', referenceFile, cleanFilename(referenceFile.name));
-  formData.append('source',    targetFile,    cleanFilename(targetFile.name));
-  formData.append('apply_on',  applyOnFile,   cleanFilename(applyOnFile.name));
-  formData.append('strength',  strength.toString());
 
-  console.log('🎨 LUT and Apply with proper MIME types:', {
-    reference: `${referenceFile.name} (${referenceFile.type}, ${referenceFile.size} bytes)`,
-    source: `${targetFile.name} (${targetFile.type}, ${targetFile.size} bytes)`,
-    apply_on: `${applyOnFile.name} (${applyOnFile.type}, ${applyOnFile.size} bytes)`,
-    strength
-  
+  // Clone target file for apply_on to avoid stream reuse
+  const applyOnFile = await cloneFile(targetFile);
+  console.log('✅ Apply-on file cloned:', { name: applyOnFile.name, type: applyOnFile.type, size: applyOnFile.size });
+
+  const fd = new FormData();
+  fd.append('reference', referenceFile, cleanFilename(referenceFile.name));
+  fd.append('source', targetFile, cleanFilename(targetFile.name));
+  fd.append('apply_on', applyOnFile, cleanFilename(applyOnFile.name));
+  fd.append('strength', strength.toString());
+
   console.log('📤 FormData prepared with files:', {
-    reference: { name: refName, type: refFile.type, size: refFile.size },
-    source: { name: tgtName, type: tgtFile.type, size: tgtFile.size },
-    apply_on: { name: tgtName, type: applyOnFile.type, size: applyOnFile.size },
+    reference: { name: referenceFile.name, type: referenceFile.type, size: referenceFile.size },
+    source: { name: targetFile.name, type: targetFile.type, size: targetFile.size },
+    apply_on: { name: applyOnFile.name, type: applyOnFile.type, size: applyOnFile.size },
     strength: strength,
     endpoint: `${API_URL}/lut_and_apply/`
   });
-  });
-    body: formData,
+
   let resp: Response;
   try {
-    // Never set Content-Type manually for multipart; let the browser set the boundary.
     resp = await fetch(`${API_URL}/lut_and_apply/`, {
       method: 'POST',
       body: fd,
@@ -1320,7 +1227,7 @@ export const lutAndApply = async (
     }
   }
 
-  if (!response.ok) {
+  if (!resp.ok) {
     let errorText = '';
     try {
       errorText = await resp.text();
@@ -1341,7 +1248,7 @@ export const lutAndApply = async (
     throw new Error(`Invalid JSON response from server: ${jsonError}`);
   }
 
-  // Αν ο backend δεν επιστρέφει base64, κατέβασέ το και κάνε convert
+  // If backend didn't include base64, try to fetch the produced image and embed
   if (!result.result_image_base64 && result.result_image_file) {
     console.log('🔄 Fetching result image as base64...');
     try {
@@ -1356,13 +1263,12 @@ export const lutAndApply = async (
           r.onerror = reject;
           r.readAsDataURL(blob);
         });
-      }
         console.log('✅ Result image converted to base64');
-    } catch { /* ignore */ }
+      }
     } catch (base64Error) {
       console.warn('⚠️ Failed to fetch result image as base64:', base64Error);
     }
-
+  }
   
   return result;
 };

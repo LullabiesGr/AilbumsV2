@@ -274,9 +274,9 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
                   <div className="space-y-3">
                     {userPlan.current_period_end && (
                       <div className="flex justify-between">
-                        <span className={`text-sm ${getPlanColors(userPlan.plan_name).accent}`}>Renews:</span>
+                        <span className={`text-sm ${getPlanColors(userPlan.plan_name).accent}`}>Next Billing:</span>
                         <span className={`font-medium ${getPlanColors(userPlan.plan_name).text}`}>
-                          {formatDate(userPlan.current_period_end)}
+                          {formatDate(calculateNextRenewal(userPlan.current_period_end))}
                         </span>
                       </div>
                     )}
@@ -324,13 +324,6 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
                         <span className="text-gray-600 dark:text-gray-400">Plan Name:</span>
                         <span className="font-medium text-gray-900 dark:text-gray-100">
                           {userPlan.plan_name}
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Price ID:</span>
-                        <span className="font-mono text-sm text-gray-700 dark:text-gray-300">
-                          {userPlan.price_id || 'N/A'}
                         </span>
                       </div>
                       

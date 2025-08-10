@@ -14,7 +14,7 @@ interface CopyLookModeProps {
    ========================= */
 const API_URL = import.meta.env?.VITE_API_URL || 'https://b455dac5621c.ngrok-free.app';
 
-cconst cleanName = (n: string) =>
+const cleanName = (n: string) =>
   n.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/_{2,}/g, "_").replace(/^_+|_+$/g, "");
 
 const guessByExt = (name: string) => {

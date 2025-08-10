@@ -50,11 +50,37 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
     setIsProcessing(true);
     try {
       const targetPhotoObjects = photos.filter(p => targetPhotos.has(p.id));
-      const targetFiles = targetPhotoObjects.map(p => p.file);
       
       console.log('Starting color transfer:', {
         reference: referencePhoto.filename,
         targets: targetPhotoObjects.map(p => p.filename)
+      });
+
+      // Validate that we have proper File objects
+      if (!(referencePhoto.file instanceof File)) {
+        throw new Error('Reference photo file is not a valid File object');
+      }
+      
+      const targetFiles = targetPhotoObjects.map(p => {
+        if (!(p.file instanceof File)) {
+          throw new Error(`Target photo ${p.filename} file is not a valid File object`);
+        }
+        return p.file;
+      });
+      
+      console.log('File validation passed:', {
+        referenceFile: {
+          name: referencePhoto.file.name,
+          size: referencePhoto.file.size,
+          type: referencePhoto.file.type,
+          isFile: referencePhoto.file instanceof File
+        },
+        targetFiles: targetFiles.map(f => ({
+          name: f.name,
+          size: f.size,
+          type: f.type,
+          isFile: f instanceof File
+        }))
       });
 
       const response = await colorTransfer(referencePhoto.file, targetFiles);

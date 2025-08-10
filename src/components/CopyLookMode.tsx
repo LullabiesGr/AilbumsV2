@@ -117,8 +117,6 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
       const albumUrl = (p: Photo) =>
         `${API_URL}/album-photo?album_dir=${encodeURIComponent(p.album || '')}&filename=${encodeURIComponent(p.filename)}`;
 
-      // fix once for reference
-    
 
   const handleDownload = (result: ColorTransferResult) => {
     if (!result) return;

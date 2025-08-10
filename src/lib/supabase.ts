@@ -21,6 +21,212 @@ export interface UserCredits {
   updated_at: string;
 }
 
+// Stripe Customer interface
+export interface StripeCustomer {
+  id: string;
+  user_id: string;
+  customer_id: string; // Stripe customer ID (cus_...)
+  created_at: string;
+  updated_at: string;
+}
+
+// Stripe Subscription interface
+export interface StripeSubscription {
+  id: string;
+  customer_id: string; // Links to stripe_customers.customer_id
+  subscription_id: string; // Stripe subscription ID
+  price_id: string; // Stripe price ID
+  status: string; // active, canceled, past_due, etc.
+  current_period_start: string;
+  current_period_end: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// User Plan interface
+export interface UserPlan {
+  plan_name: string;
+  price_id: string;
+  status: string;
+  monthly_credits: number;
+  current_period_end: string;
+  is_active: boolean;
+}
+
+// Plan configurations
+const PLAN_CONFIGS = {
+  'price_1RFMJNCtJc6njTYQJUh6T8bQ': {
+    name: 'Starter',
+    monthly_credits: 100,
+    features: ['Basic AI Analysis', 'Face Detection', 'Quality Scoring']
+  },
+  'price_1RFMKaCtJc6njTYQvFfgEt3N': {
+    name: 'Pro',
+    monthly_credits: 500,
+    features: ['Deep AI Analysis', 'Event-Specific Prompts', 'Advanced Features', 'Priority Support']
+  },
+  'price_1RFMLjCtJc6njTYQdhReQy8b': {
+    name: 'Studio',
+    monthly_credits: 2000,
+    features: ['Unlimited Analysis', 'All Pro Features', 'API Access', 'White-label Options']
+  },
+  'price_1REGOlCtJc6njTYQF3WdxPX6': {
+    name: 'Extra Credits',
+    monthly_credits: 0, // One-time purchase
+    features: ['Additional Credits', 'No Expiration']
+  }
+};
+
+// Get user subscription plan
+export const getUserPlan = async (userEmail: string): Promise<UserPlan | null> => {
+  try {
+    console.log('🔍 Getting subscription plan for user:', userEmail);
+    
+    // First, get the user's ID from user_profiles table using email
+    const { data: userProfile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('user_id')
+      .eq('email', userEmail)
+      .single();
+    
+    if (profileError) {
+      console.error('❌ Failed to get user profile:', profileError);
+      if (profileError.code === 'PGRST116') {
+        console.warn('⚠️ User profile not found for email:', userEmail);
+        return null;
+      }
+      throw new Error('Failed to find user profile');
+    }
+    
+    if (!userProfile) {
+      console.warn('⚠️ User profile not found for email:', userEmail);
+      return null;
+    }
+    
+    console.log('✅ Found user_id:', userProfile.user_id, 'for email:', userEmail);
+    
+    // Get Stripe customer ID
+    const { data: stripeCustomer, error: customerError } = await supabase
+      .from('stripe_customers')
+      .select('customer_id')
+      .eq('user_id', userProfile.user_id)
+      .single();
+    
+    if (customerError) {
+      console.error('❌ Failed to get stripe customer:', customerError);
+      if (customerError.code === 'PGRST116') {
+        console.warn('⚠️ No Stripe customer found for user_id:', userProfile.user_id);
+        return {
+          plan_name: 'Free',
+          price_id: '',
+          status: 'inactive',
+          monthly_credits: 100, // Default free credits
+          current_period_end: '',
+          is_active: false
+        };
+      }
+      throw new Error('Failed to get Stripe customer');
+    }
+    
+    if (!stripeCustomer) {
+      console.warn('⚠️ No Stripe customer found for user_id:', userProfile.user_id);
+      return {
+        plan_name: 'Free',
+        price_id: '',
+        status: 'inactive',
+        monthly_credits: 100,
+        current_period_end: '',
+        is_active: false
+      };
+    }
+    
+    console.log('✅ Found Stripe customer_id:', stripeCustomer.customer_id);
+    
+    // Get active subscription
+    const { data: subscription, error: subscriptionError } = await supabase
+      .from('stripe_subscriptions')
+      .select('*')
+      .eq('customer_id', stripeCustomer.customer_id)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (subscriptionError) {
+      console.error('❌ Failed to get subscription:', subscriptionError);
+      if (subscriptionError.code === 'PGRST116') {
+        console.warn('⚠️ No active subscription found for customer:', stripeCustomer.customer_id);
+        return {
+          plan_name: 'Free',
+          price_id: '',
+          status: 'inactive',
+          monthly_credits: 100,
+          current_period_end: '',
+          is_active: false
+        };
+      }
+      throw new Error('Failed to get subscription');
+    }
+    
+    if (!subscription) {
+      console.warn('⚠️ No active subscription found for customer:', stripeCustomer.customer_id);
+      return {
+        plan_name: 'Free',
+        price_id: '',
+        status: 'inactive',
+        monthly_credits: 100,
+        current_period_end: '',
+        is_active: false
+      };
+    }
+    
+    console.log('✅ Found active subscription:', subscription);
+    
+    // Get plan configuration
+    const planConfig = PLAN_CONFIGS[subscription.price_id as keyof typeof PLAN_CONFIGS];
+    
+    if (!planConfig) {
+      console.warn('⚠️ Unknown price_id:', subscription.price_id);
+      return {
+        plan_name: 'Unknown Plan',
+        price_id: subscription.price_id,
+        status: subscription.status,
+        monthly_credits: 100,
+        current_period_end: subscription.current_period_end,
+        is_active: subscription.status === 'active'
+      };
+    }
+    
+    const userPlan: UserPlan = {
+      plan_name: planConfig.name,
+      price_id: subscription.price_id,
+      status: subscription.status,
+      monthly_credits: planConfig.monthly_credits,
+      current_period_end: subscription.current_period_end,
+      is_active: subscription.status === 'active'
+    };
+    
+    console.log('✅ User plan loaded:', userPlan);
+    return userPlan;
+    
+  } catch (error: any) {
+    console.error('❌ getUserPlan error:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};
+
+// Get plan features by price_id
+export const getPlanFeatures = (priceId: string): string[] => {
+  const planConfig = PLAN_CONFIGS[priceId as keyof typeof PLAN_CONFIGS];
+  return planConfig?.features || [];
+};
+
+// Get plan name by price_id
+export const getPlanName = (priceId: string): string => {
+  const planConfig = PLAN_CONFIGS[priceId as keyof typeof PLAN_CONFIGS];
+  return planConfig?.name || 'Unknown Plan';
+};
+
 // Get user credits by email (find UID first, then get credits)
 export const getUserCredits = async (userEmail: string): Promise<UserCredits | null> => {
   try {

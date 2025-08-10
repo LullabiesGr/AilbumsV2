@@ -3,6 +3,56 @@ import { findDuplicates } from './similarity';
 import { promisePoolWithProgress } from './promisePool'; // Keep this import
 import { DuplicateCluster } from '../types';
 
+// --- Upload helpers for proper MIME type handling ---
+const inferMimeFromName = (filename: string): string => {
+  const ext = (filename.split('.').pop() || '').toLowerCase();
+  switch (ext) {
+    case 'jpg':
+    case 'jpeg': return 'image/jpeg';
+    case 'png':  return 'image/png';
+    case 'tif':
+    case 'tiff': return 'image/tiff';
+    case 'webp': return 'image/webp';
+    default:     return 'image/jpeg';
+  }
+};
+
+const cleanFilename = (filename: string): string =>
+  filename.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_{2,}/g, '_').replace(/^_+|_+$/g, '');
+
+export const ensureFileWithType = async (file: File, preferName?: string): Promise<File> => {
+  const name = cleanFilename(preferName || file.name || 'image.jpg');
+  const type = file.type && file.type !== 'application/octet-stream'
+    ? file.type
+    : inferMimeFromName(name);
+
+  // Αν ήδη είναι σωστός ο τύπος, επέστρεψέ το όπως είναι
+  if (file.type === type && cleanFilename(file.name) === name) return file;
+
+  // Αλλιώς αναδημιούργησε νέο File με σωστό MIME
+  const buf = await file.arrayBuffer();
+  return new File([buf], name, { type });
+};
+
+export const cloneFile = async (file: File): Promise<File> => {
+  const name = cleanFilename(file.name || 'image.jpg');
+  const type = file.type || inferMimeFromName(name);
+  const buf = await file.arrayBuffer();
+  return new File([buf], name, { type });
+};
+
+export const fileFromUrl = async (url: string, fallbackName = 'image.jpg'): Promise<File> => {
+  const res = await fetch(url, { headers: { 'ngrok-skip-browser-warning': 'true' } });
+  if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
+  const blob = await res.blob();
+  const name = cleanFilename(fallbackName);
+  const type = blob.type && blob.type !== 'application/octet-stream'
+    ? blob.type
+    : inferMimeFromName(name);
+  // τυλίγουμε σε File για να περάσει σωστό Content-Type στο multipart
+  return new File([blob], name, { type });
+};
+
 // API URL configuration for different environments
 const API_URL =
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
@@ -1158,126 +1208,77 @@ export const falRelight = async (file: File, prompt: string): Promise<{ result_u
 
 // LUT and Apply endpoint for Copy Look Mode
 export const lutAndApply = async (
-  referenceFile: File, 
-  targetFile: File, 
+  reference: File | string,
+  target: File | string,
   strength: number = 0.5
-): Promise<{ lut_cube_file: string; result_image_file: string; result_image_base64: string; strength_used: number; info: string }> => {
-  console.log('🎨 Applying LUT and color transfer:', {
-    reference: referenceFile.name,
-    target: targetFile.name,
+): Promise<{
+  lut_cube_file: string;
+  result_image_file: string;
+  result_image_base64: string;
+  strength_used: number;
+  info: string;
+}> => {
+  // Μετατροπή URL -> File (αν έρθει url)
+  let referenceFile: File = typeof reference === 'string'
+    ? await fileFromUrl(reference, reference.split('/').pop() || 'reference.jpg')
+    : reference;
+
+  let targetFile: File = typeof target === 'string'
+    ? await fileFromUrl(target, target.split('/').pop() || 'target.jpg')
+    : target;
+
+  // Βεβαιώσου ότι έχουν σωστό MIME & "καθαρά" ονόματα
+  referenceFile = await ensureFileWithType(referenceFile);
+  targetFile    = await ensureFileWithType(targetFile);
+
+  // ΜΗ βάλεις το ίδιο File δύο φορές στο FormData — κάνε clone
+  const applyOnFile = await cloneFile(targetFile);
+
+  const formData = new FormData();
+  formData.append('reference', referenceFile, cleanFilename(referenceFile.name));
+  formData.append('source',    targetFile,    cleanFilename(targetFile.name));
+  formData.append('apply_on',  applyOnFile,   cleanFilename(applyOnFile.name));
+  formData.append('strength',  strength.toString());
+
+  console.log('🎨 LUT and Apply with proper MIME types:', {
+    reference: `${referenceFile.name} (${referenceFile.type}, ${referenceFile.size} bytes)`,
+    source: `${targetFile.name} (${targetFile.type}, ${targetFile.size} bytes)`,
+    apply_on: `${applyOnFile.name} (${applyOnFile.type}, ${applyOnFile.size} bytes)`,
     strength
   });
-  
-  const formData = new FormData();
-  
-  // Add files as binary data (File objects)
-  formData.append('reference', referenceFile, referenceFile.name);
-  formData.append('source', targetFile, targetFile.name);
-  formData.append('apply_on', targetFile, targetFile.name);
-  formData.append('strength', strength.toString());
-  
-  console.log('📤 FormData contents:', {
-    reference: `${referenceFile.name} (${referenceFile.size} bytes)`,
-    source: `${targetFile.name} (${targetFile.size} bytes)`,
-    apply_on: `${targetFile.name} (${targetFile.size} bytes)`,
-    strength: strength.toString(),
-    formDataEntries: Array.from(formData.entries()).map(([key, value]) => ({
-      key,
-      type: value instanceof File ? 'File' : typeof value,
-      size: value instanceof File ? value.size : 'N/A'
-    }))
+
+  const response = await fetch(`${API_URL}/lut_and_apply/`, {
+    method: 'POST',
+    body: formData,
+    // ΜΗΝ ορίσεις Content-Type — το βάζει μόνος του ο browser με boundary
+    headers: { 'ngrok-skip-browser-warning': 'true' },
+    mode: 'cors',
   });
 
-  try {
-    const response = await fetch(`${API_URL}/lut_and_apply/`, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'ngrok-skip-browser-warning': 'true'
-        // Don't set Content-Type - let browser set it automatically for multipart/form-data
-      },
-      mode: 'cors',
-    });
-
-    console.log('📥 LUT and Apply response:', {
-      status: response.status,
-      statusText: response.statusText,
-      headers: Object.fromEntries(response.headers.entries())
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('LUT and Apply API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText
-      });
-      throw new Error(`LUT and Apply failed: ${response.status} ${errorText || response.statusText}`);
-    }
-
-    const result = await response.json();
-    console.log('📄 LUT and Apply result:', result);
-    
-    // If backend returns file paths, we need to fetch the actual image data
-    if (result.result_image_file && !result.result_image_base64) {
-      try {
-        // Fetch the result image and convert to base64
-        const imageResponse = await fetch(`${API_URL}/${result.result_image_file}`, {
-          headers: {
-            'ngrok-skip-browser-warning': 'true'
-          }
-        });
-        
-        if (imageResponse.ok) {
-          const imageBlob = await imageResponse.blob();
-          const base64 = await blobToBase64(imageBlob);
-          result.result_image_base64 = base64.split(',')[1]; // Remove data:image/jpeg;base64, prefix
-          console.log('✅ Converted result image to base64:', {
-            originalPath: result.result_image_file,
-            base64Length: result.result_image_base64.length
-          });
-        }
-      } catch (error) {
-        console.warn('Failed to fetch result image:', error);
-      }
-    }
-    
-    console.log('✅ LUT and Apply successful:', result);
-    return result;
-  } catch (error: any) {
-    console.error('❌ LUT and Apply failed:', error);
-    throw error instanceof Error ? error : new Error(error.toString());
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`LUT and Apply failed: ${response.status} ${errorText || response.statusText}`);
   }
-};
 
-// Helper function to convert blob to base64
-const blobToBase64 = (blob: Blob): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-};
+  const result = await response.json();
 
-export const colorTransfer = async (referenceFile: File, targetFiles: File[]): Promise<{ results: ColorTransferResult[] }> => {
-  // Use the new /lut_and_apply/ endpoint
-  const results: ColorTransferResult[] = [];
-  
-  for (const targetFile of targetFiles) {
+  // Αν ο backend δεν επιστρέφει base64, κατέβασέ το και κάνε convert
+  if (!result.result_image_base64 && result.result_image_file) {
     try {
-      const result = await lutAndApply(referenceFile, targetFile, 0.5);
-      
-      // Convert the backend response to match the expected format
-      results.push({
-        filename: targetFile.name,
-        image_base64: result.result_image_base64 // Assuming backend returns base64
+      const imgRes = await fetch(`${API_URL}/${result.result_image_file}`, {
+        headers: { 'ngrok-skip-browser-warning': 'true' }
       });
-    } catch (error) {
-      console.error(`Failed to apply LUT to ${targetFile.name}:`, error);
-      throw error;
-    }
+      if (imgRes.ok) {
+        const blob = await imgRes.blob();
+        result.result_image_base64 = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve((r.result as string).split(',')[1]);
+          r.onerror = reject;
+          r.readAsDataURL(blob);
+        });
+      }
+    } catch { /* ignore */ }
   }
-  
-  return { results };
-}
+
+  return result;
+};

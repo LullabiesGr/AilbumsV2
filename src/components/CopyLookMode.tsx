@@ -50,14 +50,20 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
     setIsProcessing(true);
     try {
       const targetPhotoObjects = photos.filter(p => targetPhotos.has(p.id));
-      const targetFiles = targetPhotoObjects.map(p => p.file);
-      
-      console.log('Starting color transfer:', {
-        reference: referencePhoto.filename,
-        targets: targetPhotoObjects.map(p => p.filename)
-      });
 
-      const response = await colorTransfer(referencePhoto.file, targetFiles);
+// fallback: αν δεν υπάρχει File, στείλε το URL
+const referenceInput = (referencePhoto.file ?? referencePhoto.url) as File | string;
+const targetInputs = targetPhotoObjects.map(p => (p.file ?? p.url) as File | string);
+
+console.log('Starting color transfer:', {
+  reference: referencePhoto.filename,
+  targets: targetPhotoObjects.map(p => p.filename),
+  usingFileForReference: !!referencePhoto.file,
+  targetsFileCount: targetInputs.filter(t => t instanceof File).length,
+});
+
+const response = await colorTransfer(referenceInput, targetInputs);
+
       
       // Handle the backend response format: { results: [...] }
       const transferResults = response.results || response;

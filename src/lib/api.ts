@@ -1189,19 +1189,6 @@ export const lutAndApply = async (
   });
 
   try {
-    // First try to test if the endpoint is reachable
-    const healthCheck = await fetch(`${API_URL}/health`, {
-      method: 'GET',
-      headers: {
-        'ngrok-skip-browser-warning': 'true'
-      },
-      mode: 'cors',
-    }).catch(() => null);
-    
-    if (!healthCheck || !healthCheck.ok) {
-      throw new Error('Backend server is not reachable. Please check if the server is running.');
-    }
-    
     const response = await fetch(`${API_URL}/lut_and_apply/`, {
       method: 'POST',
       body: formData,
@@ -1215,46 +1202,21 @@ export const lutAndApply = async (
     console.log('📥 LUT and Apply response:', {
       status: response.status,
       statusText: response.statusText,
-      contentType: response.headers.get('content-type'),
       headers: Object.fromEntries(response.headers.entries())
     });
 
     if (!response.ok) {
-      const contentType = response.headers.get('content-type') || '';
-      let errorText = '';
-      
-      try {
-        if (contentType.includes('application/json')) {
-          const errorData = await response.json();
-          errorText = errorData.error || errorData.message || JSON.stringify(errorData);
-        } else {
-          errorText = await response.text();
-        }
-      } catch (parseError) {
-        errorText = `Failed to parse error response (${contentType})`;
-      }
-      
+      const errorText = await response.text();
       console.error('LUT and Apply API error:', {
         status: response.status,
         statusText: response.statusText,
-        contentType,
         error: errorText
       });
-      
-      // Provide more specific error messages
-      if (response.status === 500) {
-        throw new Error(`Server error: The backend encountered an internal error. Please try again later.`);
-      } else if (response.status === 404) {
-        throw new Error(`Endpoint not found: The /lut_and_apply/ endpoint is not available on the server.`);
-      } else if (response.status === 422) {
-        throw new Error(`Invalid request: ${errorText || 'Please check your file formats and parameters.'}`);
-      } else {
-        throw new Error(`LUT and Apply failed (${response.status}): ${errorText || response.statusText}`);
-      }
+      throw new Error(`LUT and Apply failed: ${response.status} ${errorText || response.statusText}`);
     }
 
-    const contentType = response.headers.get('content-type') || '';
-    console.log('📄 LUT and Apply response content-type:', contentType);
+    const result = await response.json();
+    console.log('📄 LUT and Apply result:', result);
     
     // If backend returns file paths, we need to fetch the actual image data
     if (result.result_image_file && !result.result_image_base64) {
@@ -1304,35 +1266,16 @@ export const colorTransfer = async (referenceFile: File, targetFiles: File[]): P
   
   for (const targetFile of targetFiles) {
     try {
-      if (contentType.includes('application/json')) {
-        result = await response.json();
-      } else {
-        const responseText = await response.text();
-        console.log('📄 Non-JSON response text:', responseText.substring(0, 500));
-        
-        // Try to parse as JSON anyway (some servers return JSON with wrong content-type)
-        try {
-          result = JSON.parse(responseText);
-        } catch {
-          throw new Error(`Server returned ${contentType} instead of JSON. Response: ${responseText.substring(0, 200)}`);
-        }
-      }
+      const result = await lutAndApply(referenceFile, targetFile, 0.5);
       
       // Convert the backend response to match the expected format
       results.push({
         filename: targetFile.name,
         image_base64: result.result_image_base64 // Assuming backend returns base64
       });
-      console.error('❌ Failed to parse LUT and Apply response:', parseError);
-      throw new Error(`Invalid response format from server. Expected JSON but got ${contentType}.`);
-    
-    // Provide user-friendly error messages
-    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-      throw new Error('Network error: Unable to connect to the server. Please check your internet connection.');
-    } else if (error.message.includes('not reachable')) {
-      throw new Error('Backend server is not available. Please try again later or contact support.');
-    }
-    
+    } catch (error) {
+      console.error(`Failed to apply LUT to ${targetFile.name}:`, error);
+      throw error;
     }
   }
   

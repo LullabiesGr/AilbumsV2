@@ -354,11 +354,11 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
                         </span>
                       </div>
                       
-                      {userPlan.current_period_end && (
+                      {userPlan.is_active && (
                         <div className="flex justify-between">
                           <span className="text-gray-600 dark:text-gray-400">Next Billing:</span>
                           <span className="font-medium text-gray-900 dark:text-gray-100">
-                            {formatDate(userPlan.current_period_end)}
+                            {formatDate(calculateNextRenewal(userPlan.current_period_end))}
                           </span>
                         </div>
                       )}
@@ -386,14 +386,14 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
                     </div>
                   )}
 
-                  {userPlan.is_active && userPlan.current_period_end && (
+                  {userPlan.is_active && (
                     <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
                       <div className="flex items-center space-x-2 mb-2">
                         <Check className="h-5 w-5 text-green-500" />
                         <h5 className="font-medium text-green-800 dark:text-green-200">Active Subscription</h5>
                       </div>
                       <p className="text-sm text-green-700 dark:text-green-300">
-                        Your subscription is active and will renew on {formatDate(userPlan.current_period_end)}.
+                        Your subscription is active and will renew on {formatDate(calculateNextRenewal(userPlan.current_period_end))}.
                         You get {userPlan.monthly_credits.toLocaleString()} credits every month.
                       </p>
                     </div>

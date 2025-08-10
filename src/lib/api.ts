@@ -41,6 +41,9 @@ function toHex(buf: ArrayBuffer, n = 8) {
   return [...v].map(x => x.toString(16).padStart(2, '0')).join(' ');
 }
 
+// Export helper functions for use in other components
+export { fileFromUrl, toHex };
+
 // Upload photo for LUT previews
 export const uploadPhotoForLUTPreviews = async (
   file: File, 

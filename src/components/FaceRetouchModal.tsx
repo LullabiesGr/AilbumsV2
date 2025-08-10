@@ -2,40 +2,10 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Sparkles, Eye, EyeOff, Download, Save, RotateCcw, Settings, Users, Check, Minimize2, Maximize2 } from 'lucide-react';
 import { Photo, Face } from '../types';
 import { useToast } from '../context/ToastContext';
+import { fileFromUrl, toHex } from '../lib/api';
 
 const ENHANCE_URL = 'https://b455dac5621c.ngrok-free.app/enhance';
 
-
-async function fileFromUrl(url: string, filename: string): Promise<File> {
-  const r = await fetch(url, {
-    mode: 'cors',
-    cache: 'no-store',
-    headers: {
-      'ngrok-skip-browser-warning': 'true',
-      'Accept': 'image/*'
-    }
-  });
-
-  if (!r.ok) throw new Error(`album-photo ${r.status}`);
-  const ct = (r.headers.get('content-type') || '').toLowerCase();
-
-  // Αν επιστρέφει HTML (ngrok warning), σταμάτα εδώ
-  if (!ct.startsWith('image/')) {
-    const snippet = await r.text();
-    console.error('album-photo returned non-image:', ct, snippet.slice(0, 200));
-    throw new Error('album-photo returned HTML instead of image (ngrok warning)');
-  }
-
-  const blob = await r.blob();
-  if (!blob || blob.size < 2048) throw new Error('image too small (looks corrupted)');
-
-  return new File([blob], filename || 'image.jpg', { type: ct });
-}
-
-function toHex(buf: ArrayBuffer, n = 8) {
-  const v = new Uint8Array(buf.slice(0, n));
-  return [...v].map(x => x.toString(16).padStart(2, '0')).join(' ');
-}
 
 interface FaceRetouchModalProps {
   photo: Photo;

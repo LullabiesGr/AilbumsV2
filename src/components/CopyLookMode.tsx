@@ -8,7 +8,9 @@ import { ImageComparison, ImageComparisonImage, ImageComparisonSlider } from './
 /* =========================
    Config & Helper utilities
    ========================= */
-const API_URL = (import.meta as any)?.env?.VITE_API_URL || 'https://b455dac5621c.ngrok-free.app';
+const API_URL: string =
+  (import.meta as any)?.env?.VITE_API_URL ||
+  'https://b455dac5621c.ngrok-free.app';
 
 const cleanName = (n: string) =>
   n.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_{2,}/g, '_').replace(/^_+|_+$/g, '');
@@ -21,32 +23,56 @@ const guessByExt = (name: string) => {
   return 'image/jpeg';
 };
 
-async function urlToFile(url: string, filename: string, fallbackType = 'image/jpeg'): Promise<File> {
-  const isHttp = /^https?:/i.test(url);
-  const res = await fetch(url, isHttp ? { mode: 'cors' } : undefined);
-  if (!res.ok) throw new Error(`fetch failed: ${res.status} ${res.statusText}`);
-  const blob = await res.blob();
-  const type =
-    blob.type && blob.type.startsWith('image/') && blob.type !== 'application/octet-stream'
-      ? blob.type
-      : fallbackType;
-  return new File([blob], cleanName(filename || 'image.jpg'), { type });
-}
-
 const albumUrl = (album?: string, filename?: string) =>
   `${API_URL}/album-photo?album_dir=${encodeURIComponent(album || '')}&filename=${encodeURIComponent(filename || '')}`;
 
-/** Προσπάθησε πρώτα από photo.url (blob:/data:/http). Αν δεν υπάρχει/αποτύχει, πέφτει στο /album-photo. */
+/** Fetch -> Blob -> File, ΜΟΝΟ αν είναι image/*. Διαφορετικά πετάει error. */
+async function urlToFile(url: string, filename: string): Promise<File> {
+  const needsNgrokHeader = url.startsWith(API_URL);
+  const res = await fetch(url, {
+    mode: 'cors',
+    headers: needsNgrokHeader ? { 'ngrok-skip-browser-warning': 'true' } : undefined,
+  });
+  if (!res.ok) throw new Error(`fetch failed: ${res.status} ${res.statusText}`);
+
+  const ct = (res.headers.get('content-type') || '').toLowerCase();
+  const blob = await res.blob();
+
+  // ΠΡΑΓΜΑΤΙΚΟΣ έλεγχος ότι είναι εικόνα
+  const isImage =
+    ct.startsWith('image/') ||
+    (blob.type && blob.type.startsWith('image/'));
+
+  if (!isImage) {
+    // Μην παριστάνουμε εικόνα με "fallback" type. Αυτό ήταν το πρόβλημα.
+    throw new Error(`Not an image response (content-type: ${ct || blob.type || 'unknown'})`);
+  }
+
+  const type = blob.type || guessByExt(filename);
+  return new File([blob], cleanName(filename || 'image.jpg'), { type });
+}
+
+/** Παίρνει ορθό File από το Photo:
+ *  1) αν έχεις p.file με bytes -> το «φρεσκάρει»,
+ *  2) αλλιώς προσπαθεί από p.url,
+ *  3) αλλιώς πέφτει στο /album-photo (backend).
+ */
 async function fileFromPhoto(p: { file?: File; url: string; filename: string; album?: string }): Promise<File> {
+  // 1) Υπάρχει ήδη File με bytes;
   if (p.file && p.file.size > 0) {
-    const type = p.file.type && p.file.type !== 'application/octet-stream' ? p.file.type : guessByExt(p.filename);
-    const buf = await p.file.arrayBuffer();
+    const type = p.file.type && p.file.type !== 'application/octet-stream'
+      ? p.file.type
+      : guessByExt(p.filename);
+    const buf = await p.file.arrayBuffer(); // «φρέσκο» σώμα για να μη θεωρηθεί consumed
     return new File([buf], cleanName(p.filename), { type });
   }
+
+  // 2) Δοκίμασε το url (blob:/data:/http)
   try {
-    return await urlToFile(p.url, p.filename, guessByExt(p.filename));
+    return await urlToFile(p.url, p.filename);
   } catch {
-    return await urlToFile(albumUrl(p.album, p.filename), p.filename, guessByExt(p.filename));
+    // 3) Fallback: /album-photo (ngrok)
+    return await urlToFile(albumUrl(p.album, p.filename), p.filename);
   }
 }
 
@@ -73,9 +99,9 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
 
   const handleTargetToggle = (photo: Photo) => {
     if (referencePhoto?.id === photo.id) return;
-    const newTargets = new Set(targetPhotos);
-    newTargets.has(photo.id) ? newTargets.delete(photo.id) : newTargets.add(photo.id);
-    setTargetPhotos(newTargets);
+    const next = new Set(targetPhotos);
+    next.has(photo.id) ? next.delete(photo.id) : next.add(photo.id);
+    setTargetPhotos(next);
   };
 
   const handleApplyCopyLook = async () => {
@@ -94,12 +120,14 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
         targets: targetPhotoObjects.map(p => p.filename),
       });
 
-      // 1) reference μία φορά
+      // 1) Ετοίμασε ΜΙΑ φορά το reference
       const referenceFixed = await fileFromPhoto(referencePhoto);
 
-      // 2) loop στα targets
+      // 2) Για κάθε target: source -> apply_on -> FormData -> POST
       for (const target of targetPhotoObjects) {
         const sourceFixed = await fileFromPhoto(target);
+
+        // apply_on: καινούριο File από το ίδιο buffer (μην είναι consumed)
         const applyOnFixed = new File(
           [await sourceFixed.arrayBuffer()],
           cleanName(sourceFixed.name),
@@ -115,7 +143,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
         const resp = await fetch(`${API_URL}/lut_and_apply/`, {
           method: 'POST',
           body: fd,
-          headers: { 'ngrok-skip-browser-warning': 'true' },
+          headers: { 'ngrok-skip-browser-warning': 'true' }, // σημαντικό για ngrok
           mode: 'cors',
         });
 
@@ -126,7 +154,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
 
         const data = await resp.json();
 
-        // αν γύρισε μόνο path, φέρε την εικόνα & κάν’ την base64
+        // Αν γύρισε μόνο path, φέρε το αρχείο & κάν’ το base64 για το UI
         let image_base64: string | undefined = data.result_image_base64;
         if (!image_base64 && data.result_image_file) {
           try {
@@ -142,7 +170,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
                 r.onerror = reject;
                 r.readAsDataURL(blob);
               });
-              image_base64 = b64.split(',')[1];
+              image_base64 = b64.split(',')[1]; // κόβουμε το data:image/...;base64,
             }
           } catch (e) {
             console.warn('Could not fetch result image:', e);
@@ -196,11 +224,11 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
   };
 
   const toggleViewMode = (filename: string) => {
-    const newViewMode = new Map(viewMode);
-    const current = newViewMode.get(filename) || 'after';
-    const nextMode = current === 'after' ? 'before' : current === 'before' ? 'comparison' : 'after';
-    newViewMode.set(filename, nextMode);
-    setViewMode(newViewMode);
+    const m = new Map(viewMode);
+    const cur = m.get(filename) || 'after';
+    const next = cur === 'after' ? 'before' : cur === 'before' ? 'comparison' : 'after';
+    m.set(filename, next);
+    setViewMode(m);
   };
 
   const canApply = referencePhoto && targetPhotos.size > 0 && !isProcessing;

@@ -113,7 +113,6 @@ export const getUserPlan = async (userEmail: string): Promise<UserPlan | null> =
       .single();
     
     if (customerError) {
-      console.error('❌ Failed to get stripe customer:', customerError);
       if (customerError.code === 'PGRST116') {
         console.warn('⚠️ No Stripe customer found for user_id:', userProfile.user_id);
         return {
@@ -124,8 +123,10 @@ export const getUserPlan = async (userEmail: string): Promise<UserPlan | null> =
           current_period_end: '',
           is_active: false
         };
+      } else {
+        console.error('❌ Failed to get stripe customer:', customerError);
+        throw new Error('Failed to get Stripe customer');
       }
-      throw new Error('Failed to get Stripe customer');
     }
     
     if (!stripeCustomer) {
@@ -153,7 +154,6 @@ export const getUserPlan = async (userEmail: string): Promise<UserPlan | null> =
       .single();
     
     if (subscriptionError) {
-      console.error('❌ Failed to get subscription:', subscriptionError);
       if (subscriptionError.code === 'PGRST116') {
         console.warn('⚠️ No active subscription found for customer:', stripeCustomer.customer_id);
         return {
@@ -164,8 +164,10 @@ export const getUserPlan = async (userEmail: string): Promise<UserPlan | null> =
           current_period_end: '',
           is_active: false
         };
+      } else {
+        console.error('❌ Failed to get subscription:', subscriptionError);
+        throw new Error('Failed to get subscription');
       }
-      throw new Error('Failed to get subscription');
     }
     
     if (!subscription) {

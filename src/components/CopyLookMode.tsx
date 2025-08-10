@@ -46,27 +46,18 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
       showToast('Please select a reference photo and target photos', 'warning');
       return;
     }
-
     setIsProcessing(true);
     try {
       const targetPhotoObjects = photos.filter(p => targetPhotos.has(p.id));
       const targetFiles = targetPhotoObjects.map(p => p.file);
-      
-      console.log('Starting color transfer:', {
-        reference: referencePhoto.filename,
-        targets: targetPhotoObjects.map(p => p.filename)
-      });
-
       const response = await colorTransfer(referencePhoto.file, targetFiles);
-      
-      // Handle the backend response format: { results: [...] }
       const transferResults = response.results || response;
-      
       setResults(transferResults);
       showToast(`Color transfer completed for ${transferResults.length} photos!`, 'success');
-    } catch (error: any) {
-      console.error('Color transfer failed:', error);
-      showToast(error.message || 'Color transfer failed', 'error');
+    } catch (e: any) {
+      const msg = e?.message || 'Color transfer failed';
+      console.error('CopyLook error detail:', e);
+      showToast(msg, 'error');
     } finally {
       setIsProcessing(false);
     }

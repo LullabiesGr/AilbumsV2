@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Shield, Zap, Users, Crown, Info, Calculator, Star, Check } from 'lucide-react';
+import { ArrowLeft, Shield, Zap, Users, Crown, Info, Calculator, Star, Check, X } from 'lucide-react';
 import SubscriptionPlans from './SubscriptionPlans';
 
 interface PricingPageProps {
@@ -17,17 +17,51 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
   
   const relightCredits = calculateRelightCredits(megapixels);
   
+  // Plan configurations
+  const plans = [
+    {
+      name: 'Beta Free',
+      price: 0,
+      credits: 10,
+      color: 'gray',
+      description: 'Perfect for testing',
+      popular: false
+    },
+    {
+      name: 'Starter',
+      price: 9,
+      credits: 75,
+      color: 'green',
+      description: 'Great for beginners',
+      popular: false
+    },
+    {
+      name: 'Pro',
+      price: 24,
+      credits: 200,
+      color: 'blue',
+      description: 'Most popular choice',
+      popular: true
+    },
+    {
+      name: 'Studio',
+      price: 49,
+      credits: 500,
+      color: 'purple',
+      description: 'For professionals',
+      popular: false
+    }
+  ];
+  
   // Feature consumption table
   const features = [
     {
       name: 'FaceRetouch',
-      consumption: [2, 1, 'FREE', 'FREE'],
-      note: 'credits ανά εικόνα'
+      consumption: [2, 1, 'FREE', 'FREE']
     },
     {
       name: 'Copy AI Look',
-      consumption: [1, 'FREE', 'FREE', 'FREE'],
-      note: 'credits ανά εικόνα'
+      consumption: [1, 'FREE', 'FREE', 'FREE']
     },
     {
       name: 'AI Edit',
@@ -45,6 +79,43 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
       consumption: ['FREE', 'FREE', 'FREE', 'FREE']
     }
   ];
+  
+  const getPlanColors = (color: string) => {
+    switch (color) {
+      case 'green':
+        return {
+          bg: 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20',
+          border: 'border-green-200 dark:border-green-800',
+          button: 'from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700',
+          text: 'text-green-600 dark:text-green-400',
+          icon: 'text-green-500'
+        };
+      case 'blue':
+        return {
+          bg: 'from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20',
+          border: 'border-blue-200 dark:border-blue-800',
+          button: 'from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700',
+          text: 'text-blue-600 dark:text-blue-400',
+          icon: 'text-blue-500'
+        };
+      case 'purple':
+        return {
+          bg: 'from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20',
+          border: 'border-purple-200 dark:border-purple-800',
+          button: 'from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700',
+          text: 'text-purple-600 dark:text-purple-400',
+          icon: 'text-purple-500'
+        };
+      default:
+        return {
+          bg: 'from-gray-50 to-slate-50 dark:from-gray-900/20 dark:to-slate-900/20',
+          border: 'border-gray-200 dark:border-gray-800',
+          button: 'from-gray-600 to-slate-600 hover:from-gray-700 hover:to-slate-700',
+          text: 'text-gray-600 dark:text-gray-400',
+          icon: 'text-gray-500'
+        };
+    }
+  };
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -76,6 +147,124 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
           <div className="w-24"></div> {/* Spacer for centering */}
         </div>
 
+        {/* Pricing Plans Table */}
+        <div className="max-w-7xl mx-auto mb-16">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              Choose Your Plan
+            </h2>
+            <p className="text-lg text-gray-600 dark:text-gray-400">
+              Select the perfect plan for your photography workflow
+            </p>
+          </div>
+          
+          {/* Plans Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            {plans.map((plan, index) => {
+              const colors = getPlanColors(plan.color);
+              
+              return (
+                <div
+                  key={plan.name}
+                  className={`relative bg-gradient-to-br ${colors.bg} border-2 ${colors.border} 
+                            rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 
+                            ${plan.popular ? 'scale-105 ring-2 ring-blue-500/20' : 'hover:scale-105'}`}
+                >
+                  {plan.popular && (
+                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                      <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 
+                                     rounded-full text-sm font-medium shadow-lg">
+                        Most Popular
+                      </span>
+                    </div>
+                  )}
+                  
+                  <div className="text-center">
+                    <div className="flex justify-center mb-4">
+                      {plan.name === 'Studio' ? (
+                        <Crown className={`h-8 w-8 ${colors.icon}`} />
+                      ) : plan.name === 'Pro' ? (
+                        <Star className={`h-8 w-8 ${colors.icon}`} />
+                      ) : (
+                        <Zap className={`h-8 w-8 ${colors.icon}`} />
+                      )}
+                    </div>
+                    
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                      {plan.name}
+                    </h3>
+                    
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                      {plan.description}
+                    </p>
+                    
+                    <div className="mb-4">
+                      <div className="flex items-baseline justify-center">
+                        <span className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                          €{plan.price}
+                        </span>
+                        {plan.price > 0 && (
+                          <span className="text-gray-600 dark:text-gray-400 ml-1">/month</span>
+                        )}
+                      </div>
+                      <div className={`text-lg font-semibold ${colors.text} mt-2`}>
+                        {plan.credits} credits/month
+                      </div>
+                    </div>
+                    
+                    {plan.price > 0 ? (
+                      <button className={`w-full py-3 px-4 bg-gradient-to-r ${colors.button} 
+                                        text-white rounded-lg font-medium transition-all duration-200 
+                                        shadow-md hover:shadow-lg transform hover:scale-105`}>
+                        Get Started
+                      </button>
+                    ) : (
+                      <div className="w-full py-3 px-4 bg-gray-100 dark:bg-gray-700 
+                                    text-gray-600 dark:text-gray-400 rounded-lg font-medium">
+                        Current Plan
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Extra Credits Pack */}
+          <div className="max-w-md mx-auto">
+            <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 
+                          border-2 border-orange-200 dark:border-orange-800 rounded-2xl p-6 shadow-lg text-center">
+              <div className="flex justify-center mb-4">
+                <Zap className="h-8 w-8 text-orange-500" />
+              </div>
+              
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                Extra Pack
+              </h3>
+              
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Additional credits for any plan
+              </p>
+              
+              <div className="mb-4">
+                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  +50 credits
+                </div>
+                <div className="text-orange-600 dark:text-orange-400 font-semibold">
+                  €4.00 one-time
+                </div>
+              </div>
+              
+              <button className="w-full py-3 px-4 bg-gradient-to-r from-orange-600 to-amber-600 
+                               hover:from-orange-700 hover:to-amber-700 text-white rounded-lg 
+                               font-medium transition-all duration-200 shadow-md hover:shadow-lg 
+                               transform hover:scale-105">
+                +50 Credits
+              </button>
+            </div>
+          </div>
+        </div>
+        
         {/* Credit Consumption Table */}
         <div className="max-w-6xl mx-auto mb-16">
           <div className="text-center mb-8">
@@ -95,7 +284,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
                       Λειτουργία
                     </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-gray-600 dark:text-gray-400">
                       Beta Free
                     </th>
                     <th className="px-6 py-4 text-center text-sm font-semibold text-green-600 dark:text-green-400">
@@ -236,8 +425,18 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
           </div>
         </div>
         
-        {/* Subscription Plans */}
-        <SubscriptionPlans />
+        {/* Original Subscription Plans Component */}
+        <div className="mb-16">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              Subscribe Now
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Ready to get started? Choose your plan and begin your AI photo culling journey
+            </p>
+          </div>
+          <SubscriptionPlans />
+        </div>
 
         {/* Features Comparison */}
         <div className="max-w-6xl mx-auto">

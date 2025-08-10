@@ -50,9 +50,6 @@ async function ensureImageFile(file: File | undefined, url: string, filename: st
 }
 
 
-/* =========================
-   Component
-   ========================= */
 const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
   const { photos } = usePhoto();
   const { showToast } = useToast();

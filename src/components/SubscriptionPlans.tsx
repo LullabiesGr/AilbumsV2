@@ -25,7 +25,6 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSuccess }) => {
     setIsLoading(product.priceId);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`, {
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`, {
         method: 'POST',
         headers: {

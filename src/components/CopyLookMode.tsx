@@ -1,22 +1,14 @@
 import React, { useState } from 'react';
-import {
-  ArrowLeft, Copy, Download, RotateCcw, Eye, EyeOff, Check, Palette, ArrowLeftRight
-} from 'lucide-react';
+import { ArrowLeft, Copy, Download, RotateCcw, Eye, EyeOff, Check, Palette, ArrowLeftRight } from 'lucide-react';
 import { Photo, ColorTransferResult } from '../types';
 import { usePhoto } from '../context/PhotoContext';
 import { useToast } from '../context/ToastContext';
 import { ImageComparison, ImageComparisonImage, ImageComparisonSlider } from './ui/ImageComparison';
 
-interface CopyLookModeProps {
-  onBack: () => void;
-}
-
 /* =========================
    Config & Helper utilities
    ========================= */
-const API_URL =
-  (import.meta as any)?.env?.VITE_API_URL ||
-  'https://b455dac5621c.ngrok-free.app';
+const API_URL = import.meta.env?.VITE_API_URL || 'https://b455dac5621c.ngrok-free.app';
 
 const cleanName = (n: string) =>
   n.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_{2,}/g, '_').replace(/^_+|_+$/g, '');
@@ -40,7 +32,7 @@ async function urlToFile(url: string, filename: string, fallbackType = 'image/jp
   return new File([blob], cleanName(filename || 'image.jpg'), { type });
 }
 
-/** Αν λείπει/είναι 0 bytes/έχει κακό MIME, ξαναφτιάχνει File (fallback από URL). */
+/** Αν λείπει/είναι 0 bytes/έχει κακό MIME, ξαναφτιάχνει File (fallback από .url). */
 async function ensureImageFile(file: File | undefined, url: string, filename: string): Promise<File> {
   let f = file;
   if (!f || f.size === 0) {
@@ -49,19 +41,13 @@ async function ensureImageFile(file: File | undefined, url: string, filename: st
   const goodType =
     typeof f.type === 'string' && f.type.startsWith('image/') && f.type !== 'application/octet-stream';
   const type = goodType ? f.type : guessByExt(f.name);
-  const buf = await f.arrayBuffer(); // “φρέσκο” σώμα
+  const buf = await f.arrayBuffer(); // “φρέσκο” σώμα για να μη θεωρηθεί consumed
   return new File([buf], cleanName(f.name || filename || 'image.jpg'), { type });
 }
 
-/** Χτίζει URL για λήψη αρχείου από backend /album-photo, αλλιώς κάνει fallback στο photo.url */
-const buildFetchUrl = (p: Photo) => {
-  const albumDir = (p as any).album || (p as any).albumDir;
-  if (albumDir) {
-    return `${API_URL}/album-photo?album_dir=${encodeURIComponent(albumDir)}&filename=${encodeURIComponent(p.filename)}`;
-  }
-  // fallback: αν το url είναι http(s) το παίρνουμε όπως είναι, αλλιώς σερβίρουμε από backend
-  return p.url?.startsWith('http') ? p.url : `${API_URL}/${p.url}`;
-};
+interface CopyLookModeProps {
+  onBack: () => void;
+}
 
 const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
   const { photos } = usePhoto();
@@ -104,21 +90,17 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
         targets: targetPhotoObjects.map((p) => p.filename),
       });
 
+      // helper για album-photo URL
+      const albumUrl = (p: Photo) =>
+        `${API_URL}/album-photo?album_dir=${encodeURIComponent(p.album || '')}&filename=${encodeURIComponent(p.filename)}`;
+
       // fix once for reference
-      const referenceFixed = await ensureImageFile(
-        referencePhoto.file,
-        buildFetchUrl(referencePhoto),
-        referencePhoto.filename
-      );
+      const referenceFixed = await ensureImageFile(referencePhoto.file, albumUrl(referencePhoto), referencePhoto.filename);
 
       for (const target of targetPhotoObjects) {
-        const sourceFixed = await ensureImageFile(
-          target.file,
-          buildFetchUrl(target),
-          target.filename
-        );
+        const sourceFixed = await ensureImageFile(target.file, albumUrl(target), target.filename);
 
-        // apply_on: νέο File από το ίδιο buffer (ώστε να μην είναι “consumed”)
+        // apply_on: νέο File από το ίδιο buffer (να μην είναι consumed)
         const applyOnFixed = new File([await sourceFixed.arrayBuffer()], cleanName(sourceFixed.name), {
           type: sourceFixed.type,
         });
@@ -138,14 +120,12 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
 
         if (!resp.ok) {
           const errText = await resp.text();
-          throw new Error(
-            `LUT and Apply failed for ${target.filename}: ${resp.status} ${errText || resp.statusText}`
-          );
+          throw new Error(`LUT and Apply failed for ${target.filename}: ${resp.status} ${errText || resp.statusText}`);
         }
 
         const data = await resp.json();
 
-        // αν γύρισε μόνο path, φέρε το αρχείο & κάν’ το base64 για το UI
+        // Αν γύρισε μόνο path, φέρε το αρχείο & κάν’ το base64 για το UI
         let image_base64: string | undefined = data.result_image_base64;
         if (!image_base64 && data.result_image_file) {
           try {
@@ -224,7 +204,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
 
   const canApply = referencePhoto && targetPhotos.size > 0 && !isProcessing;
 
-  /* ================= UI ================= */
+  /* ===== UI ===== */
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -335,8 +315,8 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
             </h4>
             {targetPhotos.size > 0 ? (
               <div className="space-y-2 max-h-32 overflow-y-auto">
-                {Array.from(targetPhotos).map(photoId => {
-                  const photo = photos.find(p => p.id === photoId);
+                {Array.from(targetPhotos).map((photoId) => {
+                  const photo = photos.find((p) => p.id === photoId);
                   if (!photo) return null;
                   return (
                     <div key={photoId} className="flex items-center space-x-2">
@@ -364,7 +344,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {results.map((result, index) => {
-              const originalPhoto = photos.find(p => p.filename === result.filename);
+              const originalPhoto = photos.find((p) => p.filename === result.filename);
               if (!originalPhoto) return null;
               const currentViewMode = viewMode.get(result.filename) || 'after';
 
@@ -411,13 +391,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
                     </h4>
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => {
-                          const newViewMode = new Map(viewMode);
-                          const cur = newViewMode.get(result.filename) || 'after';
-                          const next = cur === 'before' ? 'after' : cur === 'after' ? 'comparison' : 'before';
-                          newViewMode.set(result.filename, next);
-                          setViewMode(newViewMode);
-                        }}
+                        onClick={() => toggleViewMode(result.filename)}
                         className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md"
                       >
                         Toggle View
@@ -456,19 +430,19 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
             {photos.map((photo) => {
               const isReference = referencePhoto?.id === photo.id;
               const isTarget = targetPhotos.has(photo.id);
-              const hasResult = results.some(r => r.filename === photo.filename);
+              const hasResult = results.some((r) => r.filename === photo.filename);
 
               return (
                 <div
-                    key={photo.id}
-                    className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all duration-200 border-2 ${
-                      isReference
-                        ? 'border-orange-500 ring-2 ring-orange-300 shadow-lg'
-                        : isTarget
-                        ? 'border-blue-500 ring-2 ring-blue-300 shadow-lg'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                    }`}
-                  >
+                  key={photo.id}
+                  className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all duration-200 border-2 ${
+                    isReference
+                      ? 'border-orange-500 ring-2 ring-orange-300 shadow-lg'
+                      : isTarget
+                      ? 'border-blue-500 ring-2 ring-blue-300 shadow-lg'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                  }`}
+                >
                   <img src={photo.url} alt={photo.filename} className="w-full h-full object-cover" />
 
                   <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">

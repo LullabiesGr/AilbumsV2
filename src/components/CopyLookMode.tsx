@@ -119,11 +119,11 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
 
       // fix once for reference
       const referenceFixed = await fileFromPhoto(referencePhoto);
-for (const target of targetPhotoObjects) {
-  const sourceFixed = await fileFromPhoto(target);
-  const applyOnFixed = new File([await sourceFixed.arrayBuffer()], cleanName(sourceFixed.name), {
-    type: sourceFixed.type,
-  });
+      for (const target of targetPhotoObjects) {
+      const sourceFixed = await fileFromPhoto(target);
+      const applyOnFixed = new File([await sourceFixed.arrayBuffer()], cleanName(sourceFixed.name), {
+          type: sourceFixed.type,
+        });
 
       for (const target of targetPhotoObjects) {
         const sourceFixed = await ensureImageFile(target.file, albumUrl(target), target.filename);

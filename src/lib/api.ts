@@ -1147,6 +1147,11 @@ export const batchAutofix = async (files: File[]): Promise<BatchResult[]> => {
 };
 
 // AI Edit & Relighting endpoints
+export const lutAndApply = async (
+  reference: File | string,
+  target: File | string,
+  strength: number = 0.5
+): Promise<{ result_image_base64?: string; result_image_file?: string }> => {
   let refFile0: File;
   let tgtFile0: File;
   

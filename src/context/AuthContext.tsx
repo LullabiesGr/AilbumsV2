@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '../lib/supabase';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface User {
   id: string;
@@ -32,23 +34,66 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check for existing auth on mount
+  // Check for existing auth on mount and listen for auth changes
   useEffect(() => {
-    const storedToken = localStorage.getItem('access_token');
-    const storedUser = localStorage.getItem('user');
-    
-    if (storedToken && storedUser) {
-      try {
-        setAccessToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error('Failed to parse stored user data:', error);
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setAccessToken(session.access_token);
+        setUser({
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.user_metadata?.name || session.user.email || 'User',
+          picture: session.user.user_metadata?.picture
+        });
+      } else {
+        // Check for guest user in localStorage
+        const isGuest = localStorage.getItem('is_guest');
+        const storedUser = localStorage.getItem('user');
+        const storedToken = localStorage.getItem('access_token');
+        
+        if (isGuest && storedUser && storedToken) {
+          try {
+            setAccessToken(storedToken);
+            setUser(JSON.parse(storedUser));
+          } catch (error) {
+            console.error('Failed to parse stored guest user data:', error);
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('is_guest');
+          }
+        }
+      }
+      setIsLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        setAccessToken(session.access_token);
+        setUser({
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.user_metadata?.name || session.user.email || 'User',
+          picture: session.user.user_metadata?.picture
+        });
+        // Clear any guest data
+        localStorage.removeItem('is_guest');
+      } else if (event === 'SIGNED_OUT') {
+        setAccessToken(null);
+        setUser(null);
+        // Clear all auth data
         localStorage.removeItem('access_token');
         localStorage.removeItem('user');
+        localStorage.removeItem('is_guest');
+      } else if (event === 'TOKEN_REFRESHED' && session) {
+        setAccessToken(session.access_token);
       }
-    }
-    
-    setIsLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (): Promise<void> => {
@@ -82,12 +127,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
 
         if (token && userData) {
-          // Store auth data
-          localStorage.setItem('access_token', token);
-          localStorage.setItem('user', JSON.stringify(userData));
-          
-          setAccessToken(token);
-          setUser(userData);
+          // Set the session in Supabase auth
+          supabase.auth.setSession({
+            access_token: token,
+            refresh_token: token // Using the same token as refresh for external auth
+          }).then(() => {
+            setAccessToken(token);
+            setUser(userData);
+          });
 
           // Clean up
           window.removeEventListener('message', handleMessage);
@@ -139,11 +186,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('is_guest');
-    setAccessToken(null);
-    setUser(null);
+    const isGuest = localStorage.getItem('is_guest');
+    
+    if (isGuest) {
+      // For guest users, just clear localStorage
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('is_guest');
+      setAccessToken(null);
+      setUser(null);
+    } else {
+      // For real users, sign out from Supabase
+      supabase.auth.signOut();
+    }
   };
 
   const value: AuthContextType = {

@@ -22,6 +22,13 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSuccess }) => {
       return;
     }
 
+    // Check if user is a guest - guests cannot make purchases
+    const isGuest = localStorage.getItem('is_guest');
+    if (isGuest) {
+      showToast('Please log in with a full account to make purchases', 'error');
+      return;
+    }
+
     setIsLoading(product.priceId);
 
     try {
@@ -32,10 +39,8 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSuccess }) => {
           'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          price_id: product.priceId,
+          priceId: product.priceId,
           mode: product.mode,
-          success_url: `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-          cancel_url: `${window.location.origin}/pricing`,
         }),
       });
 
@@ -45,7 +50,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSuccess }) => {
           status: response.status,
           statusText: response.statusText,
           error: errorText,
-          url: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`,
+          url: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
           priceId: product.priceId,
           mode: product.mode
         });

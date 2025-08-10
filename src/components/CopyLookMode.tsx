@@ -5,6 +5,7 @@ import { usePhoto } from '../context/PhotoContext';
 import { useToast } from '../context/ToastContext';
 import { colorTransfer } from '../lib/api';
 import { ImageComparison, ImageComparisonImage, ImageComparisonSlider } from './ui/ImageComparison';
+import { API_URL } from '../lib/api';
 
 interface CopyLookModeProps {
   onBack: () => void;

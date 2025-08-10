@@ -119,12 +119,12 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
 
       // fix once for reference
       // ΜΕΤΑ
-const referenceFixed = await fileFromPhoto(referencePhoto);
-for (const target of targetPhotoObjects) {
-  const sourceFixed = await fileFromPhoto(target);
-  const applyOnFixed = new File([await sourceFixed.arrayBuffer()], cleanName(sourceFixed.name), {
-    type: sourceFixed.type,
-  });
+    const referenceFixed = await fileFromPhoto(referencePhoto);
+    for (const target of targetPhotoObjects) {
+    const sourceFixed = await fileFromPhoto(target);
+   const applyOnFixed = new File([await sourceFixed.arrayBuffer()], cleanName(sourceFixed.name), {
+       type: sourceFixed.type,
+    });
   // ... (φορμάρεις FormData όπως ήδη κάνεις και POST στο `${API_URL}/lut_and_apply/`)
 }
 

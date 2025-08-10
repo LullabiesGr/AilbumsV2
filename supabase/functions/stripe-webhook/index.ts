@@ -2,8 +2,8 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import Stripe from 'npm:stripe@17.7.0';
 import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
 
-const stripeSecret = Deno.env.get('STRIPE_SECRET_KEY')!;
-const stripeWebhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')!;
+const stripeSecret = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
+const stripeWebhookSecret = 'whsec_H3I7nL9WuvCViDcflG00l2vZkyLt90aX';
 const stripe = new Stripe(stripeSecret, {
   appInfo: {
     name: 'Bolt Integration',
@@ -15,6 +15,8 @@ const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPAB
 
 Deno.serve(async (req) => {
   try {
+    console.log('Webhook called');
+
     // Handle OPTIONS request for CORS preflight
     if (req.method === 'OPTIONS') {
       return new Response(null, { status: 204 });
@@ -26,6 +28,7 @@ Deno.serve(async (req) => {
 
     // get the signature from the header
     const signature = req.headers.get('stripe-signature');
+    console.log('Stripe signature:', signature);
 
     if (!signature) {
       return new Response('No signature found', { status: 400 });
@@ -33,11 +36,14 @@ Deno.serve(async (req) => {
 
     // get the raw body
     const body = await req.text();
+    console.log('Request body:', body);
 
     // verify the webhook signature
     let event: Stripe.Event;
 
     try {
+      console.log('Verifying signature with secret:', stripeWebhookSecret);
+      
       event = await stripe.webhooks.constructEventAsync(body, signature, stripeWebhookSecret);
     } catch (error: any) {
       console.error(`Webhook signature verification failed: ${error.message}`);
@@ -48,6 +54,7 @@ Deno.serve(async (req) => {
 
     return Response.json({ received: true });
   } catch (error: any) {
+    console.error('Error processing webhook:', error);
     console.error('Error processing webhook:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }

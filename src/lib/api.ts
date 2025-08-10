@@ -1158,22 +1158,27 @@ export const falRelight = async (file: File, prompt: string): Promise<{ result_u
 
 // LUT and Apply endpoint for Copy Look Mode
 export const lutAndApply = async (
-  referenceFile: File, 
-  targetFile: File, 
+  referenceFile: File,
+  targetFile: File,
   strength: number = 0.5
-): Promise<{ lut_cube_file: string; result_image_file: string; result_image_base64: string; strength_used: number; info: string }> => {
+): Promise<{
+  lut_cube_file: string;
+  result_image_file: string;
+  result_image_base64: string;
+  strength_used: number;
+  info: string;
+}> => {
   console.log('🎨 Applying LUT and color transfer:', {
     reference: referenceFile.name,
     target: targetFile.name,
     strength
   });
-  
-  // Helper function to ensure file has correct MIME type
+
+  // ✅ Διορθωτής MIME τύπου
   const ensureImageType = (file: File, filename: string): File => {
-    // Detect MIME type from file extension if not set correctly
     const ext = filename.toLowerCase().split('.').pop();
     let mimeType = file.type;
-    
+
     if (!mimeType || mimeType === 'application/octet-stream') {
       switch (ext) {
         case 'jpg':
@@ -1191,54 +1196,50 @@ export const lutAndApply = async (
           mimeType = 'image/webp';
           break;
         default:
-          mimeType = 'image/jpeg'; // Default fallback
+          mimeType = 'image/jpeg';
       }
     }
-    
-    // Create new File with correct MIME type if needed
+
     if (file.type !== mimeType) {
       return new File([file], filename, { type: mimeType });
     }
-    
     return file;
   };
-  
-  // Clean filenames to be safe for backend
+
+  // ✅ Καθαρισμός ονόματος αρχείου
   const cleanFilename = (filename: string): string => {
     return filename
-      .replace(/[^a-zA-Z0-9._-]/g, '_') // Replace unsafe chars with underscore
-      .replace(/_{2,}/g, '_') // Replace multiple underscores with single
-      .replace(/^_+|_+$/g, ''); // Remove leading/trailing underscores
+      .replace(/[^a-zA-Z0-9._-]/g, '_')
+      .replace(/_{2,}/g, '_')
+      .replace(/^_+|_+$/g, '');
   };
-  
+
   const cleanReferenceFilename = cleanFilename(referenceFile.name);
   const cleanTargetFilename = cleanFilename(targetFile.name);
-  
-  // Ensure files have correct MIME types
+
   const correctedReferenceFile = ensureImageType(referenceFile, cleanReferenceFilename);
   const correctedTargetFile = ensureImageType(targetFile, cleanTargetFilename);
-  
+
+  // ✅ FormData
   const formData = new FormData();
-  
-  // Add files with corrected MIME types and clean filenames
   formData.append('reference', correctedReferenceFile, cleanReferenceFilename);
   formData.append('source', correctedTargetFile, cleanTargetFilename);
-  formData.append('apply_on', correctedTargetFile, cleanTargetFilename);
-  
-  // Add strength as Form parameter (not as file)
+
+  // ❗ Φτιάχνουμε νέο File για apply_on ώστε να μην σπάσει το stream
+  const applyOnFile = new File(
+    [await correctedTargetFile.arrayBuffer()],
+    cleanTargetFilename,
+    { type: correctedTargetFile.type }
+  );
+  formData.append('apply_on', applyOnFile, cleanTargetFilename);
+
   formData.append('strength', strength.toString());
-  
+
   console.log('📤 FormData contents:', {
     reference: `${cleanReferenceFilename} (${correctedReferenceFile.size} bytes, ${correctedReferenceFile.type})`,
     source: `${cleanTargetFilename} (${correctedTargetFile.size} bytes, ${correctedTargetFile.type})`,
-    apply_on: `${cleanTargetFilename} (${correctedTargetFile.size} bytes, ${correctedTargetFile.type})`,
-    strength: strength.toString(),
-    formDataEntries: Array.from(formData.entries()).map(([key, value]) => ({
-      key,
-      type: value instanceof File ? 'File' : typeof value,
-      size: value instanceof File ? value.size : 'N/A',
-      mimeType: value instanceof File ? value.type : 'N/A'
-    }))
+    apply_on: `${cleanTargetFilename} (${applyOnFile.size} bytes, ${applyOnFile.type})`,
+    strength
   });
 
   try {
@@ -1247,55 +1248,34 @@ export const lutAndApply = async (
       body: formData,
       headers: {
         'ngrok-skip-browser-warning': 'true'
-        // Don't set Content-Type - let browser set it automatically for multipart/form-data with boundary
       },
-      mode: 'cors',
-    });
-
-    console.log('📥 LUT and Apply response:', {
-      status: response.status,
-      statusText: response.statusText,
-      headers: Object.fromEntries(response.headers.entries())
+      mode: 'cors'
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('LUT and Apply API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText
-      });
       throw new Error(`LUT and Apply failed: ${response.status} ${errorText || response.statusText}`);
     }
 
     const result = await response.json();
     console.log('📄 LUT and Apply result:', result);
-    
-    // If backend returns file paths, we need to fetch the actual image data
-    if (result.result_image_file && !result.result_image_base64) {
+
+    // Αν backend δεν δώσει base64, κατέβασε το αρχείο και μετατροπή
+    if (!result.result_image_base64 && result.result_image_file) {
       try {
-        // Fetch the result image and convert to base64
         const imageResponse = await fetch(`${API_URL}/${result.result_image_file}`, {
-          headers: {
-            'ngrok-skip-browser-warning': 'true'
-          }
+          headers: { 'ngrok-skip-browser-warning': 'true' }
         });
-        
         if (imageResponse.ok) {
-          const imageBlob = await imageResponse.blob();
-          const base64 = await blobToBase64(imageBlob);
-          result.result_image_base64 = base64.split(',')[1]; // Remove data:image/jpeg;base64, prefix
-          console.log('✅ Converted result image to base64:', {
-            originalPath: result.result_image_file,
-            base64Length: result.result_image_base64.length
-          });
+          const blob = await imageResponse.blob();
+          const base64 = await blobToBase64(blob);
+          result.result_image_base64 = base64.split(',')[1];
         }
       } catch (error) {
-        console.warn('Failed to fetch result image:', error);
+        console.warn('⚠️ Could not fetch result image:', error);
       }
     }
-    
-    console.log('✅ LUT and Apply successful:', result);
+
     return result;
   } catch (error: any) {
     console.error('❌ LUT and Apply failed:', error);
@@ -1303,7 +1283,7 @@ export const lutAndApply = async (
   }
 };
 
-// Helper function to convert blob to base64
+// Helper: Μετατροπή blob σε base64
 const blobToBase64 = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

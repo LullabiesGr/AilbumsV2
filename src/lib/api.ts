@@ -2,7 +2,6 @@ import { Photo } from '../types';
 import { findDuplicates } from './similarity';
 import { promisePoolWithProgress } from './promisePool'; // Keep this import
 import { DuplicateCluster } from '../types';
-import { ColorTransferResult } from '../types';
 
 // API URL configuration for different environments
 const API_URL =
@@ -1159,104 +1158,53 @@ export const falRelight = async (file: File, prompt: string): Promise<{ result_u
 
 // LUT and Apply endpoint for Copy Look / AI Style Mode
 
-/* ========= Helpers ========= */
-const cleanName = (n: string) =>
-  (n || 'image.jpg')
-    .replace(/[^a-zA-Z0-9._-]/g, '_')
-    .replace(/_{2,}/g, '_')
-    .replace(/^_+|_+$/g, '');
-
-const guessByExt = (name: string) => {
-  const ext = (name.split('.').pop() || '').toLowerCase();
-  if (ext === 'png') return 'image/png';
-  if (ext === 'webp') return 'image/webp';
-  if (ext === 'tif' || ext === 'tiff') return 'image/tiff';
-  return 'image/jpeg';
-};
-
-/**
- * Βεβαιώνει ότι έχουμε κανονικό, μη-άδειο image File.
- * - Αν δεν είναι File -> error
- * - Αν size === 0 -> error (δεν ανεβάζουμε κενά αρχεία)
- * - Αν type είναι άδειο ή application/octet-stream -> το “διορθώνουμε” με βάση το όνομα
- * - Επιστρέφει νέο File με “φρέσκο” σώμα (ώστε να μη θεωρηθεί consumed)
- */
-const normalizeImageFile = async (maybeFile: File, hintType?: string): Promise<File> => {
-  if (!(maybeFile instanceof File)) {
-    throw new Error('Invalid file object provided (not a File).');
-  }
-  if (!maybeFile.size || maybeFile.size === 0) {
-    throw new Error(`Empty file provided: ${maybeFile.name || '(no name)'}`);
-  }
-  const type =
-    (maybeFile.type && maybeFile.type !== 'application/octet-stream'
-      ? maybeFile.type
-      : (hintType || guessByExt(maybeFile.name))) || 'image/jpeg';
-
-  const buf = await maybeFile.arrayBuffer();
-  return new File([buf], cleanName(maybeFile.name || 'image.jpg'), { type });
-};
-
-const blobToBase64 = (blob: Blob): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(String(r.result));
-    r.onerror = reject;
-    r.readAsDataURL(blob);
-  });
-
-/* ========= Core calls ========= */
-
-/**
- * LUT + Apply για ένα target.
- * ΠΑΝΤΑ στέλνουμε κανονικά image Files (όχι άδεια, όχι octet-stream).
- * Κλωνοποιούμε το `source` σε νέο File για το `apply_on`.
- */
+// LUT and Apply endpoint for Copy Look Mode
 export const lutAndApply = async (
-  referenceFile: File,
-  targetFile: File,
+  referenceFile: File, 
+  targetFile: File, 
   strength: number = 0.5
-): Promise<{
-  lut_cube_file: string;
-  result_image_file: string;
-  result_image_base64?: string;
-  strength_used: number;
-  info: string;
-}> => {
-  // Normalize/repair inputs
-  const reference = await normalizeImageFile(referenceFile);
-  const source = await normalizeImageFile(targetFile);
-
-  // Fresh clone for apply_on (ώστε να μη θεωρηθεί consumed)
-  const applyOn = new File([await source.arrayBuffer()], cleanName(source.name), {
-    type: source.type,
-  });
-
+): Promise<{ lut_cube_file: string; result_image_file: string; result_image_base64: string; strength_used: number; info: string }> => {
   console.log('🎨 Applying LUT and color transfer:', {
-    reference: reference.name,
-    target: source.name,
-    strength,
+    reference: referenceFile.name,
+    target: targetFile.name,
+    strength
   });
-
+  
   const formData = new FormData();
-  formData.append('reference', reference, reference.name);
-  formData.append('source', source, source.name);
-  formData.append('apply_on', applyOn, applyOn.name);
-  formData.append('strength', String(strength));
+  
+  // Add files as binary data (File objects)
+  formData.append('reference', referenceFile, referenceFile.name);
+  formData.append('source', targetFile, targetFile.name);
+  formData.append('apply_on', targetFile, targetFile.name);
+  formData.append('strength', strength.toString());
+  
+  console.log('📤 FormData contents:', {
+    reference: `${referenceFile.name} (${referenceFile.size} bytes)`,
+    source: `${targetFile.name} (${targetFile.size} bytes)`,
+    apply_on: `${targetFile.name} (${targetFile.size} bytes)`,
+    strength: strength.toString(),
+    formDataEntries: Array.from(formData.entries()).map(([key, value]) => ({
+      key,
+      type: value instanceof File ? 'File' : typeof value,
+      size: value instanceof File ? value.size : 'N/A'
+    }))
+  });
 
   try {
     const response = await fetch(`${API_URL}/lut_and_apply/`, {
       method: 'POST',
       body: formData,
-      headers: { 'ngrok-skip-browser-warning': 'true' }, // μην ορίσεις 'Content-Type'
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+        // Don't set Content-Type - let browser set it automatically for multipart/form-data
+      },
       mode: 'cors',
-      credentials: 'omit',
     });
 
     console.log('📥 LUT and Apply response:', {
       status: response.status,
       statusText: response.statusText,
-      headers: Object.fromEntries(response.headers.entries()),
+      headers: Object.fromEntries(response.headers.entries())
     });
 
     if (!response.ok) {
@@ -1264,90 +1212,74 @@ export const lutAndApply = async (
       console.error('LUT and Apply API error:', {
         status: response.status,
         statusText: response.statusText,
-        error: errorText,
+        error: errorText
       });
-      throw new Error(
-        `LUT and Apply failed: ${response.status} ${errorText || response.statusText}`
-      );
+      throw new Error(`LUT and Apply failed: ${response.status} ${errorText || response.statusText}`);
     }
 
     const result = await response.json();
-
-    // Αν ήρθε μόνο path, φέρε την εικόνα και κάν’ την base64 για το UI
+    console.log('📄 LUT and Apply result:', result);
+    
+    // If backend returns file paths, we need to fetch the actual image data
     if (result.result_image_file && !result.result_image_base64) {
       try {
+        // Fetch the result image and convert to base64
         const imageResponse = await fetch(`${API_URL}/${result.result_image_file}`, {
-          headers: { 'ngrok-skip-browser-warning': 'true' },
-          mode: 'cors',
-          credentials: 'omit',
+          headers: {
+            'ngrok-skip-browser-warning': 'true'
+          }
         });
+        
         if (imageResponse.ok) {
           const imageBlob = await imageResponse.blob();
           const base64 = await blobToBase64(imageBlob);
-          result.result_image_base64 = base64.split(',')[1];
+          result.result_image_base64 = base64.split(',')[1]; // Remove data:image/jpeg;base64, prefix
           console.log('✅ Converted result image to base64:', {
             originalPath: result.result_image_file,
-            base64Length: result.result_image_base64.length,
+            base64Length: result.result_image_base64.length
           });
         }
-      } catch (err) {
-        console.warn('Failed to fetch result image:', err);
+      } catch (error) {
+        console.warn('Failed to fetch result image:', error);
       }
     }
-
+    
     console.log('✅ LUT and Apply successful:', result);
     return result;
   } catch (error: any) {
     console.error('❌ LUT and Apply failed:', error);
-    throw (error instanceof Error ? error : new Error(String(error)));
+    throw error instanceof Error ? error : new Error(error.toString());
   }
 };
 
-/**
- * Εκτελεί LUT+Apply για πολλά targets.
- * Επιστρέφει πάντα base64 στη `image_base64` (κενό string σε περίπτωση σφάλματος).
- * Ρίχνει “καθαρά” errors αν δοθούν άδεια/μη έγκυρα Files.
- */
-export const colorTransfer = async (
-  referenceFile: File,
-  targetFiles: File[]
-): Promise<{ results: ColorTransferResult[] }> => {
-  // Προληπτικοί έλεγχοι εδώ για πιο καθαρά μηνύματα:
-  const refOk = referenceFile instanceof File && referenceFile.size > 0;
-  if (!refOk) {
-    throw new Error(
-      `Invalid reference file: ${referenceFile ? referenceFile.name : '(undefined)'}`
-    );
-  }
+// Helper function to convert blob to base64
+const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
 
+export const colorTransfer = async (referenceFile: File, targetFiles: File[]): Promise<{ results: ColorTransferResult[] }> => {
+  // Use the new /lut_and_apply/ endpoint
   const results: ColorTransferResult[] = [];
-
+  
   for (const targetFile of targetFiles) {
     try {
-      const trgOk = targetFile instanceof File && targetFile.size > 0;
-      if (!trgOk) {
-        throw new Error(
-          `Invalid/empty target file: ${targetFile ? targetFile.name : '(undefined)'}`
-        );
-      }
-
       const result = await lutAndApply(referenceFile, targetFile, 0.5);
-
+      
+      // Convert the backend response to match the expected format
       results.push({
         filename: targetFile.name,
-        image_base64: result.result_image_base64 || '',
-        info: result.info,
-        strength_used: result.strength_used,
+        image_base64: result.result_image_base64 // Assuming backend returns base64
       });
     } catch (error) {
-      console.error(`❌ Failed to apply LUT to ${targetFile && 'name' in targetFile ? targetFile.name : '(unknown)' }:`, error);
-      results.push({
-        filename: targetFile && 'name' in targetFile ? targetFile.name : '(unknown)',
-        image_base64: '',
-        error: error instanceof Error ? error.message : String(error),
-      });
+      console.error(`Failed to apply LUT to ${targetFile.name}:`, error);
+      throw error;
     }
   }
-
+  
   return { results };
-};
+}

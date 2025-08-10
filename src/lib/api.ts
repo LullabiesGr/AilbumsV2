@@ -1168,23 +1168,74 @@ export const lutAndApply = async (
     strength
   });
   
+  // Helper function to ensure file has correct MIME type
+  const ensureImageType = (file: File, filename: string): File => {
+    // Detect MIME type from file extension if not set correctly
+    const ext = filename.toLowerCase().split('.').pop();
+    let mimeType = file.type;
+    
+    if (!mimeType || mimeType === 'application/octet-stream') {
+      switch (ext) {
+        case 'jpg':
+        case 'jpeg':
+          mimeType = 'image/jpeg';
+          break;
+        case 'png':
+          mimeType = 'image/png';
+          break;
+        case 'tiff':
+        case 'tif':
+          mimeType = 'image/tiff';
+          break;
+        case 'webp':
+          mimeType = 'image/webp';
+          break;
+        default:
+          mimeType = 'image/jpeg'; // Default fallback
+      }
+    }
+    
+    // Create new File with correct MIME type if needed
+    if (file.type !== mimeType) {
+      return new File([file], filename, { type: mimeType });
+    }
+    
+    return file;
+  };
+  
+  // Clean filenames to be safe for backend
+  const cleanFilename = (filename: string): string => {
+    return filename
+      .replace(/[^a-zA-Z0-9._-]/g, '_') // Replace unsafe chars with underscore
+      .replace(/_{2,}/g, '_') // Replace multiple underscores with single
+      .replace(/^_+|_+$/g, ''); // Remove leading/trailing underscores
+  };
+  
+  const cleanReferenceFilename = cleanFilename(referenceFile.name);
+  const cleanTargetFilename = cleanFilename(targetFile.name);
+  
+  // Ensure files have correct MIME types
+  const correctedReferenceFile = ensureImageType(referenceFile, cleanReferenceFilename);
+  const correctedTargetFile = ensureImageType(targetFile, cleanTargetFilename);
+  
   const formData = new FormData();
   
-  // Add files as binary data (File objects)
-  formData.append('reference', referenceFile, referenceFile.name);
-  formData.append('source', targetFile, targetFile.name);
-  formData.append('apply_on', targetFile, targetFile.name);
+  // Add files with corrected MIME types and clean filenames
+  formData.append('reference', correctedReferenceFile, cleanReferenceFilename);
+  formData.append('source', correctedTargetFile, cleanTargetFilename);
+  formData.append('apply_on', correctedTargetFile, cleanTargetFilename);
   formData.append('strength', strength.toString());
   
   console.log('📤 FormData contents:', {
-    reference: `${referenceFile.name} (${referenceFile.size} bytes)`,
-    source: `${targetFile.name} (${targetFile.size} bytes)`,
-    apply_on: `${targetFile.name} (${targetFile.size} bytes)`,
+    reference: `${cleanReferenceFilename} (${correctedReferenceFile.size} bytes, ${correctedReferenceFile.type})`,
+    source: `${cleanTargetFilename} (${correctedTargetFile.size} bytes, ${correctedTargetFile.type})`,
+    apply_on: `${cleanTargetFilename} (${correctedTargetFile.size} bytes, ${correctedTargetFile.type})`,
     strength: strength.toString(),
     formDataEntries: Array.from(formData.entries()).map(([key, value]) => ({
       key,
       type: value instanceof File ? 'File' : typeof value,
-      size: value instanceof File ? value.size : 'N/A'
+      size: value instanceof File ? value.size : 'N/A',
+      mimeType: value instanceof File ? value.type : 'N/A'
     }))
   });
 
@@ -1194,7 +1245,7 @@ export const lutAndApply = async (
       body: formData,
       headers: {
         'ngrok-skip-browser-warning': 'true'
-        // Don't set Content-Type - let browser set it automatically for multipart/form-data
+        // Don't set Content-Type - let browser set it automatically for multipart/form-data with boundary
       },
       mode: 'cors',
     });

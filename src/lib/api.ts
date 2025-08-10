@@ -1358,3 +1358,111 @@ export const falRelight = async (file: File, prompt: string): Promise<{ result_u
     throw error instanceof Error ? error : new Error(error.toString());
   }
 };
+
+// AI Style Transfer function
+export const aiStyleTransfer = async (
+  reference: File | string,
+  targets: (File | string)[],
+  strength: number = 0.5
+): Promise<{ results: AIStyleResult[] }> => {
+  const results: AIStyleResult[] = [];
+  
+  // Prepare reference file
+  let refFile: File;
+  try {
+    refFile = typeof reference === 'string'
+      ? await fileFromUrl(reference)
+      : reference;
+    console.log('✅ Reference file prepared:', { name: refFile.name, type: refFile.type, size: refFile.size });
+  } catch (error) {
+    console.error('❌ Failed to prepare reference file:', error);
+    throw new Error(`Failed to prepare reference file: ${error}`);
+  }
+
+  // Ensure proper MIME type for reference
+  const referenceFile = await ensureFileWithType(refFile);
+  
+  // Process each target
+  for (const target of targets) {
+    let tgtFile: File;
+    try {
+      tgtFile = typeof target === 'string'
+        ? await fileFromUrl(target)
+        : target;
+      console.log('✅ Target file prepared:', { name: tgtFile.name, type: tgtFile.type, size: tgtFile.size });
+    } catch (error) {
+      console.error('❌ Failed to prepare target file:', error);
+      throw new Error(`Failed to prepare target file: ${error}`);
+    }
+
+    // Ensure proper MIME types
+    const sourceFile = await ensureFileWithType(tgtFile);
+    const applyOnFile = await cloneFile(sourceFile);
+    
+    console.log('🔧 Files after MIME type correction:', {
+      reference: { name: referenceFile.name, type: referenceFile.type, size: referenceFile.size },
+      source: { name: sourceFile.name, type: sourceFile.type, size: sourceFile.size },
+      apply_on: { name: applyOnFile.name, type: applyOnFile.type, size: applyOnFile.size }
+    });
+
+    const formData = new FormData();
+    formData.append('reference', referenceFile, cleanFilename(referenceFile.name));
+    formData.append('source', sourceFile, cleanFilename(sourceFile.name));
+    formData.append('apply_on', applyOnFile, cleanFilename(applyOnFile.name));
+    formData.append('strength', strength.toString());
+
+    console.log('📤 AI Style FormData prepared:', {
+      reference: { name: referenceFile.name, type: referenceFile.type, size: referenceFile.size },
+      source: { name: sourceFile.name, type: sourceFile.type, size: sourceFile.size },
+      apply_on: { name: applyOnFile.name, type: applyOnFile.type, size: applyOnFile.size },
+      strength: strength,
+      endpoint: `${API_URL}/lut_and_apply/`
+    });
+
+    try {
+      const response = await fetch(`${API_URL}/lut_and_apply/`, {
+        method: 'POST',
+        body: formData,
+        headers: { 
+          'Accept': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
+        },
+        mode: 'cors',
+      });
+      
+      console.log('📥 AI Style Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('❌ AI Style API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          data: errorData
+        });
+        throw new Error(`AI Style API Error: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ AI Style result:', result);
+      
+      results.push({
+        filename: typeof target === 'string' ? target.split('/').pop() || 'image.jpg' : target.name,
+        lut_cube_file: result.lut_cube_file,
+        result_image_file: result.result_image_file,
+        strength_used: result.strength_used,
+        info: result.info
+      });
+      
+    } catch (error: any) {
+      console.error('❌ AI Style transfer failed for target:', typeof target === 'string' ? target : target.name, error);
+      throw new Error(`AI Style transfer failed: ${error.message}`);
+    }
+  }
+  
+  return { results };
+};

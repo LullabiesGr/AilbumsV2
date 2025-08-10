@@ -12,7 +12,7 @@ interface CopyLookModeProps {
 /* =========================
    Config & Helper utilities
    ========================= */
-const API_URL = import.meta.env?.VITE_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env?.VITE_API_URL || 'https://b455dac5621c.ngrok-free.app';
 
 const cleanName = (n: string) =>
   n.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_{2,}/g, '_').replace(/^_+|_+$/g, '');

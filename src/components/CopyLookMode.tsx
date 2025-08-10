@@ -118,7 +118,12 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
         `${API_URL}/album-photo?album_dir=${encodeURIComponent(p.album || '')}&filename=${encodeURIComponent(p.filename)}`;
 
       // fix once for reference
-      const referenceFixed = await ensureImageFile(referencePhoto.file, albumUrl(referencePhoto), referencePhoto.filename);
+      const referenceFixed = await fileFromPhoto(referencePhoto);
+for (const target of targetPhotoObjects) {
+  const sourceFixed = await fileFromPhoto(target);
+  const applyOnFixed = new File([await sourceFixed.arrayBuffer()], cleanName(sourceFixed.name), {
+    type: sourceFixed.type,
+  });
 
       for (const target of targetPhotoObjects) {
         const sourceFixed = await ensureImageFile(target.file, albumUrl(target), target.filename);

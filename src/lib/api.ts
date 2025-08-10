@@ -1291,25 +1291,35 @@ export const lutAndApply = async (
   const correctedReferenceFile = ensureImageType(referenceFile, cleanReferenceFilename);
   const correctedTargetFile = ensureImageType(targetFile, cleanTargetFilename);
 
-  // ✅ FormData
-  const formData = new FormData();
-  formData.append('reference', correctedReferenceFile, cleanReferenceFilename);
-  formData.append('source', correctedTargetFile, cleanTargetFilename);
-
-  // ❗ Φτιάχνουμε νέο File για apply_on ώστε να μην σπάσει το stream
-  const applyOnFile = new File(
+  // ✅ Create fresh cloned Files for all three parts
+  const referenceClone = new File(
+    [await correctedReferenceFile.arrayBuffer()],
+    cleanReferenceFilename,
+    { type: correctedReferenceFile.type }
+  );
+  const sourceClone = new File(
     [await correctedTargetFile.arrayBuffer()],
     cleanTargetFilename,
     { type: correctedTargetFile.type }
   );
-  formData.append('apply_on', applyOnFile, cleanTargetFilename);
+  const applyOnClone = new File(
+    [await correctedTargetFile.arrayBuffer()],
+    cleanTargetFilename,
+    { type: correctedTargetFile.type }
+  );
 
+  // ✅ Build FormData with cloned files
+  const formData = new FormData();
+  formData.append('reference', referenceClone, cleanReferenceFilename);
+  formData.append('source', sourceClone, cleanTargetFilename);
+  formData.append('apply_on', applyOnClone, cleanTargetFilename);
   formData.append('strength', strength.toString());
 
-  console.log('📤 FormData contents:', {
-    reference: `${cleanReferenceFilename} (${correctedReferenceFile.size} bytes, ${correctedReferenceFile.type})`,
-    source: `${cleanTargetFilename} (${correctedTargetFile.size} bytes, ${correctedTargetFile.type})`,
-    apply_on: `${cleanTargetFilename} (${applyOnFile.size} bytes, ${applyOnFile.type})`,
+  // ✅ Log sizes/types of the three parts before fetch
+  console.log('📤 FormData parts before fetch:', {
+    reference: `${cleanReferenceFilename} (${referenceClone.size} bytes, ${referenceClone.type})`,
+    source: `${cleanTargetFilename} (${sourceClone.size} bytes, ${sourceClone.type})`,
+    apply_on: `${cleanTargetFilename} (${applyOnClone.size} bytes, ${applyOnClone.type})`,
     strength
   });
 

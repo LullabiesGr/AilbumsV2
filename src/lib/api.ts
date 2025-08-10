@@ -1158,8 +1158,8 @@ export const falRelight = async (file: File, prompt: string): Promise<{ result_u
 
 // LUT and Apply endpoint for Copy Look Mode
 export const lutAndApply = async (
-  referenceFile: File,
-  targetFile: File,
+  reference: File | string,
+  target: File | string,
   strength: number = 0.5
 ): Promise<{
   lut_cube_file: string;
@@ -1169,11 +1169,82 @@ export const lutAndApply = async (
   info: string;
 }> => {
   console.log('🎨 Applying LUT and color transfer:', {
-    reference: referenceFile.name,
-    target: targetFile.name,
+    reference: typeof reference === 'string' ? reference : reference.name,
+    target: typeof target === 'string' ? target : target.name,
     strength
   });
 
+  // Helper function to convert URL to File
+  const urlToFile = async (url: string, filename: string): Promise<File> => {
+    try {
+      const response = await fetch(url, {
+        headers: { 'ngrok-skip-browser-warning': 'true' }
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ${url}: ${response.status}`);
+      }
+      const blob = await response.blob();
+      
+      // Determine MIME type from URL extension if blob type is generic
+      let mimeType = blob.type;
+      if (!mimeType || mimeType === 'application/octet-stream') {
+        const ext = filename.toLowerCase().split('.').pop();
+        switch (ext) {
+          case 'jpg':
+          case 'jpeg':
+            mimeType = 'image/jpeg';
+            break;
+          case 'png':
+            mimeType = 'image/png';
+            break;
+          case 'tiff':
+          case 'tif':
+            mimeType = 'image/tiff';
+            break;
+          case 'webp':
+            mimeType = 'image/webp';
+            break;
+          default:
+            mimeType = 'image/jpeg';
+        }
+      }
+      
+      return new File([blob], filename, { type: mimeType });
+    } catch (error) {
+      console.error(`Failed to convert URL to File: ${url}`, error);
+      throw new Error(`Failed to load image from URL: ${url}`);
+    }
+  };
+
+  // Convert inputs to Files
+  let referenceFile: File;
+  let targetFile: File;
+  
+  if (typeof reference === 'string') {
+    const filename = reference.split('/').pop() || 'reference.jpg';
+    referenceFile = await urlToFile(reference, filename);
+    console.log('📥 Converted reference URL to File:', {
+      url: reference,
+      filename,
+      size: referenceFile.size,
+      type: referenceFile.type
+    });
+  } else {
+    referenceFile = reference;
+  }
+  
+  if (typeof target === 'string') {
+    const filename = target.split('/').pop() || 'target.jpg';
+    targetFile = await urlToFile(target, filename);
+    console.log('📥 Converted target URL to File:', {
+      url: target,
+      filename,
+      size: targetFile.size,
+      type: targetFile.type
+    });
+  } else {
+    targetFile = target;
+  }
   // ✅ Διορθωτής MIME τύπου
   const ensureImageType = (file: File, filename: string): File => {
     const ext = filename.toLowerCase().split('.').pop();
@@ -1252,13 +1323,29 @@ export const lutAndApply = async (
       mode: 'cors'
     });
 
+    console.log('📡 Backend response status:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
+    });
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('❌ Backend error response:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText: errorText.substring(0, 500)
+      });
       throw new Error(`LUT and Apply failed: ${response.status} ${errorText || response.statusText}`);
     }
 
     const result = await response.json();
-    console.log('📄 LUT and Apply result:', result);
+    console.log('✅ LUT and Apply result:', {
+      lut_cube_file: result.lut_cube_file,
+      result_image_file: result.result_image_file,
+      strength_used: result.strength_used,
+      info: result.info,
+      has_base64: !!result.result_image_base64
+    });
 
     // Αν backend δεν δώσει base64, κατέβασε το αρχείο και μετατροπή
     if (!result.result_image_base64 && result.result_image_file) {
@@ -1270,6 +1357,7 @@ export const lutAndApply = async (
           const blob = await imageResponse.blob();
           const base64 = await blobToBase64(blob);
           result.result_image_base64 = base64.split(',')[1];
+          console.log('📥 Downloaded and converted result image to base64');
         }
       } catch (error) {
         console.warn('⚠️ Could not fetch result image:', error);
@@ -1293,21 +1381,32 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
   });
 };
 
-export const colorTransfer = async (referenceFile: File, targetFiles: File[]): Promise<{ results: ColorTransferResult[] }> => {
+export const colorTransfer = async (
+  reference: File | string, 
+  targets: (File | string)[]
+): Promise<{ results: ColorTransferResult[] }> => {
   // Use the new /lut_and_apply/ endpoint
   const results: ColorTransferResult[] = [];
   
-  for (const targetFile of targetFiles) {
+  for (const target of targets) {
     try {
-      const result = await lutAndApply(referenceFile, targetFile, 0.5);
+      const result = await lutAndApply(reference, target, 0.5);
+      
+      // Get filename for result
+      const targetFilename = typeof target === 'string' 
+        ? target.split('/').pop() || 'image.jpg'
+        : target.name;
       
       // Convert the backend response to match the expected format
       results.push({
-        filename: targetFile.name,
+        filename: targetFilename,
         image_base64: result.result_image_base64 // Assuming backend returns base64
       });
     } catch (error) {
-      console.error(`Failed to apply LUT to ${targetFile.name}:`, error);
+      const targetName = typeof target === 'string' 
+        ? target.split('/').pop() || 'image'
+        : target.name;
+      console.error(`Failed to apply LUT to ${targetName}:`, error);
       throw error;
     }
   }

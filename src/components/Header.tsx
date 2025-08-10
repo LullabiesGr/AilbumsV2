@@ -29,7 +29,8 @@ const Header: React.FC = () => {
 
   const handleGoPricing = () => {
     window.history.pushState({}, '', '/pricing');
-    window.location.reload();
+    // Trigger a custom event to notify App component of route change
+    window.dispatchEvent(new CustomEvent('routechange'));
   };
 
   return (

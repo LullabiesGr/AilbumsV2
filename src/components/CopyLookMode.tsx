@@ -22,14 +22,37 @@ const guessByExt = (name: string) => {
 };
 
 async function urlToFile(url: string, filename: string, fallbackType = 'image/jpeg'): Promise<File> {
-  const res = await fetch(url, { mode: 'cors' });
-  if (!res.ok) throw new Error(`album-photo fetch failed: ${res.status} ${res.statusText}`);
+  const isHttp = url.startsWith('http');
+  const res = await fetch(url, isHttp ? { mode: 'cors' } : undefined); // blob:/data: δεν θέλουν CORS
+  if (!res.ok) throw new Error(`fetch failed: ${res.status} ${res.statusText}`);
   const blob = await res.blob();
   const type =
     blob.type && blob.type.startsWith('image/') && blob.type !== 'application/octet-stream'
       ? blob.type
       : fallbackType;
   return new File([blob], cleanName(filename || 'image.jpg'), { type });
+}
+
+const albumUrl = (album?: string, filename?: string) =>
+  `${API_URL}/album-photo?album_dir=${encodeURIComponent(album || '')}&filename=${encodeURIComponent(filename || '')}`;
+
+/** Προσπάθησε πρώτα από photo.url (blob:/data:/http). Αν δεν υπάρχει/αποτύχει, πέφτει στο /album-photo. */
+async function fileFromPhoto(p: { file?: File; url: string; filename: string; album?: string }): Promise<File> {
+  // Αν υπάρχει κανονικό File, κάνε το “φρέσκο” για να μη θεωρηθεί consumed.
+  if (p.file && p.file.size > 0) {
+    const type =
+      p.file.type && p.file.type !== 'application/octet-stream' ? p.file.type : guessByExt(p.filename);
+    const buf = await p.file.arrayBuffer();
+    return new File([buf], cleanName(p.filename), { type });
+  }
+
+  // 1st try: photo.url (blob:/data:/http)
+  try {
+    return await urlToFile(p.url, p.filename, guessByExt(p.filename));
+  } catch {
+    // 2nd try: /album-photo στον backend (ngrok)
+    return await urlToFile(albumUrl(p.album, p.filename), p.filename, guessByExt(p.filename));
+  }
 }
 
 /** Αν λείπει/είναι 0 bytes/έχει κακό MIME, ξαναφτιάχνει File (fallback από .url). */

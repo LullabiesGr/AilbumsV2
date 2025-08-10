@@ -1168,23 +1168,72 @@ export const lutAndApply = async (
     strength
   });
   
+  // Validate that we have proper File objects with correct types
+  if (!(referenceFile instanceof File) || !(targetFile instanceof File)) {
+    throw new Error('Reference and target must be File objects');
+  }
+  
+  // Ensure files have proper image MIME types
+  const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  if (!validImageTypes.includes(referenceFile.type)) {
+    console.warn('Reference file type:', referenceFile.type, 'converting to image/jpeg');
+  }
+  if (!validImageTypes.includes(targetFile.type)) {
+    console.warn('Target file type:', targetFile.type, 'converting to image/jpeg');
+  }
+  
   const formData = new FormData();
   
-  // Add files as binary data (File objects)
-  formData.append('reference', referenceFile, referenceFile.name);
-  formData.append('source', targetFile, targetFile.name);
-  formData.append('apply_on', targetFile, targetFile.name);
+  // Create proper File objects with correct MIME types if needed
+  const createImageFile = async (file: File, name: string): Promise<File> => {
+    if (validImageTypes.includes(file.type)) {
+      return file;
+    }
+    
+    // Convert to proper image file if needed
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    return new Promise((resolve, reject) => {
+      img.onload = () => {
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        ctx?.drawImage(img, 0, 0);
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(new File([blob], name, { type: 'image/jpeg' }));
+          } else {
+            reject(new Error('Failed to convert image'));
+          }
+        }, 'image/jpeg', 0.9);
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+  
+  // Ensure we have proper image files
+  const referenceImageFile = await createImageFile(referenceFile, referenceFile.name);
+  const targetImageFile = await createImageFile(targetFile, targetFile.name);
+  
+  // Add files exactly as backend expects
+  formData.append('reference', referenceImageFile, referenceImageFile.name);
+  formData.append('source', targetImageFile, targetImageFile.name);
+  formData.append('apply_on', targetImageFile, targetImageFile.name);
   formData.append('strength', strength.toString());
   
   console.log('📤 FormData contents:', {
-    reference: `${referenceFile.name} (${referenceFile.size} bytes)`,
-    source: `${targetFile.name} (${targetFile.size} bytes)`,
-    apply_on: `${targetFile.name} (${targetFile.size} bytes)`,
+    reference: `${referenceImageFile.name} (${referenceImageFile.size} bytes, ${referenceImageFile.type})`,
+    source: `${targetImageFile.name} (${targetImageFile.size} bytes, ${targetImageFile.type})`,
+    apply_on: `${targetImageFile.name} (${targetImageFile.size} bytes, ${targetImageFile.type})`,
     strength: strength.toString(),
     formDataEntries: Array.from(formData.entries()).map(([key, value]) => ({
       key,
       type: value instanceof File ? 'File' : typeof value,
-      size: value instanceof File ? value.size : 'N/A'
+      size: value instanceof File ? value.size : 'N/A',
+      mimeType: value instanceof File ? value.type : 'N/A'
     }))
   });
 
@@ -1194,7 +1243,7 @@ export const lutAndApply = async (
       body: formData,
       headers: {
         'ngrok-skip-browser-warning': 'true'
-        // Don't set Content-Type - let browser set it automatically for multipart/form-data
+        // CRITICAL: Don't set Content-Type - let browser set it automatically for multipart/form-data with boundary
       },
       mode: 'cors',
     });

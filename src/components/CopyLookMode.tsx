@@ -52,42 +52,21 @@ const API_URL = "https://b455dac5621c.ngrok-free.app"; // βάλε εδώ το �
 
   setIsProcessing(true);
 
-  // helper: καθάρισμα ονόματος
-  const cleanName = (n: string) =>
-    n.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_{2,}/g, '_').replace(/^_+|_+$/g, '');
-
-  // helper: βεβαιώσου ότι ο File έχει σωστό mime & “φρέσκο” σώμα
-  const ensureImageFile = async (file: File) => {
-    const ext = (file.name.split('.').pop() || '').toLowerCase();
-    const guess =
-      file.type && file.type !== 'application/octet-stream'
-        ? file.type
-        : ext === 'png'
-        ? 'image/png'
-        : ext === 'webp'
-        ? 'image/webp'
-        : ext === 'tif' || ext === 'tiff'
-        ? 'image/tiff'
-        : 'image/jpeg';
-    const buf = await file.arrayBuffer(); // φτιάχνουμε νέο Blob για να μην “καταναλωθεί” το stream
-    return new File([buf], cleanName(file.name || 'image.jpg'), { type: guess });
-  };
-
   try {
     const targetPhotoObjects = photos.filter(p => targetPhotos.has(p.id));
-    const outResults: ColorTransferResult[] = [];
+    const outResults: { filename: string; image_base64: string }[] = [];
 
-    console.log('Starting LUT & Apply for targets:', {
+    console.log('Starting LUT & Apply:', {
       reference: referencePhoto.filename,
       targets: targetPhotoObjects.map(p => p.filename)
     });
 
-    // φτιάχνουμε ΜΙΑ φορά σωστό reference File
-    const referenceFixed = await ensureImageFile(referencePhoto.file);
+    // Φτιάχνουμε ΜΙΑ φορά “σωστό” reference
+    const referenceFixed = await ensureImageFile(referencePhoto.file, referencePhoto.url, referencePhoto.filename);
 
     for (const target of targetPhotoObjects) {
-      const sourceFixed = await ensureImageFile(target.file);
-      // για apply_on φτιάχνουμε νέο File από το ίδιο buffer (για σιγουριά)
+      const sourceFixed  = await ensureImageFile(target.file, target.url, target.filename);
+      // apply_on: καινούργιο File από το ίδιο buffer (για να μην είναι “consumed”)
       const applyOnFixed = new File(
         [await sourceFixed.arrayBuffer()],
         cleanName(sourceFixed.name),
@@ -98,12 +77,12 @@ const API_URL = "https://b455dac5621c.ngrok-free.app"; // βάλε εδώ το �
       fd.append('reference', referenceFixed, referenceFixed.name);
       fd.append('source',    sourceFixed,    sourceFixed.name);
       fd.append('apply_on',  applyOnFixed,   applyOnFixed.name);
-      fd.append('strength', '0.5');
+      fd.append('strength',  '0.5');
 
       const resp = await fetch(`${API_URL}/lut_and_apply/`, {
         method: 'POST',
         body: fd,
-        headers: { 'ngrok-skip-browser-warning': 'true' },
+        headers: { 'ngrok-skip-browser-warning': 'true' }, // αν μιλάς σε ngrok
         mode: 'cors'
       });
 
@@ -114,8 +93,8 @@ const API_URL = "https://b455dac5621c.ngrok-free.app"; // βάλε εδώ το �
 
       const data = await resp.json();
 
-      // αν ο backend δεν επιστρέψει base64, κατέβασε το αρχείο και κάν’ το base64
-      let image_base64 = data.result_image_base64 as string | undefined;
+      // Αν ο backend δώσει μόνο path, κατέβασέ το και κάν’ το base64 για το UI
+      let image_base64: string | undefined = data.result_image_base64;
       if (!image_base64 && data.result_image_file) {
         try {
           const imgResp = await fetch(`${API_URL}/${data.result_image_file}`, {
@@ -131,12 +110,14 @@ const API_URL = "https://b455dac5621c.ngrok-free.app"; // βάλε εδώ το �
             });
             image_base64 = b64.split(',')[1]; // βγάζουμε το data:image/...;base64, prefix
           }
-        } catch {}
+        } catch (e) {
+          console.warn('Could not fetch result image file:', e);
+        }
       }
 
       outResults.push({
         filename: target.filename,
-        image_base64: image_base64 || '' // για να ζωγραφίσει το UI ακόμη κι αν λείπει
+        image_base64: image_base64 || ''
       });
     }
 

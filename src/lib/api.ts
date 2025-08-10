@@ -9,6 +9,38 @@ const API_URL =
     ? "http://localhost:8000"
     : "https://b455dac5621c.ngrok-free.app";
 
+// Helper function to fetch actual file data from URL
+async function fileFromUrl(url: string, filename: string): Promise<File> {
+  const r = await fetch(url, {
+    mode: 'cors',
+    cache: 'no-store',
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+      'Accept': 'image/*'
+    }
+  });
+
+  if (!r.ok) throw new Error(`album-photo ${r.status}`);
+  const ct = (r.headers.get('content-type') || '').toLowerCase();
+
+  // If it returns HTML (ngrok warning), stop here
+  if (!ct.startsWith('image/')) {
+    const snippet = await r.text();
+    console.error('album-photo returned non-image:', ct, snippet.slice(0, 200));
+    throw new Error('album-photo returned HTML instead of image (ngrok warning)');
+  }
+
+  const blob = await r.blob();
+  if (!blob || blob.size < 2048) throw new Error('image too small (looks corrupted)');
+
+  return new File([blob], filename || 'image.jpg', { type: ct });
+}
+
+function toHex(buf: ArrayBuffer, n = 8) {
+  const v = new Uint8Array(buf.slice(0, n));
+  return [...v].map(x => x.toString(16).padStart(2, '0')).join(' ');
+}
+
 // Upload photo for LUT previews
 export const uploadPhotoForLUTPreviews = async (
   file: File, 
@@ -1262,21 +1294,53 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
   });
 };
 
-export const colorTransfer = async (referenceFile: File, targetFiles: File[]): Promise<{ results: ColorTransferResult[] }> => {
+export const colorTransfer = async (referencePhoto: Photo, targetPhotos: Photo[]): Promise<{ results: ColorTransferResult[] }> => {
   // Use the new /lut_and_apply/ endpoint
   const results: ColorTransferResult[] = [];
   
-  for (const targetFile of targetFiles) {
+  for (const targetPhoto of targetPhotos) {
     try {
+      // Check if we need to fetch actual file data
+      let referenceFile: File;
+      let targetFile: File;
+      
+      // Handle reference photo file
+      if (referencePhoto.file instanceof File && referencePhoto.file.size > 0) {
+        referenceFile = referencePhoto.file;
+      } else {
+        console.log('Fetching reference photo from URL:', referencePhoto.url);
+        referenceFile = await fileFromUrl(referencePhoto.url, referencePhoto.filename || 'reference.jpg');
+      }
+      
+      // Handle target photo file
+      if (targetPhoto.file instanceof File && targetPhoto.file.size > 0) {
+        targetFile = targetPhoto.file;
+      } else {
+        console.log('Fetching target photo from URL:', targetPhoto.url);
+        targetFile = await fileFromUrl(targetPhoto.url, targetPhoto.filename || 'target.jpg');
+      }
+      
+      // Debug: Check file signatures
+      const refSig = await referenceFile.slice(0, 8).arrayBuffer().then(b => toHex(b));
+      const targetSig = await targetFile.slice(0, 8).arrayBuffer().then(b => toHex(b));
+      console.log('[colorTransfer] files', { 
+        ref: { name: referenceFile.name, size: referenceFile.size, type: referenceFile.type, magic: refSig },
+        target: { name: targetFile.name, size: targetFile.size, type: targetFile.type, magic: targetSig }
+      });
+      
+      if (referenceFile.size < 1024 || targetFile.size < 1024) {
+        throw new Error('Image files too small - check file sources');
+      }
+      
       const result = await lutAndApply(referenceFile, targetFile, 0.5);
       
       // Convert the backend response to match the expected format
       results.push({
-        filename: targetFile.name,
+        filename: targetPhoto.filename,
         image_base64: result.result_image_base64 // Assuming backend returns base64
       });
     } catch (error) {
-      console.error(`Failed to apply LUT to ${targetFile.name}:`, error);
+      console.error(`Failed to apply LUT to ${targetPhoto.filename}:`, error);
       throw error;
     }
   }

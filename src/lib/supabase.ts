@@ -9,6 +9,72 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Stripe plan types
+export type StripePlan = 'starter' | 'pro' | 'studio' | 'extra_credits' | 'free';
+
+export interface StripePlanInfo {
+  plan: StripePlan;
+  name: string;
+  monthlyCredits: number;
+  features: string[];
+}
+
+// Plan configurations based on price_id
+const STRIPE_PLANS: Record<string, StripePlanInfo> = {
+  'price_1RFMJNCtJc6njTYQJUh6T8bQ': {
+    plan: 'starter',
+    name: 'Starter Plan',
+    monthlyCredits: 500,
+    features: ['500 monthly credits', 'Basic AI analysis', 'Face detection', 'Email support']
+  },
+  'price_1RFMKaCtJc6njTYQvFfgEt3N': {
+    plan: 'pro',
+    name: 'Pro Plan',
+    monthlyCredits: 2000,
+    features: ['2000 monthly credits', 'Deep AI analysis', 'Face retouching', 'AI editing', 'Priority support']
+  },
+  'price_1RFMLjCtJc6njTYQdhReQy8b': {
+    plan: 'studio',
+    name: 'Studio Plan',
+    monthlyCredits: 10000,
+    features: ['10000 monthly credits', 'All features', 'Unlimited face retouching', 'Batch processing', 'Premium support']
+  },
+  'price_1REGOlCtJc6njTYQF3WdxPX6': {
+    plan: 'extra_credits',
+    name: 'Extra Credits',
+    monthlyCredits: 0,
+    features: ['Additional credits purchase', 'One-time payment']
+  }
+};
+
+// Default free plan
+const FREE_PLAN: StripePlanInfo = {
+  plan: 'free',
+  name: 'Free Plan',
+  monthlyCredits: 100,
+  features: ['100 monthly credits', 'Basic features', 'Community support']
+};
+
+export interface StripeCustomer {
+  id: string;
+  user_id: string;
+  customer_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StripeSubscription {
+  id: string;
+  customer_id: string;
+  subscription_id: string;
+  price_id: string;
+  status: string;
+  current_period_start: string;
+  current_period_end: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // Database types
 export interface UserCredits {
   id: string;
@@ -17,6 +83,7 @@ export interface UserCredits {
   monthly_credits: number; // Μηνιαία credits βάση συνδρομής
   extra_credits: number; // Extra credits που πλήρωσε
   next_reset: string; // Timestamp για επόμενο reset
+  stripe_plan?: StripePlan; // Current Stripe plan
   created_at: string;
   updated_at: string;
 }
@@ -66,6 +133,7 @@ export const getUserCredits = async (userEmail: string): Promise<UserCredits | n
           credits: 100, // Default starting credits
           monthly_credits: 100,
           extra_credits: 0,
+          stripe_plan: 'free',
           next_reset: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
         };
         

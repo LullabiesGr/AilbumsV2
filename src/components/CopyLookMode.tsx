@@ -41,6 +41,8 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
     setTargetPhotos(newTargets);
   };
 
+const API_URL = "https://b455dac5621c.ngrok-free.app"; // βάλε εδώ το σωστό URL σου
+  
   const handleApplyCopyLook = async () => {
   if (!referencePhoto || targetPhotos.size === 0) {
     showToast('Please select a reference photo and target photos', 'warning');

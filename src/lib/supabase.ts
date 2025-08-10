@@ -57,23 +57,23 @@ export interface UserPlan {
 const PLAN_CONFIGS = {
   'price_1RFMJNCtJc6njTYQJUh6T8bQ': {
     name: 'Starter',
-    monthly_credits: 75,
-    features: ['Basic AI Analysis', 'Face Detection', 'Quality Scoring']
+    monthly_credits: 100,
+    features: ['Basic AI Analysis', 'Face Detection', 'Quality Scoring', 'Standard Support']
   },
   'price_1RFMKaCtJc6njTYQvFfgEt3N': {
-    name: 'Pro',
-    monthly_credits: 200,
+    name: 'Pro', 
+    monthly_credits: 500,
     features: ['Deep AI Analysis', 'Event-Specific Prompts', 'Advanced Features', 'Priority Support']
   },
   'price_1RFMLjCtJc6njTYQdhReQy8b': {
     name: 'Studio',
-    monthly_credits: 500,
+    monthly_credits: 2000,
     features: ['Unlimited Analysis', 'All Pro Features', 'API Access', 'White-label Options']
   },
   'price_1REGOlCtJc6njTYQF3WdxPX6': {
     name: 'Extra Credits',
     monthly_credits: 50, // One-time purchase
-    features: ['Additional Credits', 'No Expiration']
+    features: ['Additional Credits', 'No Expiration', 'Add to existing plan']
   }
 };
 
@@ -90,11 +90,11 @@ export const getUserPlan = async (userEmail: string): Promise<UserPlan | null> =
       .single();
     
     if (profileError) {
-      console.error('❌ Failed to get user profile:', profileError);
       if (profileError.code === 'PGRST116') {
         console.warn('⚠️ User profile not found for email:', userEmail);
         return null;
       }
+      console.error('❌ Failed to get user profile:', profileError);
       throw new Error('Failed to find user profile');
     }
     
@@ -123,10 +123,9 @@ export const getUserPlan = async (userEmail: string): Promise<UserPlan | null> =
           current_period_end: '',
           is_active: false
         };
-      } else {
-        console.error('❌ Failed to get stripe customer:', customerError);
-        throw new Error('Failed to get Stripe customer');
       }
+      console.error('❌ Failed to get stripe customer:', customerError);
+      throw new Error('Failed to get Stripe customer');
     }
     
     if (!stripeCustomer) {
@@ -164,10 +163,9 @@ export const getUserPlan = async (userEmail: string): Promise<UserPlan | null> =
           current_period_end: '',
           is_active: false
         };
-      } else {
-        console.error('❌ Failed to get subscription:', subscriptionError);
-        throw new Error('Failed to get subscription');
       }
+      console.error('❌ Failed to get subscription:', subscriptionError);
+      throw new Error('Failed to get subscription');
     }
     
     if (!subscription) {

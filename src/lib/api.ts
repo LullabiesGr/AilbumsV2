@@ -1158,96 +1158,99 @@ export const falRelight = async (file: File, prompt: string): Promise<{ result_u
 
 // LUT and Apply endpoint for Copy Look Mode
 export const lutAndApply = async (
-  reference: File | string,
-  target: File | string,
+  referenceFile: File, 
+  targetFile: File, 
   strength: number = 0.5
-): Promise<{
-  lut_cube_file: string;
-  result_image_file: string;
-  result_image_base64: string;
-  strength_used: number;
-  info: string;
-}> => {
-  // convert URL -> File (αν περάσεις url)
-  const urlToFile = async (url: string, filename: string): Promise<File> => {
-    const r = await fetch(url, { headers: { 'ngrok-skip-browser-warning': 'true' } });
-    if (!r.ok) throw new Error(`Failed to fetch ${url}: ${r.status}`);
-    const blob = await r.blob();
-    // βρες σωστό mime από επέκταση αν είναι generic
-    let mime = blob.type && blob.type !== 'application/octet-stream' ? blob.type : undefined;
-    if (!mime) {
-      const ext = filename.toLowerCase().split('.').pop();
-      mime =
-        ext === 'png' ? 'image/png' :
-        ext === 'webp' ? 'image/webp' :
-        ext === 'tif' || ext === 'tiff' ? 'image/tiff' :
-        'image/jpeg';
-    }
-    return new File([blob], filename, { type: mime });
-  };
-
-  // normalize σε File
-  const refFile = typeof reference === 'string'
-    ? await urlToFile(reference, reference.split('/').pop() || 'reference.jpg')
-    : reference;
-
-  const tgtFile = typeof target === 'string'
-    ? await urlToFile(target, target.split('/').pop() || 'target.jpg')
-    : target;
-
-  // καθάρισμα ονομάτων
-  const clean = (name: string) =>
-    name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_{2,}/g, '_').replace(/^_+|_+$/g, '');
-
-  const refName = clean(refFile.name);
-  const tgtName = clean(tgtFile.name);
-
-  // ΔΕΝ ξαναχρησιμοποιούμε το ίδιο File δύο φορές στο ίδιο FormData.
-  // Κλωνοποιούμε byte-for-byte για το 'apply_on' ώστε να μην είναι άδειο το δεύτερο read στο backend.
-  const tgtBuf = await tgtFile.arrayBuffer();
-  const applyOnFile = new File([tgtBuf], tgtName, { type: tgtFile.type || 'image/jpeg' });
-
+): Promise<{ lut_cube_file: string; result_image_file: string; result_image_base64: string; strength_used: number; info: string }> => {
+  console.log('🎨 Applying LUT and color transfer:', {
+    reference: referenceFile.name,
+    target: targetFile.name,
+    strength
+  });
+  
   const formData = new FormData();
-  formData.append('reference', refFile, refName);
-  formData.append('source', tgtFile, tgtName);
-  formData.append('apply_on', applyOnFile, tgtName);
-  formData.append('strength', String(strength));
-
-  const response = await fetch(`${API_URL}/lut_and_apply/`, {
-    method: 'POST',
-    body: formData,
-    headers: { 'ngrok-skip-browser-warning': 'true' },
-    mode: 'cors',
+  
+  // Add files as binary data (File objects)
+  formData.append('reference', referenceFile, referenceFile.name);
+  formData.append('source', targetFile, targetFile.name);
+  formData.append('apply_on', targetFile, targetFile.name);
+  formData.append('strength', strength.toString());
+  
+  console.log('📤 FormData contents:', {
+    reference: `${referenceFile.name} (${referenceFile.size} bytes)`,
+    source: `${targetFile.name} (${targetFile.size} bytes)`,
+    apply_on: `${targetFile.name} (${targetFile.size} bytes)`,
+    strength: strength.toString(),
+    formDataEntries: Array.from(formData.entries()).map(([key, value]) => ({
+      key,
+      type: value instanceof File ? 'File' : typeof value,
+      size: value instanceof File ? value.size : 'N/A'
+    }))
   });
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`LUT and Apply failed: ${response.status} ${text || response.statusText}`);
-  }
+  try {
+    const response = await fetch(`${API_URL}/lut_and_apply/`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+        // Don't set Content-Type - let browser set it automatically for multipart/form-data
+      },
+      mode: 'cors',
+    });
 
-  const result = await response.json();
+    console.log('📥 LUT and Apply response:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
+    });
 
-  // αν ο server έδωσε μόνο path, τράβα την εικόνα και κάν' την base64 για το UI
-  if (!result.result_image_base64 && result.result_image_file) {
-    try {
-      const imgResp = await fetch(`${API_URL}/${result.result_image_file}`, {
-        headers: { 'ngrok-skip-browser-warning': 'true' }
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LUT and Apply API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
       });
-      if (imgResp.ok) {
-        const blob = await imgResp.blob();
-        const base64 = await blobToBase64(blob);
-        result.result_image_base64 = base64.split(',')[1];
-        console.log('📥 Downloaded and converted result image to base64');
-      }
-    } catch (error) {
-      console.warn('⚠️ Could not fetch result image:', error);
+      throw new Error(`LUT and Apply failed: ${response.status} ${errorText || response.statusText}`);
     }
-  }
 
-  return result;
+    const result = await response.json();
+    console.log('📄 LUT and Apply result:', result);
+    
+    // If backend returns file paths, we need to fetch the actual image data
+    if (result.result_image_file && !result.result_image_base64) {
+      try {
+        // Fetch the result image and convert to base64
+        const imageResponse = await fetch(`${API_URL}/${result.result_image_file}`, {
+          headers: {
+            'ngrok-skip-browser-warning': 'true'
+          }
+        });
+        
+        if (imageResponse.ok) {
+          const imageBlob = await imageResponse.blob();
+          const base64 = await blobToBase64(imageBlob);
+          result.result_image_base64 = base64.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+          console.log('✅ Converted result image to base64:', {
+            originalPath: result.result_image_file,
+            base64Length: result.result_image_base64.length
+          });
+        }
+      } catch (error) {
+        console.warn('Failed to fetch result image:', error);
+      }
+    }
+    
+    console.log('✅ LUT and Apply successful:', result);
+    return result;
+  } catch (error: any) {
+    console.error('❌ LUT and Apply failed:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
 };
 
-// Helper: Μετατροπή blob σε base64
+// Helper function to convert blob to base64
 const blobToBase64 = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -1257,22 +1260,24 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
   });
 };
 
-export const colorTransfer = async (
-  reference: File | string, 
-  targets: (File | string)[]
-): Promise<{ results: ColorTransferResult[] }> => {
+export const colorTransfer = async (referenceFile: File, targetFiles: File[]): Promise<{ results: ColorTransferResult[] }> => {
+  // Use the new /lut_and_apply/ endpoint
   const results: ColorTransferResult[] = [];
   
-  for (const target of targets) {
-    const r = await lutAndApply(reference, target, 0.5);
-    const targetFilename =
-      typeof target === 'string' ? (target.split('/').pop() || 'image.jpg') : target.name;
-
-    results.push({
-      filename: targetFilename,
-      image_base64: r.result_image_base64, // αν υπάρχει (αλλιώς στο UI δεν θα δείξει after)
-    });
+  for (const targetFile of targetFiles) {
+    try {
+      const result = await lutAndApply(referenceFile, targetFile, 0.5);
+      
+      // Convert the backend response to match the expected format
+      results.push({
+        filename: targetFile.name,
+        image_base64: result.result_image_base64 // Assuming backend returns base64
+      });
+    } catch (error) {
+      console.error(`Failed to apply LUT to ${targetFile.name}:`, error);
+      throw error;
+    }
   }
   
   return { results };
-};
+}

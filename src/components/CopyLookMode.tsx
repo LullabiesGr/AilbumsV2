@@ -126,7 +126,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
        type: sourceFixed.type,
     });
   // ... (φορμάρεις FormData όπως ήδη κάνεις και POST στο `${API_URL}/lut_and_apply/`)
-}
+  }
 
   const handleDownload = (result: ColorTransferResult) => {
     if (!result) return;

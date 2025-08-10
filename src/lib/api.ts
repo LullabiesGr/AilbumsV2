@@ -1299,42 +1299,19 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
 };
 
 export const colorTransfer = async (referenceFile: File, targetFiles: File[]): Promise<{ results: ColorTransferResult[] }> => {
-  // Use the new /lut_and_apply/ endpoint
   const results: ColorTransferResult[] = [];
   
   for (const targetFile of targetFiles) {
     try {
-      if (contentType.includes('application/json')) {
-        result = await response.json();
-      } else {
-        const responseText = await response.text();
-        console.log('📄 Non-JSON response text:', responseText.substring(0, 500));
-        
-        // Try to parse as JSON anyway (some servers return JSON with wrong content-type)
-        try {
-          result = JSON.parse(responseText);
-        } catch {
-          throw new Error(`Server returned ${contentType} instead of JSON. Response: ${responseText.substring(0, 200)}`);
-        }
-      }
-      
-      // Convert the backend response to match the expected format
+      const result = await lutAndApply(referenceFile, targetFile);
       results.push({
         filename: targetFile.name,
-        image_base64: result.result_image_base64 // Assuming backend returns base64
+        image_base64: result.result_image_base64
       });
-      console.error('❌ Failed to parse LUT and Apply response:', parseError);
-      throw new Error(`Invalid response format from server. Expected JSON but got ${contentType}.`);
-    
-    // Provide user-friendly error messages
-    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-      throw new Error('Network error: Unable to connect to the server. Please check your internet connection.');
-    } else if (error.message.includes('not reachable')) {
-      throw new Error('Backend server is not available. Please try again later or contact support.');
-    }
-    
+    } catch (error: any) {
+      console.error(`Failed to process ${targetFile.name}:`, error);
+      // Continue with other files even if one fails
     }
   }
   
   return { results };
-}

@@ -134,6 +134,12 @@ const AIStyleMode: React.FC<AIStyleModeProps> = ({ onBack }) => {
 
   const canApply = referencePhoto && targetPhotos.size > 0 && !isProcessing;
 
+  // Get result image URL from backend static files
+  const getResultImageUrl = (result: AIStyleResult) => {
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://b455dac5621c.ngrok-free.app';
+    return `${baseUrl}/${result.result_image_file}`;
+  };
+
   // Get result image URL
   const getResultImageUrl = (result: AIStyleResult) => {
     const baseUrl = import.meta.env.VITE_API_URL || 'https://b455dac5621c.ngrok-free.app';

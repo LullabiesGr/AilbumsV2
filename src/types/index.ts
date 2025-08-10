@@ -155,6 +155,14 @@ export type EventType = 'wedding' | 'baptism' | 'portrait' | 'event' | 'landscap
 
 export type WorkflowStage = 'upload' | 'configure' | 'analyzing' | 'review' | 'face-retouch' | 'ai-edit' | 'copy-look' | 'copy-photo-style';
 
+export interface AIStyleResult {
+  filename: string;
+  lut_cube_file: string;
+  result_image_file: string;
+  strength_used: number;
+  info: string;
+}
+
 export interface ColorLabelConfig {
   color: ColorLabel;
   label: string;

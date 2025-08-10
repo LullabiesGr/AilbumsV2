@@ -1168,30 +1168,6 @@ export const lutAndApply = async (
     strength
   });
   
-  // Validate input files first
-  if (!referenceFile || !(referenceFile instanceof File) || referenceFile.size === 0) {
-    throw new Error('Invalid reference file: file is empty or not a valid File object');
-  }
-  
-  if (!targetFile || !(targetFile instanceof File) || targetFile.size === 0) {
-    throw new Error('Invalid target file: file is empty or not a valid File object');
-  }
-  
-  console.log('📋 File validation passed:', {
-    reference: {
-      name: referenceFile.name,
-      size: referenceFile.size,
-      type: referenceFile.type,
-      lastModified: referenceFile.lastModified
-    },
-    target: {
-      name: targetFile.name,
-      size: targetFile.size,
-      type: targetFile.type,
-      lastModified: targetFile.lastModified
-    }
-  });
-  
   // Helper function to ensure file has correct MIME type
   const ensureImageType = (file: File, filename: string): File => {
     // Detect MIME type from file extension if not set correctly
@@ -1221,7 +1197,6 @@ export const lutAndApply = async (
     
     // Create new File with correct MIME type if needed
     if (file.type !== mimeType) {
-      console.log(`🔧 Correcting MIME type for ${filename}: ${file.type} → ${mimeType}`);
       return new File([file], filename, { type: mimeType });
     }
     
@@ -1243,11 +1218,6 @@ export const lutAndApply = async (
   const correctedReferenceFile = ensureImageType(referenceFile, cleanReferenceFilename);
   const correctedTargetFile = ensureImageType(targetFile, cleanTargetFilename);
   
-  // Final validation after corrections
-  if (correctedReferenceFile.size === 0 || correctedTargetFile.size === 0) {
-    throw new Error('File size is zero after processing - files may be corrupted');
-  }
-  
   const formData = new FormData();
   
   // Add files with corrected MIME types and clean filenames
@@ -1263,50 +1233,13 @@ export const lutAndApply = async (
     source: `${cleanTargetFilename} (${correctedTargetFile.size} bytes, ${correctedTargetFile.type})`,
     apply_on: `${cleanTargetFilename} (${correctedTargetFile.size} bytes, ${correctedTargetFile.type})`,
     strength: strength.toString(),
-    formDataEntries: Array.from(formData.entries()).map(([key, value]) => {
-      if (value instanceof File) {
-        return {
-          key,
-          type: 'File',
-          size: value.size,
-          mimeType: value.type,
-          name: value.name,
-          hasContent: value.size > 0
-        };
-      } else {
-        return {
-          key,
-          type: typeof value,
-          value: value,
-          hasContent: true
-        };
-      }
-    })
+    formDataEntries: Array.from(formData.entries()).map(([key, value]) => ({
+      key,
+      type: value instanceof File ? 'File' : typeof value,
+      size: value instanceof File ? value.size : 'N/A',
+      mimeType: value instanceof File ? value.type : 'N/A'
+    }))
   });
-  
-  // Validate FormData before sending
-  const referenceEntry = formData.get('reference') as File;
-  const sourceEntry = formData.get('source') as File;
-  const applyEntry = formData.get('apply_on') as File;
-  const strengthEntry = formData.get('strength') as string;
-  
-  if (!referenceEntry || referenceEntry.size === 0) {
-    throw new Error('Reference file is missing or empty in FormData');
-  }
-  
-  if (!sourceEntry || sourceEntry.size === 0) {
-    throw new Error('Source file is missing or empty in FormData');
-  }
-  
-  if (!applyEntry || applyEntry.size === 0) {
-    throw new Error('Apply_on file is missing or empty in FormData');
-  }
-  
-  if (!strengthEntry) {
-    throw new Error('Strength parameter is missing in FormData');
-  }
-  
-  console.log('✅ FormData validation passed - all files have content');
 
   try {
     const response = await fetch(`${API_URL}/lut_and_apply/`, {

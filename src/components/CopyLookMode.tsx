@@ -49,7 +49,6 @@ async function ensureImageFile(file: File | undefined, url: string, filename: st
   return new File([buf], cleanName(f.name || filename || "image.jpg"), { type });
 }
 
-
 const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
   const { photos } = usePhoto();
   const { showToast } = useToast();

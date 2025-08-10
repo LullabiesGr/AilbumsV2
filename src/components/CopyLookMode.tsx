@@ -23,10 +23,29 @@ const guessByExt = (name: string) => {
   return 'image/jpeg';
 };
 
-const albumUrl = (album?: string, filename?: string) =>
-  `${API_URL}/album-photo?album_dir=${encodeURIComponent(album || '')}&filename=${encodeURIComponent(filename || '')}`;
+// ➜ Typing με πεδία άλμπουμ
+type PhotoWithAlbum = Photo & {
+  userId?: string;     // π.χ. "lullabiesgr@gmail.com"
+  folder?: string;     // π.χ. "reyb"
+  album_path?: string; // π.χ. "lullabiesgr@gmail.com/reyb"
+  album?: string;      // αν το έχεις έτσι ήδη
+};
 
-/** Fetch -> Blob -> File, ΜΟΝΟ αν είναι image/*. Διαφορετικά πετάει error. */
+// Φτιάχνει σωστό backend URL για /album-photo
+const buildAlbumUrl = (p: PhotoWithAlbum) => {
+  if (p.userId && p.folder) {
+    return `${API_URL}/album-photo?user_id=${encodeURIComponent(p.userId)}&folder=${encodeURIComponent(p.folder)}&filename=${encodeURIComponent(p.filename)}`;
+  }
+  if (p.album_path) {
+    return `${API_URL}/album-photo?album_dir=${encodeURIComponent(p.album_path)}&filename=${encodeURIComponent(p.filename)}`;
+  }
+  if (p.album) {
+    return `${API_URL}/album-photo?album_dir=${encodeURIComponent(p.album)}&filename=${encodeURIComponent(p.filename)}`;
+  }
+  return '';
+};
+
+/** Fetch -> Blob -> File, ΜΟΝΟ αν είναι image/*. */
 async function urlToFile(url: string, filename: string): Promise<File> {
   const needsNgrokHeader = url.startsWith(API_URL);
   const res = await fetch(url, {
@@ -38,42 +57,37 @@ async function urlToFile(url: string, filename: string): Promise<File> {
   const ct = (res.headers.get('content-type') || '').toLowerCase();
   const blob = await res.blob();
 
-  // ΠΡΑΓΜΑΤΙΚΟΣ έλεγχος ότι είναι εικόνα
-  const isImage =
-    ct.startsWith('image/') ||
-    (blob.type && blob.type.startsWith('image/'));
-
-  if (!isImage) {
-    // Μην παριστάνουμε εικόνα με "fallback" type. Αυτό ήταν το πρόβλημα.
-    throw new Error(`Not an image response (content-type: ${ct || blob.type || 'unknown'})`);
-  }
+  const isImage = ct.startsWith('image/') || (blob.type && blob.type.startsWith('image/'));
+  if (!isImage) throw new Error(`Not an image response (content-type: ${ct || blob.type || 'unknown'})`);
 
   const type = blob.type || guessByExt(filename);
   return new File([blob], cleanName(filename || 'image.jpg'), { type });
 }
 
-/** Παίρνει ορθό File από το Photo:
- *  1) αν έχεις p.file με bytes -> το «φρεσκάρει»,
- *  2) αλλιώς προσπαθεί από p.url,
- *  3) αλλιώς πέφτει στο /album-photo (backend).
+/** 1) αν υπάρχει File -> “φρέσκο”
+ *  2) αλλιώς δοκίμασε από p.url
+ *  3) αλλιώς fallback /album-photo (userId+folder ή album_path/album)
  */
-async function fileFromPhoto(p: { file?: File; url: string; filename: string; album?: string }): Promise<File> {
-  // 1) Υπάρχει ήδη File με bytes;
+async function fileFromPhoto(p: PhotoWithAlbum): Promise<File> {
   if (p.file && p.file.size > 0) {
     const type = p.file.type && p.file.type !== 'application/octet-stream'
       ? p.file.type
       : guessByExt(p.filename);
-    const buf = await p.file.arrayBuffer(); // «φρέσκο» σώμα για να μη θεωρηθεί consumed
+    const buf = await p.file.arrayBuffer();
     return new File([buf], cleanName(p.filename), { type });
   }
 
-  // 2) Δοκίμασε το url (blob:/data:/http)
+  // 2) url πρώτα (blob:/data:/http)
   try {
-    return await urlToFile(p.url, p.filename);
+    if (p.url) return await urlToFile(p.url, p.filename);
   } catch {
-    // 3) Fallback: /album-photo (ngrok)
-    return await urlToFile(albumUrl(p.album, p.filename), p.filename);
+    /* συνεχίζουμε στο fallback */
   }
+
+  // 3) backend fallback
+  const fallback = buildAlbumUrl(p);
+  if (!fallback) throw new Error('Missing album info (userId/folder or album_path/album).');
+  return await urlToFile(fallback, p.filename);
 }
 
 interface CopyLookModeProps {
@@ -121,11 +135,11 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
       });
 
       // 1) Ετοίμασε ΜΙΑ φορά το reference
-      const referenceFixed = await fileFromPhoto(referencePhoto);
+      const referenceFixed = await fileFromPhoto(referencePhoto as PhotoWithAlbum);
 
       // 2) Για κάθε target: source -> apply_on -> FormData -> POST
       for (const target of targetPhotoObjects) {
-        const sourceFixed = await fileFromPhoto(target);
+        const sourceFixed = await fileFromPhoto(target as PhotoWithAlbum);
 
         // apply_on: καινούριο File από το ίδιο buffer (μην είναι consumed)
         const applyOnFixed = new File(
@@ -143,7 +157,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
         const resp = await fetch(`${API_URL}/lut_and_apply/`, {
           method: 'POST',
           body: fd,
-          headers: { 'ngrok-skip-browser-warning': 'true' }, // σημαντικό για ngrok
+          headers: { 'ngrok-skip-browser-warning': 'true' },
           mode: 'cors',
         });
 
@@ -170,7 +184,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
                 r.onerror = reject;
                 r.readAsDataURL(blob);
               });
-              image_base64 = b64.split(',')[1]; // κόβουμε το data:image/...;base64,
+              image_base64 = b64.split(',')[1];
             }
           } catch (e) {
             console.warn('Could not fetch result image:', e);

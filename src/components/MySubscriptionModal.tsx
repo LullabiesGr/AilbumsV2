@@ -69,11 +69,39 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
   // Format date for display
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('el-GR', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  // Calculate next renewal date based on created_at (same day next month)
+  const calculateNextRenewal = (createdAt: string) => {
+    if (!createdAt) return 'N/A';
+    
+    const createdDate = new Date(createdAt);
+    const now = new Date();
+    
+    // Get the day of month from created_at
+    const renewalDay = createdDate.getDate();
+    
+    // Start with current month
+    let nextRenewal = new Date(now.getFullYear(), now.getMonth(), renewalDay);
+    
+    // If the renewal date for this month has already passed, move to next month
+    if (nextRenewal <= now) {
+      nextRenewal = new Date(now.getFullYear(), now.getMonth() + 1, renewalDay);
+    }
+    
+    // Handle edge case where the day doesn't exist in the target month (e.g., Jan 31 -> Feb 31)
+    if (nextRenewal.getDate() !== renewalDay) {
+      // Set to last day of the month
+      nextRenewal = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    }
+    
+    return nextRenewal.toISOString();
   };
 
   // Get plan icon

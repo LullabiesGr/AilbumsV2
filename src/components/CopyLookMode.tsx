@@ -58,29 +58,14 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
     setIsProcessing(true);
     try {
       const targetPhotoObjects = photos.filter(p => targetPhotos.has(p.id));
-      const targetFiles = targetPhotoObjects.map(p => p.file);
-      
-      console.log('📁 Files prepared for color transfer:', {
-        referenceFile: { name: referencePhoto.file.name, type: referencePhoto.file.type, size: referencePhoto.file.size },
-        targetFiles: targetFiles.map(f => ({ name: f.name, type: f.type, size: f.size }))
-      });
-      
-      const response = await colorTransfer(referencePhoto.file, targetFiles);
+      const targetFiles = targetPhotoObjects.map(p => p.file ?? p.url);
+      const response = await colorTransfer(referencePhoto!.file ?? referencePhoto!.url, targetFiles);
       const transferResults = response.results || response;
-      
-      console.log('✅ Color transfer completed:', transferResults);
       setResults(transferResults);
       showToast(`Color transfer completed for ${transferResults.length} photos!`, 'success');
-    } catch (e: any) {
-      const msg = e?.message || 'Color transfer failed';
-      console.error('❌ CopyLook error detail:', {
-        message: msg,
-        error: e,
-        stack: e?.stack,
-        referencePhoto: referencePhoto ? { id: referencePhoto.id, filename: referencePhoto.filename } : null,
-        targetCount: targetPhotos.size
-      });
-      showToast(msg, 'error');
+    } catch (err: any) {
+      console.error("CopyLook error detail:", err);
+      showToast(err.message || 'Color transfer failed', 'error');
     } finally {
       setIsProcessing(false);
     }

@@ -1315,3 +1315,4 @@ export const colorTransfer = async (referenceFile: File, targetFiles: File[]): P
   }
   
   return { results };
+}

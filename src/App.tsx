@@ -23,28 +23,6 @@ const AppContent: React.FC = () => {
     } else {
       setCurrentPage('home');
     }
-    
-    // Listen for custom route change events
-    const handleRouteChange = () => {
-      const newPath = window.location.pathname;
-      const newSearch = window.location.search;
-      
-      if (newPath === '/pricing') {
-        setCurrentPage('pricing');
-      } else if (newPath === '/success' || newSearch.includes('session_id')) {
-        setCurrentPage('success');
-      } else {
-        setCurrentPage('home');
-      }
-    };
-    
-    window.addEventListener('routechange', handleRouteChange);
-    window.addEventListener('popstate', handleRouteChange);
-    
-    return () => {
-      window.removeEventListener('routechange', handleRouteChange);
-      window.removeEventListener('popstate', handleRouteChange);
-    };
   }, []);
 
   if (isLoading) {

@@ -1217,23 +1217,58 @@ export const lutAndApply = async (
   strength_used: number;
   info: string;
 }> => {
+  console.log('🎨 lutAndApply called with:', {
+    reference: typeof reference === 'string' ? reference : `${reference.name} (${reference.type}, ${reference.size} bytes)`,
+    target: typeof target === 'string' ? target : `${target.name} (${target.type}, ${target.size} bytes)`,
+    strength,
+    apiUrl: API_URL
+  });
+
   // Μετατροπή URL -> File (αν έρθει url)
   let referenceFile: File = typeof reference === 'string'
-    ? await fileFromUrl(reference, reference.split('/').pop() || 'reference.jpg')
-    : reference;
-
-  let targetFile: File = typeof target === 'string'
-    ? await fileFromUrl(target, target.split('/').pop() || 'target.jpg')
-    : target;
+  let refFile0: File;
+  let tgtFile0: File;
+  
+  try {
+    refFile0 = typeof reference === 'string'
+      ? await urlToFile(reference)
+      : reference;
+    console.log('✅ Reference file prepared:', { name: refFile0.name, type: refFile0.type, size: refFile0.size });
+  } catch (error) {
+    console.error('❌ Failed to prepare reference file:', error);
+    throw new Error(`Failed to prepare reference file: ${error}`);
+  }
+  
+  try {
+    tgtFile0 = typeof target === 'string'
+      ? await urlToFile(target)
+      : target;
+    console.log('✅ Target file prepared:', { name: tgtFile0.name, type: tgtFile0.type, size: tgtFile0.size });
+  } catch (error) {
+    console.error('❌ Failed to prepare target file:', error);
+    throw new Error(`Failed to prepare target file: ${error}`);
+  }
 
   // Βεβαιώσου ότι έχουν σωστό MIME & "καθαρά" ονόματα
   referenceFile = await ensureFileWithType(referenceFile);
   targetFile    = await ensureFileWithType(targetFile);
 
+  
+  console.log('🔧 Files after MIME type correction:', {
+    reference: { name: refFile.name, type: refFile.type, size: refFile.size },
+    target: { name: tgtFile.name, type: tgtFile.type, size: tgtFile.size }
+  });
   // ΜΗ βάλεις το ίδιο File δύο φορές στο FormData — κάνε clone
   const applyOnFile = await cloneFile(targetFile);
-
-  const formData = new FormData();
+  let applyOnFile: File;
+  try {
+    const tgtBuffer = await tgtFile.arrayBuffer();
+    applyOnFile = new File([tgtBuffer], tgtFile.name, { type: tgtFile.type });
+    console.log('✅ Apply-on file cloned:', { name: applyOnFile.name, type: applyOnFile.type, size: applyOnFile.size });
+  } catch (error) {
+    console.error('❌ Failed to clone target file:', error);
+    throw new Error(`Failed to clone target file: ${error}`);
+  }
   formData.append('reference', referenceFile, cleanFilename(referenceFile.name));
   formData.append('source',    targetFile,    cleanFilename(targetFile.name));
   formData.append('apply_on',  applyOnFile,   cleanFilename(applyOnFile.name));
@@ -1244,25 +1279,71 @@ export const lutAndApply = async (
     source: `${targetFile.name} (${targetFile.type}, ${targetFile.size} bytes)`,
     apply_on: `${applyOnFile.name} (${applyOnFile.type}, ${applyOnFile.size} bytes)`,
     strength
+  
+  console.log('📤 FormData prepared with files:', {
+    reference: { name: refName, type: refFile.type, size: refFile.size },
+    source: { name: tgtName, type: tgtFile.type, size: tgtFile.size },
+    apply_on: { name: tgtName, type: applyOnFile.type, size: applyOnFile.size },
+    strength: strength,
+    endpoint: `${API_URL}/lut_and_apply/`
   });
-
-  const response = await fetch(`${API_URL}/lut_and_apply/`, {
-    method: 'POST',
+  });
     body: formData,
-    // ΜΗΝ ορίσεις Content-Type — το βάζει μόνος του ο browser με boundary
-    headers: { 'ngrok-skip-browser-warning': 'true' },
-    mode: 'cors',
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`LUT and Apply failed: ${response.status} ${errorText || response.statusText}`);
+  let resp: Response;
+  try {
+    // Never set Content-Type manually for multipart; let the browser set the boundary.
+    resp = await fetch(`${API_URL}/lut_and_apply/`, {
+      method: 'POST',
+      body: fd,
+      headers: { 'Accept': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+      mode: 'cors',
+    });
+    
+    console.log('📥 Response received:', {
+      status: resp.status,
+      statusText: resp.statusText,
+      ok: resp.ok,
+      headers: Object.fromEntries(resp.headers.entries())
+    });
+  } catch (fetchError) {
+    console.error('❌ Fetch failed:', fetchError);
+    
+    // Check if we're in Bolt preview environment
+    const isBoltPreview = window.location.hostname.includes('webcontainer') || 
+                         window.location.hostname.includes('stackblitz') ||
+                         window.location.protocol === 'https:' && window.location.hostname !== 'localhost';
+    
+    if (isBoltPreview) {
+      throw new Error(`Network request failed in preview environment. This may be due to CORS restrictions in the preview sandbox. Try testing in a regular browser tab or deploy the app to test the Copy Look feature. Original error: ${fetchError}`);
+    } else {
+      throw new Error(`Network request failed: ${fetchError}. Please check if the backend server is running at ${API_URL}`);
+    }
   }
 
-  const result = await response.json();
+  if (!response.ok) {
+    let errorText = '';
+    try {
+      errorText = await resp.text();
+      console.error('❌ Server error response:', errorText);
+    } catch (textError) {
+      console.error('❌ Failed to read error response:', textError);
+    }
+    
+    throw new Error(`LUT and Apply failed: ${resp.status} ${resp.statusText}${errorText ? ` - ${errorText.slice(0, 200)}` : ''}`);
+  }
+
+  let result: any;
+  try {
+    result = await resp.json();
+    console.log('✅ LUT and Apply result:', result);
+  } catch (jsonError) {
+    console.error('❌ Failed to parse JSON response:', jsonError);
+    throw new Error(`Invalid JSON response from server: ${jsonError}`);
+  }
 
   // Αν ο backend δεν επιστρέφει base64, κατέβασέ το και κάνε convert
   if (!result.result_image_base64 && result.result_image_file) {
+    console.log('🔄 Fetching result image as base64...');
     try {
       const imgRes = await fetch(`${API_URL}/${result.result_image_file}`, {
         headers: { 'ngrok-skip-browser-warning': 'true' }
@@ -1276,9 +1357,13 @@ export const lutAndApply = async (
           r.readAsDataURL(blob);
         });
       }
+        console.log('✅ Result image converted to base64');
     } catch { /* ignore */ }
-  }
+    } catch (base64Error) {
+      console.warn('⚠️ Failed to fetch result image as base64:', base64Error);
+    }
 
+  
   return result;
 };
 

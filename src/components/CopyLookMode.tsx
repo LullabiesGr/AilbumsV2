@@ -63,7 +63,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
       formData.append('targets', file);
     });
 
-    const response = await fetch('/api/color-transfer', {
+    const response = await fetch('/api/lut_and_apply', {
       method: 'POST',
       body: formData
     });

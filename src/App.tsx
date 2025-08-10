@@ -4,9 +4,26 @@ import { ToastProvider } from './context/ToastContext';
 import { PhotoProvider } from './context/PhotoContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginScreen from './components/LoginScreen';
+import PricingPage from './components/PricingPage';
+import SuccessPage from './components/SuccessPage';
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
+  const [currentPage, setCurrentPage] = useState<'home' | 'pricing' | 'success'>('home');
+
+  // Check URL for routing
+  React.useEffect(() => {
+    const path = window.location.pathname;
+    const search = window.location.search;
+    
+    if (path === '/pricing') {
+      setCurrentPage('pricing');
+    } else if (path === '/success' || search.includes('session_id')) {
+      setCurrentPage('success');
+    } else {
+      setCurrentPage('home');
+    }
+  }, []);
 
   if (isLoading) {
     return (
@@ -23,11 +40,32 @@ const AppContent: React.FC = () => {
     return <LoginScreen />;
   }
 
+  // Handle different pages
+  switch (currentPage) {
+    case 'pricing':
+      return (
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+          <PricingPage onBack={() => {
+            setCurrentPage('home');
+            window.history.pushState({}, '', '/');
+          }} />
+        </div>
+      );
+    
+    case 'success':
+      return (
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+          <SuccessPage />
+        </div>
+      );
+    
+    default:
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <Home />
     </div>
   );
+  }
 };
 
 function App() {

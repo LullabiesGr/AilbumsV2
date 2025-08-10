@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { X, Crown, Calendar, CreditCard, Check, AlertCircle, Star, Zap, Sparkles, Users, Shield, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { getUserPlan, UserPlan, getPlanFeatures } from '../lib/supabase';
+import { getUserPlan, UserPlan, getPlanFeatures, getUserSubscription } from '../lib/supabase';
+import { getProductByPriceId } from '../stripe-config';
+import SubscriptionPlans from './SubscriptionPlans';
 
 interface MySubscriptionModalProps {
   isOpen: boolean;
@@ -11,7 +13,9 @@ interface MySubscriptionModalProps {
 
 const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClose }) => {
   const [userPlan, setUserPlan] = useState<UserPlan | null>(null);
+  const [subscription, setSubscription] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const { user } = useAuth();
   const { showToast } = useToast();
 
@@ -26,9 +30,11 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
     try {
       console.log('🔄 Loading subscription plan for user:', user.email);
       const plan = await getUserPlan(user.email);
+      const subscriptionData = await getUserSubscription(user.email);
       
       if (plan) {
         setUserPlan(plan);
+        setSubscription(subscriptionData);
         console.log('✅ Subscription plan loaded successfully:', plan);
       } else {
         // Set default free plan
@@ -40,6 +46,7 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
           current_period_end: '',
           is_active: false
         });
+        setSubscription(null);
         console.log('ℹ️ No subscription found, using free plan');
       }
     } catch (error: any) {
@@ -54,6 +61,7 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
         current_period_end: '',
         is_active: false
       });
+      setSubscription(null);
     } finally {
       setIsLoading(false);
     }
@@ -69,12 +77,25 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
   // Format date for display
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
-    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('el-GR', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  // Format timestamp to date
+  const formatTimestamp = (timestamp: number) => {
+    return new Date(timestamp * 1000).toLocaleDateString('el-GR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  // Get product details from Stripe config
+  const getProductDetails = (priceId: string) => {
+    return getProductByPriceId(priceId);
   };
 
   // Calculate next renewal date based on created_at (same day next month)
@@ -193,6 +214,50 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
 
   if (!isOpen) return null;
 
+  if (showUpgrade) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl 
+                              flex items-center justify-center">
+                  <Crown className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 
+                               bg-clip-text text-transparent">
+                    Upgrade Your Plan
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Choose a new plan or purchase additional credits
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowUpgrade(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 
+                         hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <SubscriptionPlans onSuccess={() => {
+              setShowUpgrade(false);
+              loadUserPlan();
+            }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
@@ -245,9 +310,11 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
                       <h3 className={`text-2xl font-bold ${getPlanColors(userPlan.plan_name).text}`}>
                         {userPlan.plan_name} Plan
                       </h3>
-                      <p className={`text-sm ${getPlanColors(userPlan.plan_name).accent}`}>
-                        {userPlan.price_id ? `Price ID: ${userPlan.price_id}` : 'No subscription required'}
-                      </p>
+                      {userPlan.price_id && getProductDetails(userPlan.price_id) && (
+                        <p className={`text-sm ${getPlanColors(userPlan.plan_name).accent}`}>
+                          €{getProductDetails(userPlan.price_id)!.price.toFixed(2)}/month
+                        </p>
+                      )}
                     </div>
                   </div>
                   {getStatusBadge(userPlan.status, userPlan.is_active)}
@@ -272,11 +339,11 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
                   </div>
 
                   <div className="space-y-3">
-                    {userPlan.current_period_end && (
+                    {subscription && subscription.current_period_end && (
                       <div className="flex justify-between">
                         <span className={`text-sm ${getPlanColors(userPlan.plan_name).accent}`}>Next Billing:</span>
                         <span className={`font-medium ${getPlanColors(userPlan.plan_name).text}`}>
-                          {formatDate(calculateNextRenewal(userPlan.current_period_end))}
+                          {formatTimestamp(subscription.current_period_end)}
                         </span>
                       </div>
                     )}
@@ -337,6 +404,15 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
                           {userPlan.status}
                         </span>
                       </div>
+
+                      {subscription && subscription.subscription_id && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Subscription ID:</span>
+                          <span className="font-mono text-xs text-gray-700 dark:text-gray-300">
+                            {subscription.subscription_id.slice(0, 12)}...
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-3">
@@ -347,11 +423,11 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
                         </span>
                       </div>
                       
-                      {userPlan.is_active && (
+                      {subscription && subscription.current_period_end && (
                         <div className="flex justify-between">
                           <span className="text-gray-600 dark:text-gray-400">Next Billing:</span>
                           <span className="font-medium text-gray-900 dark:text-gray-100">
-                            {formatDate(calculateNextRenewal(userPlan.current_period_end))}
+                            {formatTimestamp(subscription.current_period_end)}
                           </span>
                         </div>
                       )}
@@ -362,6 +438,15 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
                           {user.email}
                         </span>
                       </div>
+
+                      {subscription && subscription.payment_method_brand && subscription.payment_method_last4 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-400">Payment Method:</span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100 capitalize">
+                            {subscription.payment_method_brand} •••• {subscription.payment_method_last4}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -372,23 +457,38 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
                         <Users className="h-5 w-5 text-blue-500" />
                         <h5 className="font-medium text-blue-800 dark:text-blue-200">Free Plan</h5>
                       </div>
-                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                      <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
                         You're currently on the free plan with {userPlan.monthly_credits} monthly credits. 
                         Upgrade to get more credits and advanced features!
                       </p>
+                      <button
+                        onClick={() => setShowUpgrade(true)}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg 
+                                 flex items-center space-x-2 transition-colors duration-200"
+                      >
+                        <Crown className="h-4 w-4" />
+                        <span>Upgrade Now</span>
+                      </button>
                     </div>
                   )}
 
-                  {userPlan.is_active && (
+                  {userPlan.is_active && subscription && (
                     <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
                       <div className="flex items-center space-x-2 mb-2">
                         <Check className="h-5 w-5 text-green-500" />
                         <h5 className="font-medium text-green-800 dark:text-green-200">Active Subscription</h5>
                       </div>
                       <p className="text-sm text-green-700 dark:text-green-300">
-                        Your subscription is active and will renew on {formatDate(calculateNextRenewal(userPlan.current_period_end))}.
+                        Your subscription is active and will renew on {formatTimestamp(subscription.current_period_end)}.
                         You get {userPlan.monthly_credits.toLocaleString()} credits every month.
                       </p>
+                      {subscription.cancel_at_period_end && (
+                        <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded">
+                          <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">
+                            ⚠️ Your subscription will cancel at the end of the current period ({formatTimestamp(subscription.current_period_end)})
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -401,6 +501,44 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
                       <p className="text-sm text-amber-700 dark:text-amber-300">
                         Your subscription status is "{userPlan.status}". Please check your payment method 
                         or contact support if you need assistance.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Upgrade/Manage Section */}
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
+                <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center space-x-2">
+                  <Crown className="h-5 w-5 text-purple-500" />
+                  <span>Manage Subscription</span>
+                </h4>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h5 className="font-medium text-gray-900 dark:text-gray-100">
+                        Upgrade or Purchase Credits
+                      </h5>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Get more features or additional credits for your account
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowUpgrade(true)}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 
+                               hover:from-purple-700 hover:to-pink-700 text-white rounded-lg 
+                               flex items-center space-x-2 transition-all duration-200"
+                    >
+                      <Crown className="h-4 w-4" />
+                      <span>View Plans</span>
+                    </button>
+                  </div>
+                  
+                  {userPlan.plan_name !== 'Free' && (
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        To manage billing, cancel, or update payment methods, please contact our support team.
                       </p>
                     </div>
                   )}
@@ -435,6 +573,15 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
                       stripe_customers, stripe_subscriptions
                     </span>
                   </div>
+                  
+                  {subscription && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Customer ID:</span>
+                      <span className="font-mono text-xs text-gray-700 dark:text-gray-300">
+                        {subscription.customer_id.slice(0, 12)}...
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 

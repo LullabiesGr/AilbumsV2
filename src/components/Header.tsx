@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState } from 'react';
-import { BookOpen, FolderOpen, CreditCard, Home } from 'lucide-react';
+import { BookOpen, FolderOpen, CreditCard, Home, Crown } from 'lucide-react';
 import Tutorial from './Tutorial';
 import MyAilbumsModal from './MyAilbumsModal';
 import MyCreditsModal from './MyCreditsModal';
@@ -24,7 +24,14 @@ const Header: React.FC = () => {
     // Reset workflow and go to upload step
     resetWorkflow();
     setWorkflowStage('upload');
+    window.history.pushState({}, '', '/');
   };
+
+  const handleGoPricing = () => {
+    window.history.pushState({}, '', '/pricing');
+    window.location.reload();
+  };
+
   return (
     <>
       <header className="sticky top-0 bg-white dark:bg-gray-800 shadow-md z-10">
@@ -54,6 +61,19 @@ const Header: React.FC = () => {
                 <Home className="h-4 w-4" />
                 <span>Home</span>
               </button>
+              
+              {isAuthenticated && (
+                <button 
+                  onClick={handleGoPricing}
+                  className="px-4 py-2 text-sm bg-gradient-to-r from-purple-600 to-pink-600 
+                           hover:from-purple-700 hover:to-pink-700 text-white rounded-md 
+                           transition-all duration-200 flex items-center space-x-2 font-medium
+                           shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <Crown className="h-4 w-4" />
+                  <span>Pricing</span>
+                </button>
+              )}
               
               {isAuthenticated && (
                 <button 

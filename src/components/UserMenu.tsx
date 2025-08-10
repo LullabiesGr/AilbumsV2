@@ -3,16 +3,40 @@ import { LogOut, User, Settings, ChevronDown, CreditCard, Crown } from 'lucide-r
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import MySubscriptionModal from './MySubscriptionModal';
+import { getUserPlan } from '../lib/supabase';
+import { getProductByPriceId } from '../stripe-config';
 
 const UserMenu: React.FC = () => {
   const { user, logout } = useAuth();
   const { showToast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [showSubscription, setShowSubscription] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState<string>('Free');
   
   // Check if user is a guest
   const isGuest = localStorage.getItem('is_guest') === 'true';
 
+  // Load user's current plan
+  useEffect(() => {
+    const loadCurrentPlan = async () => {
+      if (!user?.email || isGuest) return;
+      
+      try {
+        const plan = await getUserPlan(user.email);
+        if (plan && plan.is_active) {
+          const product = getProductByPriceId(plan.price_id);
+          setCurrentPlan(product?.name || plan.plan_name);
+        } else {
+          setCurrentPlan('Free');
+        }
+      } catch (error) {
+        console.error('Failed to load current plan:', error);
+        setCurrentPlan('Free');
+      }
+    };
+    
+    loadCurrentPlan();
+  }, [user?.email, isGuest]);
   const handleLogout = () => {
     logout();
     showToast(isGuest ? 'Guest session ended' : 'Successfully logged out', 'info');
@@ -45,7 +69,7 @@ const UserMenu: React.FC = () => {
             {user.name} {isGuest && <span className="text-xs text-gray-500">(Guest)</span>}
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400">
-            {user.email}
+            {isGuest ? user.email : `${currentPlan} Plan`}
           </div>
         </div>
         <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${
@@ -84,6 +108,11 @@ const UserMenu: React.FC = () => {
                   <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
                     {user.email}
                   </div>
+                  {!isGuest && (
+                    <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                      {currentPlan} Plan
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -113,6 +142,9 @@ const UserMenu: React.FC = () => {
                   >
                     <Crown className="h-4 w-4" />
                     <span>My Subscription</span>
+                    <span className="ml-auto text-xs text-blue-600 dark:text-blue-400 font-medium">
+                      {currentPlan}
+                    </span>
                   </button>
                   
                 <button

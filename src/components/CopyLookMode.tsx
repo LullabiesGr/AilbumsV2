@@ -118,15 +118,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
         `${API_URL}/album-photo?album_dir=${encodeURIComponent(p.album || '')}&filename=${encodeURIComponent(p.filename)}`;
 
       // fix once for reference
-      // ΜΕΤΑ
-    const referenceFixed = await fileFromPhoto(referencePhoto);
-    for (const target of targetPhotoObjects) {
-    const sourceFixed = await fileFromPhoto(target);
-   const applyOnFixed = new File([await sourceFixed.arrayBuffer()], cleanName(sourceFixed.name), {
-       type: sourceFixed.type,
-    });
-  // ... (φορμάρεις FormData όπως ήδη κάνεις και POST στο `${API_URL}/lut_and_apply/`)
-  }
+    
 
   const handleDownload = (result: ColorTransferResult) => {
     if (!result) return;

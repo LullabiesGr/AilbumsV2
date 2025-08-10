@@ -48,36 +48,46 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
   }
 
   setIsProcessing(true);
+
   try {
     const targetPhotoObjects = photos.filter(p => targetPhotos.has(p.id));
-    const targetFiles = targetPhotoObjects.map(p => p.file);
+    const results: any[] = [];
 
-    console.log('Starting color transfer:', {
+    console.log('Starting LUT & Apply for targets:', {
       reference: referencePhoto.filename,
       targets: targetPhotoObjects.map(p => p.filename)
     });
 
-    const formData = new FormData();
-    formData.append('reference', referencePhoto.file);
-    targetFiles.forEach((file, idx) => {
-      formData.append('targets', file);
-    });
+    for (const target of targetPhotoObjects) {
+      const formData = new FormData();
+      formData.append('reference', referencePhoto.file); // reference image
+      formData.append('source', target.file);            // source image (used for LUT generation)
+      formData.append('apply_on', target.file);          // image to apply LUT on
+      formData.append('strength', '0.5');                // default strength
 
-    const response = await fetch('/api/lut_and_apply', {
-      method: 'POST',
-      body: formData
-    });
+      const response = await fetch(`${API_URL}/lut_and_apply/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'ngrok-skip-browser-warning': 'true'
+        }
+      });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`LUT and Apply failed: ${response.status} ${response.statusText} - ${errText}`);
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`LUT and Apply failed for ${target.filename}: ${response.status} ${errText}`);
+      }
+
+      const data = await response.json();
+      results.push({
+        filename: target.filename,
+        ...data
+      });
     }
 
-    const data = await response.json();
-    const transferResults = data.results || data;
+    setResults(results);
+    showToast(`Color transfer completed for ${results.length} photos!`, 'success');
 
-    setResults(transferResults);
-    showToast(`Color transfer completed for ${transferResults.length} photos!`, 'success');
   } catch (error: any) {
     console.error('CopyLook error detail:', error);
     showToast(error.message || 'Color transfer failed', 'error');

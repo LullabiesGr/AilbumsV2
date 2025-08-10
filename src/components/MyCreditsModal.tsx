@@ -326,29 +326,16 @@ const MyCreditsModal: React.FC<MyCreditsModalProps> = ({ isOpen, onClose }) => {
 
               {/* Refresh Button */}
               <div className="text-center">
-                <div className="flex justify-center space-x-4">
-                  <button
-                    onClick={loadCredits}
-                    disabled={isLoading}
-                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 
-                             text-white rounded-lg flex items-center space-x-2
-                             transition-colors duration-200 disabled:cursor-not-allowed"
-                  >
-                    <TrendingUp className="h-5 w-5" />
-                    <span>{isLoading ? 'Ανανέωση...' : 'Ανανέωση Credits'}</span>
-                  </button>
-                  
-                  <button
-                    onClick={handleSyncWithStripe}
-                    disabled={isSyncing || isLoading}
-                    className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 
-                             text-white rounded-lg flex items-center space-x-2
-                             transition-colors duration-200 disabled:cursor-not-allowed"
-                  >
-                    <Star className="h-5 w-5" />
-                    <span>{isSyncing ? 'Συγχρονισμός...' : 'Sync με Stripe'}</span>
-                  </button>
-                </div>
+                <button
+                  onClick={loadCredits}
+                  disabled={isLoading}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 
+                           text-white rounded-lg flex items-center space-x-2 mx-auto
+                           transition-colors duration-200 disabled:cursor-not-allowed"
+                >
+                  <TrendingUp className="h-5 w-5" />
+                  <span>{isLoading ? 'Ανανέωση...' : 'Ανανέωση Credits'}</span>
+                </button>
               </div>
             </div>
           ) : (

@@ -487,7 +487,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
                     </div>
                   )}
                   
-                  {/* Filename */}
+                  {/* Filenamee */}
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/75 to-transparent p-2">
                     <p className="text-white text-xs truncate">{photo.filename}</p>
                   </div>

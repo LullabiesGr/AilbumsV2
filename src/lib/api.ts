@@ -3,6 +3,55 @@ import { findDuplicates } from './similarity';
 import { promisePoolWithProgress } from './promisePool'; // Keep this import
 import { DuplicateCluster } from '../types';
 
+// Helper functions for proper file handling
+const inferMimeFromName = (filename: string): string => {
+  const ext = (filename.split('.').pop() || '').toLowerCase();
+  switch (ext) {
+    case 'jpg':
+    case 'jpeg': return 'image/jpeg';
+    case 'png':  return 'image/png';
+    case 'tif':
+    case 'tiff': return 'image/tiff';
+    case 'webp': return 'image/webp';
+    default:     return 'image/jpeg';
+  }
+};
+
+const cleanFilename = (filename: string): string =>
+  filename.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_{2,}/g, '_').replace(/^_+|_+$/g, '');
+
+const ensureFileWithType = async (file: File, preferName?: string): Promise<File> => {
+  const name = cleanFilename(preferName || file.name || 'image.jpg');
+  const type = file.type && file.type !== 'application/octet-stream'
+    ? file.type
+    : inferMimeFromName(name);
+
+  // If already correct type, return as-is
+  if (file.type === type && cleanFilename(file.name) === name) return file;
+
+  // Otherwise recreate File with correct MIME
+  const buf = await file.arrayBuffer();
+  return new File([buf], name, { type });
+};
+
+const cloneFile = async (file: File): Promise<File> => {
+  const name = cleanFilename(file.name || 'image.jpg');
+  const type = file.type || inferMimeFromName(name);
+  const buf = await file.arrayBuffer();
+  return new File([buf], name, { type });
+};
+
+const fileFromUrl = async (url: string, fallbackName = 'image.jpg'): Promise<File> => {
+  const res = await fetch(url, { headers: { 'ngrok-skip-browser-warning': 'true' } });
+  if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
+  const blob = await res.blob();
+  const name = cleanFilename(fallbackName);
+  const type = blob.type && blob.type !== 'application/octet-stream'
+    ? blob.type
+    : inferMimeFromName(name);
+  return new File([blob], name, { type });
+};
+
 // API URL configuration for different environments
 const API_URL =
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"

@@ -83,95 +83,101 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
   };
 
   const handleApplyCopyLook = async () => {
-    if (!referencePhoto || targetPhotos.size === 0) {
-      showToast('Please select a reference photo and target photos', 'warning');
-      return;
-    }
+  if (!referencePhoto || targetPhotos.size === 0) {
+    showToast("Please select a reference photo and target photos", "warning");
+    return;
+  }
 
-    setIsProcessing(true);
+  setIsProcessing(true);
 
-    try {
-      const targetPhotoObjects = photos.filter(p => targetPhotos.has(p.id));
-      const outResults: { filename: string; image_base64: string }[] = [];
+  try {
+    const targetPhotoObjects = photos.filter((p) => targetPhotos.has(p.id));
+    const outResults: { filename: string; image_base64: string }[] = [];
 
-      console.log('Starting LUT & Apply:', {
-        reference: referencePhoto.filename,
-        targets: targetPhotoObjects.map(p => p.filename)
-      });
+    console.log("Starting LUT & Apply:", {
+      reference: referencePhoto.filename,
+      targets: targetPhotoObjects.map((p) => p.filename),
+    });
 
-      // Φτιάχνουμε ΜΙΑ φορά “σωστό” reference
-      const referenceFixed = await ensureImageFile(
-        referencePhoto.file,
-        referencePhoto.url,
-        referencePhoto.filename
+    // fix once for reference
+    const referenceFixed = await ensureImageFile(
+      referencePhoto.file,
+      `${API_URL}/album-photo?album_dir=${encodeURIComponent(referencePhoto.album || "")}&filename=${encodeURIComponent(referencePhoto.filename)}`,
+      referencePhoto.filename
+    );
+
+    for (const target of targetPhotoObjects) {
+      const sourceFixed = await ensureImageFile(
+        target.file,
+        `${API_URL}/album-photo?album_dir=${encodeURIComponent(target.album || "")}&filename=${encodeURIComponent(target.filename)}`,
+        target.filename
       );
 
-      for (const target of targetPhotoObjects) {
-        const sourceFixed = await ensureImageFile(target.file, target.url, target.filename);
-        // apply_on: καινούργιο File από το ίδιο buffer (για να μην είναι “consumed”)
-        const applyOnFixed = new File(
-          [await sourceFixed.arrayBuffer()],
-          cleanName(sourceFixed.name),
-          { type: sourceFixed.type }
+      // apply_on: νέο File από το ίδιο buffer (για να μην είναι consumed)
+      const applyOnFixed = new File([await sourceFixed.arrayBuffer()], cleanName(sourceFixed.name), {
+        type: sourceFixed.type,
+      });
+
+      const fd = new FormData();
+      fd.append("reference", referenceFixed, referenceFixed.name);
+      fd.append("source", sourceFixed, sourceFixed.name);
+      fd.append("apply_on", applyOnFixed, applyOnFixed.name);
+      fd.append("strength", "0.5");
+
+      const resp = await fetch(`${API_URL}/lut_and_apply/`, {
+        method: "POST",
+        body: fd,
+        headers: { "ngrok-skip-browser-warning": "true" },
+        mode: "cors",
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        throw new Error(
+          `LUT and Apply failed for ${target.filename}: ${resp.status} ${errText || resp.statusText}`
         );
-
-        const fd = new FormData();
-        fd.append('reference', referenceFixed, referenceFixed.name);
-        fd.append('source',    sourceFixed,    sourceFixed.name);
-        fd.append('apply_on',  applyOnFixed,   applyOnFixed.name);
-        fd.append('strength',  '0.5');
-
-        const resp = await fetch(`${API_URL}/lut_and_apply/`, {
-          method: 'POST',
-          body: fd,
-          headers: { 'ngrok-skip-browser-warning': 'true' }, // προαιρετικό για ngrok
-          mode: 'cors'
-        });
-
-        if (!resp.ok) {
-          const errText = await resp.text();
-          throw new Error(`LUT and Apply failed for ${target.filename}: ${resp.status} ${errText || resp.statusText}`);
-        }
-
-        const data = await resp.json();
-
-        // Αν ο backend δώσει μόνο path, κατέβασέ το και κάν’ το base64 για το UI
-        let image_base64: string | undefined = data.result_image_base64;
-        if (!image_base64 && data.result_image_file) {
-          try {
-            const imgResp = await fetch(`${API_URL}/${data.result_image_file}`, {
-              headers: { 'ngrok-skip-browser-warning': 'true' }
-            });
-            if (imgResp.ok) {
-              const blob = await imgResp.blob();
-              const b64 = await new Promise<string>((resolve, reject) => {
-                const r = new FileReader();
-                r.onload = () => resolve(String(r.result));
-                r.onerror = reject;
-                r.readAsDataURL(blob);
-              });
-              image_base64 = b64.split(',')[1]; // βγάζουμε το data:image/...;base64, prefix
-            }
-          } catch (e) {
-            console.warn('Could not fetch result image file:', e);
-          }
-        }
-
-        outResults.push({
-          filename: target.filename,
-          image_base64: image_base64 || ''
-        });
       }
 
-      setResults(outResults);
-      showToast(`Color transfer completed for ${outResults.length} photos!`, 'success');
-    } catch (err: any) {
-      console.error('CopyLook error detail:', err);
-      showToast(err?.message || 'Color transfer failed', 'error');
-    } finally {
-      setIsProcessing(false);
+      const data = await resp.json();
+
+      // αν γύρισε μόνο path, φέρε το αρχείο & κάν’ το base64 για το UI
+      let image_base64: string | undefined = data.result_image_base64;
+      if (!image_base64 && data.result_image_file) {
+        try {
+          const imgResp = await fetch(`${API_URL}/${data.result_image_file}`, {
+            headers: { "ngrok-skip-browser-warning": "true" },
+            mode: "cors",
+          });
+          if (imgResp.ok) {
+            const blob = await imgResp.blob();
+            const b64 = await new Promise<string>((resolve, reject) => {
+              const r = new FileReader();
+              r.onload = () => resolve(String(r.result));
+              r.onerror = reject;
+              r.readAsDataURL(blob);
+            });
+            image_base64 = b64.split(",")[1];
+          }
+        } catch (e) {
+          console.warn("Could not fetch result image:", e);
+        }
+      }
+
+      outResults.push({
+        filename: target.filename,
+        image_base64: image_base64 || "",
+      });
     }
-  };
+
+    setResults(outResults);
+    showToast(`Color transfer completed for ${outResults.length} photos!`, "success");
+  } catch (err: any) {
+    console.error("CopyLook error detail:", err);
+    showToast(err?.message || "Color transfer failed", "error");
+  } finally {
+    setIsProcessing(false);
+  }
+};
 
   const handleDownload = (result: ColorTransferResult) => {
     if (!result) return;

@@ -8,7 +8,7 @@ import { ImageComparison, ImageComparisonImage, ImageComparisonSlider } from './
 /* =========================
    Config & Helper utilities
    ========================= */
-const API_URL = import.meta.env?.VITE_API_URL || 'https://b455dac5621c.ngrok-free.app';
+const API_URL = (import.meta as any)?.env?.VITE_API_URL || 'https://b455dac5621c.ngrok-free.app';
 
 const cleanName = (n: string) =>
   n.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_{2,}/g, '_').replace(/^_+|_+$/g, '');
@@ -22,8 +22,8 @@ const guessByExt = (name: string) => {
 };
 
 async function urlToFile(url: string, filename: string, fallbackType = 'image/jpeg'): Promise<File> {
-  const isHttp = url.startsWith('http');
-  const res = await fetch(url, isHttp ? { mode: 'cors' } : undefined); // blob:/data: δεν θέλουν CORS
+  const isHttp = /^https?:/i.test(url);
+  const res = await fetch(url, isHttp ? { mode: 'cors' } : undefined);
   if (!res.ok) throw new Error(`fetch failed: ${res.status} ${res.statusText}`);
   const blob = await res.blob();
   const type =
@@ -38,34 +38,16 @@ const albumUrl = (album?: string, filename?: string) =>
 
 /** Προσπάθησε πρώτα από photo.url (blob:/data:/http). Αν δεν υπάρχει/αποτύχει, πέφτει στο /album-photo. */
 async function fileFromPhoto(p: { file?: File; url: string; filename: string; album?: string }): Promise<File> {
-  // Αν υπάρχει κανονικό File, κάνε το “φρέσκο” για να μη θεωρηθεί consumed.
   if (p.file && p.file.size > 0) {
-    const type =
-      p.file.type && p.file.type !== 'application/octet-stream' ? p.file.type : guessByExt(p.filename);
+    const type = p.file.type && p.file.type !== 'application/octet-stream' ? p.file.type : guessByExt(p.filename);
     const buf = await p.file.arrayBuffer();
     return new File([buf], cleanName(p.filename), { type });
   }
-
-  // 1st try: photo.url (blob:/data:/http)
   try {
     return await urlToFile(p.url, p.filename, guessByExt(p.filename));
   } catch {
-    // 2nd try: /album-photo στον backend (ngrok)
     return await urlToFile(albumUrl(p.album, p.filename), p.filename, guessByExt(p.filename));
   }
-}
-
-/** Αν λείπει/είναι 0 bytes/έχει κακό MIME, ξαναφτιάχνει File (fallback από .url). */
-async function ensureImageFile(file: File | undefined, url: string, filename: string): Promise<File> {
-  let f = file;
-  if (!f || f.size === 0) {
-    f = await urlToFile(url, filename);
-  }
-  const goodType =
-    typeof f.type === 'string' && f.type.startsWith('image/') && f.type !== 'application/octet-stream';
-  const type = goodType ? f.type : guessByExt(f.name);
-  const buf = await f.arrayBuffer(); // “φρέσκο” σώμα για να μη θεωρηθεί consumed
-  return new File([buf], cleanName(f.name || filename || 'image.jpg'), { type });
 }
 
 interface CopyLookModeProps {
@@ -97,106 +79,91 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
   };
 
   const handleApplyCopyLook = async () => {
-  if (!referencePhoto || targetPhotos.size === 0) {
-    showToast('Please select a reference photo and target photos', 'warning');
-    return;
-  }
-
-  setIsProcessing(true);
-  try {
-    const targetPhotoObjects = photos.filter(p => targetPhotos.has(p.id));
-    const outResults: { filename: string; image_base64: string }[] = [];
-
-    console.log('Starting LUT & Apply:', {
-      reference: referencePhoto.filename,
-      targets: targetPhotoObjects.map(p => p.filename),
-    });
-
-    // 1) ετοίμασε μία φορά το reference
-    const referenceFixed = await fileFromPhoto(referencePhoto);
-
-    // 2) για κάθε target: source -> apply_on -> formData -> POST
-    for (const target of targetPhotoObjects) {
-      const sourceFixed = await fileFromPhoto(target);
-
-      const applyOnFixed = new File(
-        [await sourceFixed.arrayBuffer()],
-        cleanName(sourceFixed.name),
-        { type: sourceFixed.type }
-      );
-
-      const fd = new FormData();
-      fd.append('reference', referenceFixed, referenceFixed.name);
-      fd.append('source',    sourceFixed,    sourceFixed.name);
-      fd.append('apply_on',  applyOnFixed,   applyOnFixed.name);
-      fd.append('strength',  '0.5');
-
-      const resp = await fetch(`${API_URL}/lut_and_apply/`, {
-        method: 'POST',
-        body: fd,
-        headers: { 'ngrok-skip-browser-warning': 'true' },
-        mode: 'cors',
-      });
-
-      if (!resp.ok) {
-        const errText = await resp.text();
-        throw new Error(`LUT and Apply failed for ${target.filename}: ${resp.status} ${errText || resp.statusText}`);
-      }
-
-      const data = await resp.json();
-
-      // αν γύρισε μόνο path, φέρε την εικόνα και κάν’ την base64 για το UI
-      let image_base64: string | undefined = data.result_image_base64;
-      if (!image_base64 && data.result_image_file) {
-        try {
-          const imgResp = await fetch(`${API_URL}/${data.result_image_file}`, {
-            headers: { 'ngrok-skip-browser-warning': 'true' },
-            mode: 'cors',
-          });
-          if (imgResp.ok) {
-            const blob = await imgResp.blob();
-            const b64 = await new Promise<string>((resolve, reject) => {
-              const r = new FileReader();
-              r.onload = () => resolve(String(r.result));
-              r.onerror = reject;
-              r.readAsDataURL(blob);
-            });
-            image_base64 = b64.split(',')[1];
-          }
-        } catch (e) {
-          console.warn('Could not fetch result image:', e);
-        }
-      }
-
-      outResults.push({
-        filename: target.filename,
-        image_base64: image_base64 || '',
-      });
+    if (!referencePhoto || targetPhotos.size === 0) {
+      showToast('Please select a reference photo and target photos', 'warning');
+      return;
     }
 
-    setResults(outResults);
-    showToast(`Color transfer completed for ${outResults.length} photos!`, 'success');
-  } catch (err: any) {
-    console.error('CopyLook error detail:', err);
-    showToast(err?.message || 'Color transfer failed', 'error');
-  } finally {
-    setIsProcessing(false);
-  }
-};
-
+    setIsProcessing(true);
     try {
-      const targetPhotoObjects = photos.filter((p) => targetPhotos.has(p.id));
+      const targetPhotoObjects = photos.filter(p => targetPhotos.has(p.id));
       const outResults: { filename: string; image_base64: string }[] = [];
 
       console.log('Starting LUT & Apply:', {
         reference: referencePhoto.filename,
-        targets: targetPhotoObjects.map((p) => p.filename),
+        targets: targetPhotoObjects.map(p => p.filename),
       });
 
-      // helper για album-photo URL
-      const albumUrl = (p: Photo) =>
-        `${API_URL}/album-photo?album_dir=${encodeURIComponent(p.album || '')}&filename=${encodeURIComponent(p.filename)}`;
+      // 1) reference μία φορά
+      const referenceFixed = await fileFromPhoto(referencePhoto);
 
+      // 2) loop στα targets
+      for (const target of targetPhotoObjects) {
+        const sourceFixed = await fileFromPhoto(target);
+        const applyOnFixed = new File(
+          [await sourceFixed.arrayBuffer()],
+          cleanName(sourceFixed.name),
+          { type: sourceFixed.type }
+        );
+
+        const fd = new FormData();
+        fd.append('reference', referenceFixed, referenceFixed.name);
+        fd.append('source',    sourceFixed,    sourceFixed.name);
+        fd.append('apply_on',  applyOnFixed,   applyOnFixed.name);
+        fd.append('strength',  '0.5');
+
+        const resp = await fetch(`${API_URL}/lut_and_apply/`, {
+          method: 'POST',
+          body: fd,
+          headers: { 'ngrok-skip-browser-warning': 'true' },
+          mode: 'cors',
+        });
+
+        if (!resp.ok) {
+          const errText = await resp.text();
+          throw new Error(`LUT and Apply failed for ${target.filename}: ${resp.status} ${errText || resp.statusText}`);
+        }
+
+        const data = await resp.json();
+
+        // αν γύρισε μόνο path, φέρε την εικόνα & κάν’ την base64
+        let image_base64: string | undefined = data.result_image_base64;
+        if (!image_base64 && data.result_image_file) {
+          try {
+            const imgResp = await fetch(`${API_URL}/${data.result_image_file}`, {
+              headers: { 'ngrok-skip-browser-warning': 'true' },
+              mode: 'cors',
+            });
+            if (imgResp.ok) {
+              const blob = await imgResp.blob();
+              const b64 = await new Promise<string>((resolve, reject) => {
+                const r = new FileReader();
+                r.onload = () => resolve(String(r.result));
+                r.onerror = reject;
+                r.readAsDataURL(blob);
+              });
+              image_base64 = b64.split(',')[1];
+            }
+          } catch (e) {
+            console.warn('Could not fetch result image:', e);
+          }
+        }
+
+        outResults.push({
+          filename: target.filename,
+          image_base64: image_base64 || '',
+        });
+      }
+
+      setResults(outResults);
+      showToast(`Color transfer completed for ${outResults.length} photos!`, 'success');
+    } catch (err: any) {
+      console.error('CopyLook error detail:', err);
+      showToast(err?.message || 'Color transfer failed', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const handleDownload = (result: ColorTransferResult) => {
     if (!result) return;
@@ -402,13 +369,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
                     )}
 
                     <button
-                      onClick={() => {
-                        const newViewMode = new Map(viewMode);
-                        const cur = newViewMode.get(result.filename) || 'after';
-                        const next = cur === 'after' ? 'before' : cur === 'before' ? 'comparison' : 'after';
-                        newViewMode.set(result.filename, next);
-                        setViewMode(newViewMode);
-                      }}
+                      onClick={() => toggleViewMode(result.filename)}
                       className="absolute top-2 left-2 px-2 py-1 bg-black/75 text-white text-xs rounded"
                     >
                       {currentViewMode === 'before' ? 'Before' : currentViewMode === 'after' ? 'After' : 'Compare'}

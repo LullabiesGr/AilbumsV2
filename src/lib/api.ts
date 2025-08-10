@@ -1156,96 +1156,83 @@ export const falRelight = async (file: File, prompt: string): Promise<{ result_u
   }
 };
 
-// LUT and Apply endpoint for Copy Look Mode
+// LUT and Apply endpoint for Copy Look / AI Style Mode
 export const lutAndApply = async (
-  referenceFile: File, 
-  targetFile: File, 
+  referenceFile: File,
+  targetFile: File,
   strength: number = 0.5
-): Promise<{ lut_cube_file: string; result_image_file: string; result_image_base64: string; strength_used: number; info: string }> => {
-  console.log('🎨 Applying LUT and color transfer:', {
+): Promise<{
+  lut_cube_file: string;
+  result_image_file: string;
+  result_image_base64?: string;
+  strength_used: number;
+  info: string;
+}> => {
+  console.log("🎨 Applying LUT and color transfer:", {
     reference: referenceFile.name,
     target: targetFile.name,
-    strength
+    strength,
   });
-  
+
   const formData = new FormData();
-  
-  // Add files as binary data (File objects)
-  formData.append('reference', referenceFile, referenceFile.name);
-  formData.append('source', targetFile, targetFile.name);
-  formData.append('apply_on', targetFile, targetFile.name);
-  formData.append('strength', strength.toString());
-  
-  console.log('📤 FormData contents:', {
-    reference: `${referenceFile.name} (${referenceFile.size} bytes)`,
-    source: `${targetFile.name} (${targetFile.size} bytes)`,
-    apply_on: `${targetFile.name} (${targetFile.size} bytes)`,
-    strength: strength.toString(),
-    formDataEntries: Array.from(formData.entries()).map(([key, value]) => ({
-      key,
-      type: value instanceof File ? 'File' : typeof value,
-      size: value instanceof File ? value.size : 'N/A'
-    }))
-  });
+  formData.append("reference", referenceFile, referenceFile.name);
+  formData.append("source", targetFile, targetFile.name);
+  formData.append("apply_on", targetFile, targetFile.name);
+  formData.append("strength", strength.toString());
 
   try {
     const response = await fetch(`${API_URL}/lut_and_apply/`, {
-      method: 'POST',
+      method: "POST",
       body: formData,
       headers: {
-        'ngrok-skip-browser-warning': 'true'
-        // Don't set Content-Type - let browser set it automatically for multipart/form-data
+        "ngrok-skip-browser-warning": "true",
       },
-      mode: 'cors',
     });
 
-    console.log('📥 LUT and Apply response:', {
+    console.log("📥 LUT and Apply response:", {
       status: response.status,
       statusText: response.statusText,
-      headers: Object.fromEntries(response.headers.entries())
+      headers: Object.fromEntries(response.headers.entries()),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('LUT and Apply API error:', {
+      console.error("LUT and Apply API error:", {
         status: response.status,
         statusText: response.statusText,
-        error: errorText
+        error: errorText,
       });
-      throw new Error(`LUT and Apply failed: ${response.status} ${errorText || response.statusText}`);
+      throw new Error(
+        `LUT and Apply failed: ${response.status} ${errorText || response.statusText}`
+      );
     }
 
     const result = await response.json();
-    console.log('📄 LUT and Apply result:', result);
-    
-    // If backend returns file paths, we need to fetch the actual image data
+    console.log("📄 LUT and Apply result:", result);
+
     if (result.result_image_file && !result.result_image_base64) {
       try {
-        // Fetch the result image and convert to base64
         const imageResponse = await fetch(`${API_URL}/${result.result_image_file}`, {
-          headers: {
-            'ngrok-skip-browser-warning': 'true'
-          }
+          headers: { "ngrok-skip-browser-warning": "true" },
         });
-        
         if (imageResponse.ok) {
           const imageBlob = await imageResponse.blob();
           const base64 = await blobToBase64(imageBlob);
-          result.result_image_base64 = base64.split(',')[1]; // Remove data:image/jpeg;base64, prefix
-          console.log('✅ Converted result image to base64:', {
+          result.result_image_base64 = base64.split(",")[1];
+          console.log("✅ Converted result image to base64:", {
             originalPath: result.result_image_file,
-            base64Length: result.result_image_base64.length
+            base64Length: result.result_image_base64.length,
           });
         }
       } catch (error) {
-        console.warn('Failed to fetch result image:', error);
+        console.warn("Failed to fetch result image:", error);
       }
     }
-    
-    console.log('✅ LUT and Apply successful:', result);
+
+    console.log("✅ LUT and Apply successful:", result);
     return result;
   } catch (error: any) {
-    console.error('❌ LUT and Apply failed:', error);
+    console.error("❌ LUT and Apply failed:", error);
     throw error instanceof Error ? error : new Error(error.toString());
   }
 };

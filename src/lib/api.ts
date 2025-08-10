@@ -2,6 +2,7 @@ import { Photo } from '../types';
 import { findDuplicates } from './similarity';
 import { promisePoolWithProgress } from './promisePool'; // Keep this import
 import { DuplicateCluster } from '../types';
+import { ColorTransferResult } from '../types';
 
 // API URL configuration for different environments
 const API_URL =

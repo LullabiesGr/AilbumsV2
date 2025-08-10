@@ -48,7 +48,7 @@ async function ensureImageFile(file: File | undefined, url: string, filename: st
   const buf = await f.arrayBuffer(); // “φρέσκο” σώμα για να μη θεωρηθεί consumed
   return new File([buf], cleanName(f.name || filename || "image.jpg"), { type });
 }
-// ---------------------------------------------------------------------------
+
 
 /* =========================
    Component

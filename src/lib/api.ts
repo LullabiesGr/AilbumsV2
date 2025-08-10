@@ -1247,24 +1247,31 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
   });
 };
 
-export const colorTransfer = async (referenceFile: File, targetFiles: File[]): Promise<{ results: ColorTransferResult[] }> => {
-  // Use the new /lut_and_apply/ endpoint
+export const colorTransfer = async (
+  referenceFile: File,
+  targetFiles: File[]
+): Promise<{ results: ColorTransferResult[] }> => {
   const results: ColorTransferResult[] = [];
-  
+
   for (const targetFile of targetFiles) {
     try {
       const result = await lutAndApply(referenceFile, targetFile, 0.5);
-      
-      // Convert the backend response to match the expected format
+
       results.push({
         filename: targetFile.name,
-        image_base64: result.result_image_base64 // Assuming backend returns base64
+        image_base64: result.result_image_base64 || "", // always return base64 even if backend didn't send it
+        info: result.info,
+        strength_used: result.strength_used,
       });
     } catch (error) {
-      console.error(`Failed to apply LUT to ${targetFile.name}:`, error);
-      throw error;
+      console.error(`❌ Failed to apply LUT to ${targetFile.name}:`, error);
+      results.push({
+        filename: targetFile.name,
+        image_base64: "",
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
-  
+
   return { results };
-}
+};

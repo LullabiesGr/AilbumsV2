@@ -11,6 +11,48 @@ interface CopyLookModeProps {
   onBack: () => void;
 }
 
+// ⬇️ βάλε το κοντά στις άλλες imports ή στην αρχή του component αρχείου
+const API_URL = import.meta.env?.VITE_API_URL || 'http://localhost:8000';
+
+const cleanName = (n: string) =>
+  n.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_{2,}/g, '_').replace(/^_+|_+$/g, '');
+
+const guessByExt = (name: string) => {
+  const ext = (name.split('.').pop() || '').toLowerCase();
+  if (ext === 'png') return 'image/png';
+  if (ext === 'webp') return 'image/webp';
+  if (ext === 'tif' || ext === 'tiff') return 'image/tiff';
+  return 'image/jpeg';
+};
+
+async function urlToFile(url: string, filename: string, fallbackType = 'image/jpeg'): Promise<File> {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  const type = (blob.type && blob.type.startsWith('image/') && blob.type !== 'application/octet-stream')
+    ? blob.type
+    : fallbackType;
+  return new File([blob], cleanName(filename || 'image.jpg'), { type });
+}
+
+/** Αν το File λείπει/είναι 0 bytes/έχει κακό MIME, το φτιάχνει (fallback από .url). */
+async function ensureImageFile(
+  file: File | undefined,
+  fallbackUrl: string,
+  fallbackName: string
+): Promise<File> {
+  let f = file;
+
+  if (!f || f.size === 0) {
+    // 0 bytes ή undefined -> φέρε από URL
+    f = await urlToFile(fallbackUrl, fallbackName);
+  }
+
+  const goodType = typeof f.type === 'string' && f.type.startsWith('image/') && f.type !== 'application/octet-stream';
+  const type = goodType ? f.type : guessByExt(f.name);
+  const buf = await f.arrayBuffer(); // φρέσκο σώμα
+  return new File([buf], cleanName(f.name || fallbackName || 'image.jpg'), { type });
+}
+
 const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
   const { photos } = usePhoto();
   const { showToast } = useToast();

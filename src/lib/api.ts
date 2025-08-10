@@ -1224,6 +1224,8 @@ export const lutAndApply = async (
   formData.append('reference', correctedReferenceFile, cleanReferenceFilename);
   formData.append('source', correctedTargetFile, cleanTargetFilename);
   formData.append('apply_on', correctedTargetFile, cleanTargetFilename);
+  
+  // Add strength as Form parameter (not as file)
   formData.append('strength', strength.toString());
   
   console.log('📤 FormData contents:', {

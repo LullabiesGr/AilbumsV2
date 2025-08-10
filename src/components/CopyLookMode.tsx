@@ -46,41 +46,27 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
       showToast('Please select a reference photo and target photos', 'warning');
       return;
     }
-    
-    console.log('🎨 Starting Copy Look with:', {
-      reference: { id: referencePhoto.id, filename: referencePhoto.filename },
-      targets: Array.from(targetPhotos).map(id => {
-        const photo = photos.find(p => p.id === id);
-        return { id, filename: photo?.filename };
-      })
-    });
-    
+
     setIsProcessing(true);
     try {
       const targetPhotoObjects = photos.filter(p => targetPhotos.has(p.id));
       const targetFiles = targetPhotoObjects.map(p => p.file);
       
-      console.log('📁 Files prepared for color transfer:', {
-        referenceFile: { name: referencePhoto.file.name, type: referencePhoto.file.type, size: referencePhoto.file.size },
-        targetFiles: targetFiles.map(f => ({ name: f.name, type: f.type, size: f.size }))
+      console.log('Starting color transfer:', {
+        reference: referencePhoto.filename,
+        targets: targetPhotoObjects.map(p => p.filename)
       });
-      
+
       const response = await colorTransfer(referencePhoto.file, targetFiles);
+      
+      // Handle the backend response format: { results: [...] }
       const transferResults = response.results || response;
       
-      console.log('✅ Color transfer completed:', transferResults);
       setResults(transferResults);
       showToast(`Color transfer completed for ${transferResults.length} photos!`, 'success');
-    } catch (e: any) {
-      const msg = e?.message || 'Color transfer failed';
-      console.error('❌ CopyLook error detail:', {
-        message: msg,
-        error: e,
-        stack: e?.stack,
-        referencePhoto: referencePhoto ? { id: referencePhoto.id, filename: referencePhoto.filename } : null,
-        targetCount: targetPhotos.size
-      });
-      showToast(msg, 'error');
+    } catch (error: any) {
+      console.error('Color transfer failed:', error);
+      showToast(error.message || 'Color transfer failed', 'error');
     } finally {
       setIsProcessing(false);
     }

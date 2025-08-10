@@ -3,61 +3,11 @@ import { findDuplicates } from './similarity';
 import { promisePoolWithProgress } from './promisePool'; // Keep this import
 import { DuplicateCluster } from '../types';
 
-// Helper functions for proper file handling
-const inferMimeFromName = (filename: string): string => {
-  const ext = (filename.split('.').pop() || '').toLowerCase();
-  switch (ext) {
-    case 'jpg':
-    case 'jpeg': return 'image/jpeg';
-    case 'png':  return 'image/png';
-    case 'tif':
-    case 'tiff': return 'image/tiff';
-    case 'webp': return 'image/webp';
-    default:     return 'image/jpeg';
-  }
-};
-
-const cleanFilename = (filename: string): string =>
-  filename.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_{2,}/g, '_').replace(/^_+|_+$/g, '');
-
-const ensureFileWithType = async (file: File, preferName?: string): Promise<File> => {
-  const name = cleanFilename(preferName || file.name || 'image.jpg');
-  const type = file.type && file.type !== 'application/octet-stream'
-    ? file.type
-    : inferMimeFromName(name);
-
-  // If already correct type, return as-is
-  if (file.type === type && cleanFilename(file.name) === name) return file;
-
-  // Otherwise recreate File with correct MIME
-  const buf = await file.arrayBuffer();
-  return new File([buf], name, { type });
-};
-
-const cloneFile = async (file: File): Promise<File> => {
-  const name = cleanFilename(file.name || 'image.jpg');
-  const type = file.type || inferMimeFromName(name);
-  const buf = await file.arrayBuffer();
-  return new File([buf], name, { type });
-};
-
-const fileFromUrl = async (url: string, fallbackName = 'image.jpg'): Promise<File> => {
-  const res = await fetch(url, { headers: { 'ngrok-skip-browser-warning': 'true' } });
-  if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
-  const blob = await res.blob();
-  const name = cleanFilename(fallbackName);
-  const type = blob.type && blob.type !== 'application/octet-stream'
-    ? blob.type
-    : inferMimeFromName(name);
-  return new File([blob], name, { type });
-};
-
 // API URL configuration for different environments
-const IS_DEV = window.location.hostname === "localhost" || 
-              window.location.hostname === "127.0.0.1" ||
-              window.location.hostname.includes('local-credentialless.webcontainer-api.io');
-
-const API_URL = IS_DEV ? '/api' : 'https://b455dac5621c.ngrok-free.app';
+const API_URL =
+  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:8000"
+    : "https://b455dac5621c.ngrok-free.app";
 
 // Upload photo for LUT previews
 export const uploadPhotoForLUTPreviews = async (
@@ -1148,154 +1098,6 @@ export const batchAutofix = async (files: File[]): Promise<BatchResult[]> => {
 };
 
 // AI Edit & Relighting endpoints
-export const lutAndApply = async (
-  reference: File | string,
-  target: File | string,
-  strength: number = 0.5
-): Promise<{ result_image_base64?: string; result_image_file?: string }> => {
-  let refFile0: File;
-  let tgtFile0: File;
-  
-  try {
-    refFile0 = typeof reference === 'string'
-      ? await fileFromUrl(reference)
-      : reference;
-    console.log('✅ Reference file prepared:', { name: refFile0.name, type: refFile0.type, size: refFile0.size });
-  } catch (error) {
-    console.error('❌ Failed to prepare reference file:', error);
-    throw new Error(`Failed to prepare reference file: ${error}`);
-  }
-  
-  try {
-    tgtFile0 = typeof target === 'string'
-      ? await fileFromUrl(target)
-      : target;
-    console.log('✅ Target file prepared:', { name: tgtFile0.name, type: tgtFile0.type, size: tgtFile0.size });
-  } catch (error) {
-    console.error('❌ Failed to prepare target file:', error);
-    throw new Error(`Failed to prepare target file: ${error}`);
-  }
-
-  // Ensure proper MIME types
-  const referenceFile = await ensureFileWithType(refFile0);
-  const targetFile = await ensureFileWithType(tgtFile0);
-  
-  console.log('🔧 Files after MIME type correction:', {
-    reference: { name: referenceFile.name, type: referenceFile.type, size: referenceFile.size },
-    target: { name: targetFile.name, type: targetFile.type, size: targetFile.size }
-  });
-
-  // Clone target file for apply_on to avoid stream reuse
-  const applyOnFile = await cloneFile(targetFile);
-  console.log('✅ Apply-on file cloned:', { name: applyOnFile.name, type: applyOnFile.type, size: applyOnFile.size });
-
-  const fd = new FormData();
-  fd.append('reference', referenceFile, cleanFilename(referenceFile.name));
-  fd.append('source', targetFile, cleanFilename(targetFile.name));
-  fd.append('apply_on', applyOnFile, cleanFilename(applyOnFile.name));
-  fd.append('strength', strength.toString());
-
-  console.log('📤 FormData prepared with files:', {
-    reference: { name: referenceFile.name, type: referenceFile.type, size: referenceFile.size },
-    source: { name: targetFile.name, type: targetFile.type, size: targetFile.size },
-    apply_on: { name: applyOnFile.name, type: applyOnFile.type, size: applyOnFile.size },
-    strength: strength,
-    endpoint: `${API_URL}/lut_and_apply/`
-  });
-
-  let resp: Response;
-  try {
-    resp = await fetch(`${API_URL}/lut_and_apply/`, {
-      method: 'POST',
-      body: fd,
-      headers: { 'Accept': 'application/json', 'ngrok-skip-browser-warning': 'true' },
-      mode: 'cors',
-    });
-    
-    console.log('📥 Response received:', {
-      status: resp.status,
-      statusText: resp.statusText,
-      ok: resp.ok,
-      headers: Object.fromEntries(resp.headers.entries())
-    });
-  } catch (fetchError) {
-    console.error('❌ Fetch failed:', fetchError);
-    
-    // Check if we're in Bolt preview environment
-    const isBoltPreview = window.location.hostname.includes('webcontainer') || 
-                         window.location.hostname.includes('stackblitz') ||
-                         window.location.protocol === 'https:' && window.location.hostname !== 'localhost';
-    
-    if (isBoltPreview) {
-      throw new Error(`Network request failed in preview environment. This may be due to CORS restrictions in the preview sandbox. Try testing in a regular browser tab or deploy the app to test the Copy Look feature. Original error: ${fetchError}`);
-    } else {
-      throw new Error(`Network request failed: ${fetchError}. Please check if the backend server is running at ${API_URL}`);
-    }
-  }
-
-  if (!resp.ok) {
-    let errorText = '';
-    try {
-      errorText = await resp.text();
-      console.error('❌ Server error response:', errorText);
-    } catch (textError) {
-      console.error('❌ Failed to read error response:', textError);
-    }
-    
-    throw new Error(`LUT and Apply failed: ${resp.status} ${resp.statusText}${errorText ? ` - ${errorText.slice(0, 200)}` : ''}`);
-  }
-
-  let result: any;
-  try {
-    result = await resp.json();
-    console.log('✅ LUT and Apply result:', result);
-  } catch (jsonError) {
-    console.error('❌ Failed to parse JSON response:', jsonError);
-    throw new Error(`Invalid JSON response from server: ${jsonError}`);
-  }
-
-  // If backend didn't include base64, try to fetch the produced image and embed
-  if (!result.result_image_base64 && result.result_image_file) {
-    console.log('🔄 Fetching result image as base64...');
-    try {
-      const imgRes = await fetch(`${API_URL}/${result.result_image_file}`, {
-        headers: { 'ngrok-skip-browser-warning': 'true' }
-      });
-      if (imgRes.ok) {
-        const blob = await imgRes.blob();
-        result.result_image_base64 = await new Promise<string>((resolve, reject) => {
-          const r = new FileReader();
-          r.onload = () => resolve((r.result as string).split(',')[1]);
-          r.onerror = reject;
-          r.readAsDataURL(blob);
-        });
-        console.log('✅ Result image converted to base64');
-      }
-    } catch (base64Error) {
-      console.warn('⚠️ Failed to fetch result image as base64:', base64Error);
-    }
-  }
-  
-  return result;
-};
-
-export const colorTransfer = async (
-  reference: File | string,
-  targets: (File | string)[]
-): Promise<{ results: ColorTransferResult[] }> => {
-  const out: ColorTransferResult[] = [];
-  for (const t of targets) {
-    const r = await lutAndApply(reference, t, 0.5);
-    const filename =
-      typeof t === 'string'
-        ? (t.split('/').pop() || 'image.jpg')
-        : t.name;
-    out.push({ filename, image_base64: r.result_image_base64! });
-  }
-  return { results: out };
-};
-
-// FAL.AI Edit function
 export const falEdit = async (file: File, prompt: string): Promise<{ result_url: string; full_response: any }> => {
   const formData = new FormData();
   formData.append('file', file);
@@ -1305,29 +1107,26 @@ export const falEdit = async (file: File, prompt: string): Promise<{ result_url:
     const response = await fetch(`${API_URL}/fal-edit`, {
       method: 'POST',
       body: formData,
-      headers: {
-        'ngrok-skip-browser-warning': 'true'
-      },
       mode: 'cors',
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(errorText || 'FAL Edit failed');
+      throw new Error(errorText || 'Failed to process AI edit');
     }
 
     const result = await response.json();
-    return {
-      result_url: result.result_url || result.image_url,
-      full_response: result
-    };
+    if (!result.result_url) {
+      throw new Error('Invalid response: missing result_url');
+    }
+    
+    return result;
   } catch (error: any) {
     console.error('FAL Edit error:', error);
     throw error instanceof Error ? error : new Error(error.toString());
   }
 };
 
-// FAL.AI Relight function
 export const falRelight = async (file: File, prompt: string): Promise<{ result_url: string; full_response: any }> => {
   const formData = new FormData();
   formData.append('file', file);
@@ -1337,24 +1136,148 @@ export const falRelight = async (file: File, prompt: string): Promise<{ result_u
     const response = await fetch(`${API_URL}/fal-relight`, {
       method: 'POST',
       body: formData,
-      headers: {
-        'ngrok-skip-browser-warning': 'true'
-      },
       mode: 'cors',
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(errorText || 'FAL Relight failed');
+      throw new Error(errorText || 'Failed to process AI relight');
     }
 
     const result = await response.json();
-    return {
-      result_url: result.result_url || result.image_url,
-      full_response: result
-    };
+    if (!result.result_url) {
+      throw new Error('Invalid response: missing result_url');
+    }
+    
+    return result;
   } catch (error: any) {
     console.error('FAL Relight error:', error);
     throw error instanceof Error ? error : new Error(error.toString());
   }
 };
+
+// LUT and Apply endpoint for Copy Look Mode
+export const lutAndApply = async (
+  referenceFile: File, 
+  targetFile: File, 
+  strength: number = 0.5
+): Promise<{ lut_cube_file: string; result_image_file: string; result_image_base64: string; strength_used: number; info: string }> => {
+  console.log('🎨 Applying LUT and color transfer:', {
+    reference: referenceFile.name,
+    target: targetFile.name,
+    strength
+  });
+  
+  const formData = new FormData();
+  
+  // Add files as binary data (File objects)
+  formData.append('reference', referenceFile, referenceFile.name);
+  formData.append('source', targetFile, targetFile.name);
+  formData.append('apply_on', targetFile, targetFile.name);
+  formData.append('strength', strength.toString());
+  
+  console.log('📤 FormData contents:', {
+    reference: `${referenceFile.name} (${referenceFile.size} bytes)`,
+    source: `${targetFile.name} (${targetFile.size} bytes)`,
+    apply_on: `${targetFile.name} (${targetFile.size} bytes)`,
+    strength: strength.toString(),
+    formDataEntries: Array.from(formData.entries()).map(([key, value]) => ({
+      key,
+      type: value instanceof File ? 'File' : typeof value,
+      size: value instanceof File ? value.size : 'N/A'
+    }))
+  });
+
+  try {
+    const response = await fetch(`${API_URL}/lut_and_apply/`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+        // Don't set Content-Type - let browser set it automatically for multipart/form-data
+      },
+      mode: 'cors',
+    });
+
+    console.log('📥 LUT and Apply response:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('LUT and Apply API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`LUT and Apply failed: ${response.status} ${errorText || response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log('📄 LUT and Apply result:', result);
+    
+    // If backend returns file paths, we need to fetch the actual image data
+    if (result.result_image_file && !result.result_image_base64) {
+      try {
+        // Fetch the result image and convert to base64
+        const imageResponse = await fetch(`${API_URL}/${result.result_image_file}`, {
+          headers: {
+            'ngrok-skip-browser-warning': 'true'
+          }
+        });
+        
+        if (imageResponse.ok) {
+          const imageBlob = await imageResponse.blob();
+          const base64 = await blobToBase64(imageBlob);
+          result.result_image_base64 = base64.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+          console.log('✅ Converted result image to base64:', {
+            originalPath: result.result_image_file,
+            base64Length: result.result_image_base64.length
+          });
+        }
+      } catch (error) {
+        console.warn('Failed to fetch result image:', error);
+      }
+    }
+    
+    console.log('✅ LUT and Apply successful:', result);
+    return result;
+  } catch (error: any) {
+    console.error('❌ LUT and Apply failed:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};
+
+// Helper function to convert blob to base64
+const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
+export const colorTransfer = async (referenceFile: File, targetFiles: File[]): Promise<{ results: ColorTransferResult[] }> => {
+  // Use the new /lut_and_apply/ endpoint
+  const results: ColorTransferResult[] = [];
+  
+  for (const targetFile of targetFiles) {
+    try {
+      const result = await lutAndApply(referenceFile, targetFile, 0.5);
+      
+      // Convert the backend response to match the expected format
+      results.push({
+        filename: targetFile.name,
+        image_base64: result.result_image_base64 // Assuming backend returns base64
+      });
+    } catch (error) {
+      console.error(`Failed to apply LUT to ${targetFile.name}:`, error);
+      throw error;
+    }
+  }
+  
+  return { results };
+}

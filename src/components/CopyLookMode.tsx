@@ -86,6 +86,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
   }
 };
 
+  
   const handleDownload = (result: ColorTransferResult) => {
     if (!result) return;
 

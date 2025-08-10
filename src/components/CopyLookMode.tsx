@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Copy, Download, RotateCcw, Eye, EyeOff, Check, Palette, ArrowLeftRight } from 'lucide-react';
+import {
+  ArrowLeft, Copy, Download, RotateCcw, Eye, EyeOff, Check, Palette, ArrowLeftRight
+} from 'lucide-react';
 import { Photo, ColorTransferResult } from '../types';
 import { usePhoto } from '../context/PhotoContext';
 import { useToast } from '../context/ToastContext';
@@ -12,42 +14,54 @@ interface CopyLookModeProps {
 /* =========================
    Config & Helper utilities
    ========================= */
-const API_URL = import.meta.env?.VITE_API_URL || 'https://b455dac5621c.ngrok-free.app';
+const API_URL =
+  (import.meta as any)?.env?.VITE_API_URL ||
+  'https://b455dac5621c.ngrok-free.app';
 
 const cleanName = (n: string) =>
-  n.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/_{2,}/g, "_").replace(/^_+|_+$/g, "");
+  n.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_{2,}/g, '_').replace(/^_+|_+$/g, '');
 
 const guessByExt = (name: string) => {
-  const ext = (name.split(".").pop() || "").toLowerCase();
-  if (ext === "png") return "image/png";
-  if (ext === "webp") return "image/webp";
-  if (ext === "tif" || ext === "tiff") return "image/tiff";
-  return "image/jpeg";
+  const ext = (name.split('.').pop() || '').toLowerCase();
+  if (ext === 'png') return 'image/png';
+  if (ext === 'webp') return 'image/webp';
+  if (ext === 'tif' || ext === 'tiff') return 'image/tiff';
+  return 'image/jpeg';
 };
 
-async function urlToFile(url: string, filename: string, fallbackType = "image/jpeg"): Promise<File> {
-  const res = await fetch(url, { mode: "cors" });
+async function urlToFile(url: string, filename: string, fallbackType = 'image/jpeg'): Promise<File> {
+  const res = await fetch(url, { mode: 'cors' });
   if (!res.ok) throw new Error(`album-photo fetch failed: ${res.status} ${res.statusText}`);
   const blob = await res.blob();
   const type =
-    blob.type && blob.type.startsWith("image/") && blob.type !== "application/octet-stream"
+    blob.type && blob.type.startsWith('image/') && blob.type !== 'application/octet-stream'
       ? blob.type
       : fallbackType;
-  return new File([blob], cleanName(filename || "image.jpg"), { type });
+  return new File([blob], cleanName(filename || 'image.jpg'), { type });
 }
 
-/** Αν λείπει/είναι 0 bytes/έχει κακό MIME, ξαναφτιάχνει File (fallback από .url). */
+/** Αν λείπει/είναι 0 bytes/έχει κακό MIME, ξαναφτιάχνει File (fallback από URL). */
 async function ensureImageFile(file: File | undefined, url: string, filename: string): Promise<File> {
   let f = file;
   if (!f || f.size === 0) {
     f = await urlToFile(url, filename);
   }
   const goodType =
-    typeof f.type === "string" && f.type.startsWith("image/") && f.type !== "application/octet-stream";
+    typeof f.type === 'string' && f.type.startsWith('image/') && f.type !== 'application/octet-stream';
   const type = goodType ? f.type : guessByExt(f.name);
-  const buf = await f.arrayBuffer(); // “φρέσκο” σώμα για να μη θεωρηθεί consumed
-  return new File([buf], cleanName(f.name || filename || "image.jpg"), { type });
+  const buf = await f.arrayBuffer(); // “φρέσκο” σώμα
+  return new File([buf], cleanName(f.name || filename || 'image.jpg'), { type });
 }
+
+/** Χτίζει URL για λήψη αρχείου από backend /album-photo, αλλιώς κάνει fallback στο photo.url */
+const buildFetchUrl = (p: Photo) => {
+  const albumDir = (p as any).album || (p as any).albumDir;
+  if (albumDir) {
+    return `${API_URL}/album-photo?album_dir=${encodeURIComponent(albumDir)}&filename=${encodeURIComponent(p.filename)}`;
+  }
+  // fallback: αν το url είναι http(s) το παίρνουμε όπως είναι, αλλιώς σερβίρουμε από backend
+  return p.url?.startsWith('http') ? p.url : `${API_URL}/${p.url}`;
+};
 
 const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
   const { photos } = usePhoto();
@@ -74,101 +88,101 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
   };
 
   const handleApplyCopyLook = async () => {
-  if (!referencePhoto || targetPhotos.size === 0) {
-    showToast("Please select a reference photo and target photos", "warning");
-    return;
-  }
-
-  setIsProcessing(true);
-
-  try {
-    const targetPhotoObjects = photos.filter((p) => targetPhotos.has(p.id));
-    const outResults: { filename: string; image_base64: string }[] = [];
-
-    console.log("Starting LUT & Apply:", {
-      reference: referencePhoto.filename,
-      targets: targetPhotoObjects.map((p) => p.filename),
-    });
-
-    // fix once for reference
-    const referenceFixed = await ensureImageFile(
-      referencePhoto.file,
-      `${API_URL}/album-photo?album_dir=${encodeURIComponent(referencePhoto.album || "")}&filename=${encodeURIComponent(referencePhoto.filename)}`,
-      referencePhoto.filename
-    );
-
-    for (const target of targetPhotoObjects) {
-      const sourceFixed = await ensureImageFile(
-        target.file,
-        `${API_URL}/album-photo?album_dir=${encodeURIComponent(target.album || "")}&filename=${encodeURIComponent(target.filename)}`,
-        target.filename
-      );
-
-      // apply_on: νέο File από το ίδιο buffer (για να μην είναι consumed)
-      const applyOnFixed = new File([await sourceFixed.arrayBuffer()], cleanName(sourceFixed.name), {
-        type: sourceFixed.type,
-      });
-
-      const fd = new FormData();
-      fd.append("reference", referenceFixed, referenceFixed.name);
-      fd.append("source", sourceFixed, sourceFixed.name);
-      fd.append("apply_on", applyOnFixed, applyOnFixed.name);
-      fd.append("strength", "0.5");
-
-      const resp = await fetch(`${API_URL}/lut_and_apply/`, {
-        method: "POST",
-        body: fd,
-        headers: { "ngrok-skip-browser-warning": "true" },
-        mode: "cors",
-      });
-
-      if (!resp.ok) {
-        const errText = await resp.text();
-        throw new Error(
-          `LUT and Apply failed for ${target.filename}: ${resp.status} ${errText || resp.statusText}`
-        );
-      }
-
-      const data = await resp.json();
-
-      // αν γύρισε μόνο path, φέρε το αρχείο & κάν’ το base64 για το UI
-      let image_base64: string | undefined = data.result_image_base64;
-      if (!image_base64 && data.result_image_file) {
-        try {
-          const imgResp = await fetch(`${API_URL}/${data.result_image_file}`, {
-            headers: { "ngrok-skip-browser-warning": "true" },
-            mode: "cors",
-          });
-          if (imgResp.ok) {
-            const blob = await imgResp.blob();
-            const b64 = await new Promise<string>((resolve, reject) => {
-              const r = new FileReader();
-              r.onload = () => resolve(String(r.result));
-              r.onerror = reject;
-              r.readAsDataURL(blob);
-            });
-            image_base64 = b64.split(",")[1];
-          }
-        } catch (e) {
-          console.warn("Could not fetch result image:", e);
-        }
-      }
-
-      outResults.push({
-        filename: target.filename,
-        image_base64: image_base64 || "",
-      });
+    if (!referencePhoto || targetPhotos.size === 0) {
+      showToast('Please select a reference photo and target photos', 'warning');
+      return;
     }
 
-    setResults(outResults);
-    showToast(`Color transfer completed for ${outResults.length} photos!`, "success");
-  } catch (err: any) {
-    console.error("CopyLook error detail:", err);
-    showToast(err?.message || "Color transfer failed", "error");
-  } finally {
-    setIsProcessing(false);
-  }
-};
+    setIsProcessing(true);
+
+    try {
+      const targetPhotoObjects = photos.filter((p) => targetPhotos.has(p.id));
+      const outResults: { filename: string; image_base64: string }[] = [];
+
+      console.log('Starting LUT & Apply:', {
+        reference: referencePhoto.filename,
+        targets: targetPhotoObjects.map((p) => p.filename),
+      });
+
+      // fix once for reference
+      const referenceFixed = await ensureImageFile(
+        referencePhoto.file,
+        buildFetchUrl(referencePhoto),
+        referencePhoto.filename
+      );
+
+      for (const target of targetPhotoObjects) {
+        const sourceFixed = await ensureImageFile(
+          target.file,
+          buildFetchUrl(target),
+          target.filename
+        );
+
+        // apply_on: νέο File από το ίδιο buffer (ώστε να μην είναι “consumed”)
+        const applyOnFixed = new File([await sourceFixed.arrayBuffer()], cleanName(sourceFixed.name), {
+          type: sourceFixed.type,
+        });
+
+        const fd = new FormData();
+        fd.append('reference', referenceFixed, referenceFixed.name);
+        fd.append('source', sourceFixed, sourceFixed.name);
+        fd.append('apply_on', applyOnFixed, applyOnFixed.name);
+        fd.append('strength', '0.5');
+
+        const resp = await fetch(`${API_URL}/lut_and_apply/`, {
+          method: 'POST',
+          body: fd,
+          headers: { 'ngrok-skip-browser-warning': 'true' },
+          mode: 'cors',
+        });
+
+        if (!resp.ok) {
+          const errText = await resp.text();
+          throw new Error(
+            `LUT and Apply failed for ${target.filename}: ${resp.status} ${errText || resp.statusText}`
+          );
+        }
+
+        const data = await resp.json();
+
+        // αν γύρισε μόνο path, φέρε το αρχείο & κάν’ το base64 για το UI
+        let image_base64: string | undefined = data.result_image_base64;
+        if (!image_base64 && data.result_image_file) {
+          try {
+            const imgResp = await fetch(`${API_URL}/${data.result_image_file}`, {
+              headers: { 'ngrok-skip-browser-warning': 'true' },
+              mode: 'cors',
+            });
+            if (imgResp.ok) {
+              const blob = await imgResp.blob();
+              const b64 = await new Promise<string>((resolve, reject) => {
+                const r = new FileReader();
+                r.onload = () => resolve(String(r.result));
+                r.onerror = reject;
+                r.readAsDataURL(blob);
+              });
+              image_base64 = b64.split(',')[1];
+            }
+          } catch (e) {
+            console.warn('Could not fetch result image:', e);
+          }
+        }
+
+        outResults.push({
+          filename: target.filename,
+          image_base64: image_base64 || '',
+        });
+      }
+
+      setResults(outResults);
+      showToast(`Color transfer completed for ${outResults.length} photos!`, 'success');
+    } catch (err: any) {
+      console.error('CopyLook error detail:', err);
+      showToast(err?.message || 'Color transfer failed', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const handleDownload = (result: ColorTransferResult) => {
     if (!result) return;
@@ -210,7 +224,7 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
 
   const canApply = referencePhoto && targetPhotos.size > 0 && !isProcessing;
 
-  /* ===== UI (όπως το είχες) ===== */
+  /* ================= UI ================= */
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -446,15 +460,15 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
 
               return (
                 <div
-                  key={photo.id}
-                  className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all duration-200 border-2 ${
-                    isReference
-                      ? 'border-orange-500 ring-2 ring-orange-300 shadow-lg'
-                      : isTarget
-                      ? 'border-blue-500 ring-2 ring-blue-300 shadow-lg'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
-                >
+                    key={photo.id}
+                    className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer transition-all duration-200 border-2 ${
+                      isReference
+                        ? 'border-orange-500 ring-2 ring-orange-300 shadow-lg'
+                        : isTarget
+                        ? 'border-blue-500 ring-2 ring-blue-300 shadow-lg'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
                   <img src={photo.url} alt={photo.filename} className="w-full h-full object-cover" />
 
                   <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">

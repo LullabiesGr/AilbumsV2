@@ -153,15 +153,7 @@ export type CullingMode = 'fast' | 'slow' | 'manual';
 
 export type EventType = 'wedding' | 'baptism' | 'portrait' | 'event' | 'landscape' | 'family' | 'corporate';
 
-export type WorkflowStage = 'upload' | 'configure' | 'analyzing' | 'review' | 'face-retouch' | 'ai-edit' | 'copy-look' | 'copy-photo-style' | 'ai-style';
-
-export interface AIStyleResult {
-  filename: string;
-  lut_cube_file: string;
-  result_image_file: string;
-  strength_used: number;
-  info: string;
-}
+export type WorkflowStage = 'upload' | 'configure' | 'analyzing' | 'review' | 'face-retouch' | 'ai-edit' | 'copy-look' | 'copy-photo-style';
 
 export interface ColorLabelConfig {
   color: ColorLabel;

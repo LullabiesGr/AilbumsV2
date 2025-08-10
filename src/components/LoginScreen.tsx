@@ -79,8 +79,58 @@ const LoginScreen: React.FC = () => {
 
         <div className="max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Beta Lifetime Discount Banner */}
+            <div className="order-1 lg:order-1 lg:col-span-2 mb-8">
+              <div className="relative overflow-hidden">
+                {/* Beta Ribbon */}
+                <div className="absolute top-0 right-0 z-10">
+                  <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-8 py-2 
+                                transform rotate-12 translate-x-4 -translate-y-2 shadow-lg">
+                    <span className="font-bold text-sm">BETA VERSION</span>
+                  </div>
+                </div>
+                
+                {/* Main Banner */}
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 
+                              border-2 border-amber-200 dark:border-amber-800 rounded-xl p-8 text-center">
+                  <div className="flex items-center justify-center space-x-2 mb-4">
+                    <div className="w-3 h-3 bg-amber-500 rounded-full animate-pulse" />
+                    <h3 className="text-2xl font-bold text-amber-800 dark:text-amber-200">
+                      🎉 Beta Launch Special - Lock in Lifetime Discounts!
+                    </h3>
+                    <div className="w-3 h-3 bg-amber-500 rounded-full animate-pulse" />
+                  </div>
+                  
+                  <p className="text-lg text-amber-700 dark:text-amber-300 mb-6 max-w-3xl mx-auto">
+                    We're in Beta! Early subscribers get <strong>permanent discounts</strong> that last as long as you keep your subscription active:
+                  </p>
+                  
+                  <div className="flex items-center justify-center space-x-8 mb-6">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg font-semibold text-amber-800 dark:text-amber-200">Starter</span>
+                      <span className="px-4 py-2 bg-green-500 text-white rounded-full font-bold text-lg">−10%</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg font-semibold text-amber-800 dark:text-amber-200">Pro</span>
+                      <span className="px-4 py-2 bg-blue-500 text-white rounded-full font-bold text-lg">−20%</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg font-semibold text-amber-800 dark:text-amber-200">Studio</span>
+                      <span className="px-4 py-2 bg-purple-500 text-white rounded-full font-bold text-lg">−30%</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg p-4 max-w-2xl mx-auto">
+                    <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">
+                      ⏰ <strong>Limited Time Offer</strong> - Your discount is locked in permanently as long as you maintain an active subscription on the same plan
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Left side - Login */}
-            <div className="order-2 lg:order-1">
+            <div className="order-2 lg:order-1 lg:col-span-1">
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-700">
                 <div className="text-center mb-8">
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
@@ -164,7 +214,7 @@ const LoginScreen: React.FC = () => {
             </div>
 
             {/* Right side - Features */}
-            <div className="order-1 lg:order-2">
+            <div className="order-3 lg:order-2 lg:col-span-1">
               <div className="space-y-8">
                 <div className="text-center lg:text-left">
                   <h3 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">

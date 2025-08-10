@@ -20,6 +20,7 @@ import FaceRetouchModal from '../components/FaceRetouchModal';
 import { Play, RotateCcw, Brain, Copy, Users, Grid, List, Sparkles, ArrowLeft, Wand2, Palette } from 'lucide-react';
 import CopyLookMode from '../components/CopyLookMode';
 import CopyPhotoStyleMode from '../components/CopyPhotoStyleMode';
+import { useAuth } from '../context/AuthContext';
 
 const Home: React.FC = () => {
   const { 
@@ -42,6 +43,7 @@ const Home: React.FC = () => {
     resetWorkflow
   } = usePhoto();
   
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = React.useState<'gallery' | 'duplicates' | 'people'>('gallery');
   
   // Album creation state
@@ -53,6 +55,9 @@ const Home: React.FC = () => {
   const [validationErrors, setValidationErrors] = React.useState<string[]>([]);
 
   const hasAnalyzedPhotos = photos.some(p => p.ai_score > 0);
+
+  // Check if user is a guest
+  const isGuest = localStorage.getItem('is_guest') === 'true';
 
   const getEventTypeLabel = (type: EventType | null) => {
     const eventLabels = {
@@ -109,6 +114,49 @@ const Home: React.FC = () => {
       case 'upload':
         return (
           <div className="space-y-6">
+            {/* Beta Lifetime Discount Banner for Logged-in Users */}
+            {user && !isGuest && (
+              <div className="relative overflow-hidden">
+                {/* Beta Ribbon */}
+                <div className="absolute top-0 right-0 z-10">
+                  <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-6 py-1.5 
+                                transform rotate-12 translate-x-3 -translate-y-1 shadow-lg">
+                    <span className="font-bold text-xs">BETA</span>
+                  </div>
+                </div>
+                
+                {/* Compact Banner for Logged-in Users */}
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 
+                              border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+                      <div>
+                        <h3 className="text-lg font-bold text-amber-800 dark:text-amber-200">
+                          🎉 Beta Special: Lock in Lifetime Discounts!
+                        </h3>
+                        <p className="text-sm text-amber-700 dark:text-amber-300">
+                          Subscribe now and get permanent discounts: Starter -10%, Pro -20%, Studio -30%
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        window.history.pushState({}, '', '/pricing');
+                        window.location.reload();
+                      }}
+                      className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 
+                               hover:from-amber-600 hover:to-orange-600 text-white rounded-lg 
+                               font-bold transition-all duration-200 shadow-lg hover:shadow-xl 
+                               transform hover:scale-105 whitespace-nowrap"
+                    >
+                      Lock in Discount
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Step 1: Upload Photos */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
               <div className="text-center mb-6">

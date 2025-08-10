@@ -53,10 +53,11 @@ const fileFromUrl = async (url: string, fallbackName = 'image.jpg'): Promise<Fil
 };
 
 // API URL configuration for different environments
-const API_URL =
-  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://localhost:8000"
-    : "https://b455dac5621c.ngrok-free.app";
+const IS_DEV = window.location.hostname === "localhost" || 
+              window.location.hostname === "127.0.0.1" ||
+              window.location.hostname.includes('local-credentialless.webcontainer-api.io');
+
+const API_URL = IS_DEV ? '/api' : 'https://b455dac5621c.ngrok-free.app';
 
 // Upload photo for LUT previews
 export const uploadPhotoForLUTPreviews = async (

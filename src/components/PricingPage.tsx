@@ -104,7 +104,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                 What's included in each plan?
               </h3>
               <p className="text-gray-600 dark:text-gray-400">
-                All plans include AI photo analysis, face detection, and quality scoring. Higher tiers add advanced features like event-specific analysis and priority support.
+                All plans include AI photo analysis, face detection, and quality Ai scoring Based On Event. Higher tiers add advanced features like deep Ai analysis,Edits,Retouch,Relighting and priority support.
               </p>
             </div>
 
@@ -122,7 +122,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                 What happens to my photos?
               </h3>
               <p className="text-gray-600 dark:text-gray-400">
-                Your photos are processed securely and are never stored permanently on our servers. All processing happens in real-time and data is deleted after analysis.
+                Your photos are processed securely on your Machine and are never stored on our servers. All processing happens local in real-time and data is deleted after analysis.
               </p>
             </div>
           </div>

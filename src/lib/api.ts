@@ -1282,3 +1282,16 @@ export const lutAndApply = async (
 
   return result;
 };
+
+export const colorTransfer = async (
+  reference: File | string,
+  targets: (File | string)[]
+): Promise<{ results: ColorTransferResult[] }> => {
+  const results: ColorTransferResult[] = [];
+  for (const t of targets) {
+    const out = await lutAndApply(reference, t, 0.5);
+    const filename = typeof t === 'string' ? (t.split('/').pop() || 'image.jpg') : t.name;
+    results.push({ filename, image_base64: out.result_image_base64 });
+  }
+  return { results };
+};

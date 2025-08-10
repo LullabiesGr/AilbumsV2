@@ -51,48 +51,99 @@ const API_URL = "https://b455dac5621c.ngrok-free.app"; // βάλε εδώ το �
 
   setIsProcessing(true);
 
+  // helper: καθάρισμα ονόματος
+  const cleanName = (n: string) =>
+    n.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_{2,}/g, '_').replace(/^_+|_+$/g, '');
+
+  // helper: βεβαιώσου ότι ο File έχει σωστό mime & “φρέσκο” σώμα
+  const ensureImageFile = async (file: File) => {
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    const guess =
+      file.type && file.type !== 'application/octet-stream'
+        ? file.type
+        : ext === 'png'
+        ? 'image/png'
+        : ext === 'webp'
+        ? 'image/webp'
+        : ext === 'tif' || ext === 'tiff'
+        ? 'image/tiff'
+        : 'image/jpeg';
+    const buf = await file.arrayBuffer(); // φτιάχνουμε νέο Blob για να μην “καταναλωθεί” το stream
+    return new File([buf], cleanName(file.name || 'image.jpg'), { type: guess });
+  };
+
   try {
     const targetPhotoObjects = photos.filter(p => targetPhotos.has(p.id));
-    const results: any[] = [];
+    const outResults: ColorTransferResult[] = [];
 
     console.log('Starting LUT & Apply for targets:', {
       reference: referencePhoto.filename,
       targets: targetPhotoObjects.map(p => p.filename)
     });
 
-    for (const target of targetPhotoObjects) {
-      const formData = new FormData();
-      formData.append('reference', referencePhoto.file); // reference image
-      formData.append('source', target.file);            // source image (used for LUT generation)
-      formData.append('apply_on', target.file);          // image to apply LUT on
-      formData.append('strength', '0.5');                // default strength
+    // φτιάχνουμε ΜΙΑ φορά σωστό reference File
+    const referenceFixed = await ensureImageFile(referencePhoto.file);
 
-      const response = await fetch(`${API_URL}/lut_and_apply/`, {
+    for (const target of targetPhotoObjects) {
+      const sourceFixed = await ensureImageFile(target.file);
+      // για apply_on φτιάχνουμε νέο File από το ίδιο buffer (για σιγουριά)
+      const applyOnFixed = new File(
+        [await sourceFixed.arrayBuffer()],
+        cleanName(sourceFixed.name),
+        { type: sourceFixed.type }
+      );
+
+      const fd = new FormData();
+      fd.append('reference', referenceFixed, referenceFixed.name);
+      fd.append('source',    sourceFixed,    sourceFixed.name);
+      fd.append('apply_on',  applyOnFixed,   applyOnFixed.name);
+      fd.append('strength', '0.5');
+
+      const resp = await fetch(`${API_URL}/lut_and_apply/`, {
         method: 'POST',
-        body: formData,
-        headers: {
-          'ngrok-skip-browser-warning': 'true'
-        }
+        body: fd,
+        headers: { 'ngrok-skip-browser-warning': 'true' },
+        mode: 'cors'
       });
 
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`LUT and Apply failed for ${target.filename}: ${response.status} ${errText}`);
+      if (!resp.ok) {
+        const errText = await resp.text();
+        throw new Error(`LUT and Apply failed for ${target.filename}: ${resp.status} ${errText || resp.statusText}`);
       }
 
-      const data = await response.json();
-      results.push({
+      const data = await resp.json();
+
+      // αν ο backend δεν επιστρέψει base64, κατέβασε το αρχείο και κάν’ το base64
+      let image_base64 = data.result_image_base64 as string | undefined;
+      if (!image_base64 && data.result_image_file) {
+        try {
+          const imgResp = await fetch(`${API_URL}/${data.result_image_file}`, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+          });
+          if (imgResp.ok) {
+            const blob = await imgResp.blob();
+            const b64 = await new Promise<string>((resolve, reject) => {
+              const r = new FileReader();
+              r.onload = () => resolve(String(r.result));
+              r.onerror = reject;
+              r.readAsDataURL(blob);
+            });
+            image_base64 = b64.split(',')[1]; // βγάζουμε το data:image/...;base64, prefix
+          }
+        } catch {}
+      }
+
+      outResults.push({
         filename: target.filename,
-        ...data
+        image_base64: image_base64 || '' // για να ζωγραφίσει το UI ακόμη κι αν λείπει
       });
     }
 
-    setResults(results);
-    showToast(`Color transfer completed for ${results.length} photos!`, 'success');
-
-  } catch (error: any) {
-    console.error('CopyLook error detail:', error);
-    showToast(error.message || 'Color transfer failed', 'error');
+    setResults(outResults);
+    showToast(`Color transfer completed for ${outResults.length} photos!`, 'success');
+  } catch (err: any) {
+    console.error('CopyLook error detail:', err);
+    showToast(err?.message || 'Color transfer failed', 'error');
   } finally {
     setIsProcessing(false);
   }

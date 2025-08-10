@@ -1293,3 +1293,67 @@ export const colorTransfer = async (
   }
   return { results: out };
 };
+
+// FAL.AI Edit function
+export const falEdit = async (file: File, prompt: string): Promise<{ result_url: string; full_response: any }> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('prompt', prompt);
+
+  try {
+    const response = await fetch(`${API_URL}/fal-edit`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      },
+      mode: 'cors',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'FAL Edit failed');
+    }
+
+    const result = await response.json();
+    return {
+      result_url: result.result_url || result.image_url,
+      full_response: result
+    };
+  } catch (error: any) {
+    console.error('FAL Edit error:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};
+
+// FAL.AI Relight function
+export const falRelight = async (file: File, prompt: string): Promise<{ result_url: string; full_response: any }> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('prompt', prompt);
+
+  try {
+    const response = await fetch(`${API_URL}/fal-relight`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      },
+      mode: 'cors',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'FAL Relight failed');
+    }
+
+    const result = await response.json();
+    return {
+      result_url: result.result_url || result.image_url,
+      full_response: result
+    };
+  } catch (error: any) {
+    console.error('FAL Relight error:', error);
+    throw error instanceof Error ? error : new Error(error.toString());
+  }
+};

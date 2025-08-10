@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Shield, Zap, Users, Crown } from 'lucide-react';
+import { ArrowLeft, Shield, Zap, Users, Crown, Info, Calculator, Star, Check, X } from 'lucide-react';
 import SubscriptionPlans from './SubscriptionPlans';
 
 interface PricingPageProps {
@@ -7,6 +7,116 @@ interface PricingPageProps {
 }
 
 const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
+  const [megapixels, setMegapixels] = React.useState(24);
+  const [showTooltip, setShowTooltip] = React.useState(false);
+  
+  // Calculate relight credits based on megapixels
+  const calculateRelightCredits = (mp: number) => {
+    return Math.ceil(25 * mp / 24);
+  };
+  
+  const relightCredits = calculateRelightCredits(megapixels);
+  
+  // Plan configurations
+  const plans = [
+    {
+      name: 'Beta Free',
+      price: 0,
+      credits: 10,
+      color: 'gray',
+      description: 'Perfect for testing',
+      popular: false
+    },
+    {
+      name: 'Starter',
+      price: 9,
+      credits: 75,
+      color: 'green',
+      description: 'Great for beginners',
+      popular: false
+    },
+    {
+      name: 'Pro',
+      price: 24,
+      credits: 200,
+      color: 'blue',
+      description: 'Most popular choice',
+      popular: true
+    },
+    {
+      name: 'Studio',
+      price: 49,
+      credits: 500,
+      color: 'purple',
+      description: 'For professionals',
+      popular: false
+    }
+  ];
+  
+  // Feature consumption table
+  const features = [
+    {
+      name: 'FaceRetouch',
+      consumption: [2, 1, 'FREE', 'FREE']
+    },
+    {
+      name: 'Copy AI Look',
+      consumption: [1, 'FREE', 'FREE', 'FREE']
+    },
+    {
+      name: 'AI Edit',
+      consumption: [2, 1, 1, 1],
+      note: 'credits ανά εικόνα'
+    },
+    {
+      name: 'AI Relight (24MP)',
+      consumption: [25, 25, 25, 25],
+      note: 'credits ανά εικόνα',
+      hasTooltip: true
+    },
+    {
+      name: 'Analyze / Deep Analyze',
+      consumption: ['FREE', 'FREE', 'FREE', 'FREE']
+    }
+  ];
+  
+  const getPlanColors = (color: string) => {
+    switch (color) {
+      case 'green':
+        return {
+          bg: 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20',
+          border: 'border-green-200 dark:border-green-800',
+          button: 'from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700',
+          text: 'text-green-600 dark:text-green-400',
+          icon: 'text-green-500'
+        };
+      case 'blue':
+        return {
+          bg: 'from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20',
+          border: 'border-blue-200 dark:border-blue-800',
+          button: 'from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700',
+          text: 'text-blue-600 dark:text-blue-400',
+          icon: 'text-blue-500'
+        };
+      case 'purple':
+        return {
+          bg: 'from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20',
+          border: 'border-purple-200 dark:border-purple-800',
+          button: 'from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700',
+          text: 'text-purple-600 dark:text-purple-400',
+          icon: 'text-purple-500'
+        };
+      default:
+        return {
+          bg: 'from-gray-50 to-slate-50 dark:from-gray-900/20 dark:to-slate-900/20',
+          border: 'border-gray-200 dark:border-gray-800',
+          button: 'from-gray-600 to-slate-600 hover:from-gray-700 hover:to-slate-700',
+          text: 'text-gray-600 dark:text-gray-400',
+          icon: 'text-gray-500'
+        };
+    }
+  };
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="container mx-auto px-4 py-8">
@@ -37,11 +147,299 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
           <div className="w-24"></div> {/* Spacer for centering */}
         </div>
 
-        {/* Subscription Plans */}
-        <SubscriptionPlans />
+        {/* Pricing Plans Table */}
+        <div className="max-w-7xl mx-auto mb-16">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              Choose Your Plan
+            </h2>
+            <p className="text-lg text-gray-600 dark:text-gray-400">
+              Select the perfect plan for your photography workflow
+            </p>
+          </div>
+          
+          {/* Plans Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            {plans.map((plan, index) => {
+              const colors = getPlanColors(plan.color);
+              
+              return (
+                <div
+                  key={plan.name}
+                  className={`relative bg-gradient-to-br ${colors.bg} border-2 ${colors.border} 
+                            rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 
+                            ${plan.popular ? 'scale-105 ring-2 ring-blue-500/20' : 'hover:scale-105'}`}
+                >
+                  {plan.popular && (
+                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                      <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 
+                                     rounded-full text-sm font-medium shadow-lg">
+                        Most Popular
+                      </span>
+                    </div>
+                  )}
+                  
+                  <div className="text-center">
+                    <div className="flex justify-center mb-4">
+                      {plan.name === 'Studio' ? (
+                        <Crown className={`h-8 w-8 ${colors.icon}`} />
+                      ) : plan.name === 'Pro' ? (
+                        <Star className={`h-8 w-8 ${colors.icon}`} />
+                      ) : (
+                        <Zap className={`h-8 w-8 ${colors.icon}`} />
+                      )}
+                    </div>
+                    
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                      {plan.name}
+                    </h3>
+                    
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                      {plan.description}
+                    </p>
+                    
+                    <div className="mb-4">
+                      <div className="flex items-baseline justify-center">
+                        <span className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                          €{plan.price}
+                        </span>
+                        {plan.price > 0 && (
+                          <span className="text-gray-600 dark:text-gray-400 ml-1">/month</span>
+                        )}
+                      </div>
+                      <div className={`text-lg font-semibold ${colors.text} mt-2`}>
+                        {plan.credits} credits/month
+                      </div>
+                    </div>
+                    
+                    {plan.price > 0 ? (
+                      <button className={`w-full py-3 px-4 bg-gradient-to-r ${colors.button} 
+                                        text-white rounded-lg font-medium transition-all duration-200 
+                                        shadow-md hover:shadow-lg transform hover:scale-105`}>
+                        Get Started
+                      </button>
+                    ) : (
+                      <div className="w-full py-3 px-4 bg-gray-100 dark:bg-gray-700 
+                                    text-gray-600 dark:text-gray-400 rounded-lg font-medium">
+                        Current Plan
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Extra Credits Pack */}
+          <div className="max-w-md mx-auto">
+            <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 
+                          border-2 border-orange-200 dark:border-orange-800 rounded-2xl p-6 shadow-lg text-center">
+              <div className="flex justify-center mb-4">
+                <Zap className="h-8 w-8 text-orange-500" />
+              </div>
+              
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                Extra Pack
+              </h3>
+              
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Additional credits for any plan
+              </p>
+              
+              <div className="mb-4">
+                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  +50 credits
+                </div>
+                <div className="text-orange-600 dark:text-orange-400 font-semibold">
+                  €4.00 one-time
+                </div>
+              </div>
+              
+              <button className="w-full py-3 px-4 bg-gradient-to-r from-orange-600 to-amber-600 
+                               hover:from-orange-700 hover:to-amber-700 text-white rounded-lg 
+                               font-medium transition-all duration-200 shadow-md hover:shadow-lg 
+                               transform hover:scale-105">
+                +50 Credits
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Credit Consumption Table */}
+        <div className="max-w-6xl mx-auto mb-16">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              Κατανάλωση Credits ανά Λειτουργία
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Δείτε πόσα credits καταναλώνει κάθε λειτουργία σε κάθε πλάνο
+            </p>
+          </div>
+          
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden border border-gray-200 dark:border-gray-700">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      Λειτουργία
+                    </th>
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-gray-600 dark:text-gray-400">
+                      Beta Free
+                    </th>
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-green-600 dark:text-green-400">
+                      Starter
+                    </th>
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-blue-600 dark:text-blue-400">
+                      Pro
+                    </th>
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-purple-600 dark:text-purple-400">
+                      Studio
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {features.map((feature, index) => (
+                    <tr key={feature.name} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {feature.name}
+                          </span>
+                          {feature.hasTooltip && (
+                            <div className="relative">
+                              <button
+                                onMouseEnter={() => setShowTooltip(true)}
+                                onMouseLeave={() => setShowTooltip(false)}
+                                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 
+                                         rounded-full hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                              >
+                                <Info className="h-4 w-4" />
+                              </button>
+                              {showTooltip && (
+                                <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 
+                                              bg-black text-white text-xs rounded-lg p-3 whitespace-nowrap z-10 
+                                              shadow-xl border border-gray-600">
+                                  <div className="absolute left-0 top-1/2 transform -translate-x-1 -translate-y-1/2 
+                                                w-2 h-2 bg-black rotate-45 border-l border-b border-gray-600"></div>
+                                  Χρέωση κλιμακούμενη ανά Megapixel. Δες τον calculator.
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        {feature.note && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {feature.note}
+                          </div>
+                        )}
+                      </td>
+                      {feature.consumption.map((consumption, planIndex) => (
+                        <td key={planIndex} className="px-6 py-4 text-center">
+                          {consumption === 'FREE' ? (
+                            <span className="inline-flex items-center px-3 py-1 bg-green-100 dark:bg-green-900/30 
+                                           text-green-800 dark:text-green-200 text-sm font-medium rounded-full">
+                              <Check className="h-3 w-3 mr-1" />
+                              FREE
+                            </span>
+                          ) : (
+                            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                              {consumption} credits
+                            </span>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        
+        {/* Relight Credits Calculator */}
+        <div className="max-w-md mx-auto mb-16">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 
+                        border-2 border-blue-200 dark:border-blue-800 rounded-2xl p-6 shadow-lg">
+            <div className="text-center mb-6">
+              <div className="flex justify-center mb-4">
+                <Calculator className="h-8 w-8 text-blue-500" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                Relight Credits Calculator
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Υπολογίστε τα credits για AI Relight βάσει Megapixels
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Megapixels (MP)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={megapixels}
+                  onChange={(e) => setMegapixels(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 
+                           dark:border-gray-600 rounded-lg text-center text-lg font-semibold
+                           focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div className="text-center">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Τύπος: credits = ceil(25 × MP / 24)
+                </div>
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {relightCredits} credits
+                </div>
+                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  για {megapixels}MP εικόνα
+                </div>
+              </div>
+              
+              <div className="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-3">
+                <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+                  Παραδείγματα:
+                </h4>
+                <div className="space-y-1 text-xs text-blue-700 dark:text-blue-300">
+                  <div className="flex justify-between">
+                    <span>24MP →</span>
+                    <span className="font-semibold">{calculateRelightCredits(24)} credits</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>12MP →</span>
+                    <span className="font-semibold">{calculateRelightCredits(12)} credits</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>48MP →</span>
+                    <span className="font-semibold">{calculateRelightCredits(48)} credits</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Original Subscription Plans Component */}
+        <div className="mb-16">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              Subscribe Now
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Ready to get started? Choose your plan and begin your AI photo culling journey
+            </p>
+          </div>
+          <SubscriptionPlans />
+        </div>
 
         {/* Features Comparison */}
-        <div className="mt-16 max-w-6xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
               Why Choose Ailbums?

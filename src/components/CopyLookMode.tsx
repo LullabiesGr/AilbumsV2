@@ -36,24 +36,19 @@ async function urlToFile(url: string, filename: string, fallbackType = "image/jp
   return new File([blob], cleanName(filename || "image.jpg"), { type });
 }
 
-/** Αν το File λείπει/είναι 0 bytes/έχει κακό MIME, το φτιάχνει (fallback από .url). */
-async function ensureImageFile(
-  file: File | undefined,
-  fallbackUrl: string,
-  fallbackName: string
-): Promise<File> {
+/** Αν λείπει/είναι 0 bytes/έχει κακό MIME, ξαναφτιάχνει File (fallback από .url). */
+async function ensureImageFile(file: File | undefined, url: string, filename: string): Promise<File> {
   let f = file;
-
   if (!f || f.size === 0) {
-    f = await urlToFile(fallbackUrl, fallbackName);
+    f = await urlToFile(url, filename);
   }
-
   const goodType =
-    typeof f.type === 'string' && f.type.startsWith('image/') && f.type !== 'application/octet-stream';
+    typeof f.type === "string" && f.type.startsWith("image/") && f.type !== "application/octet-stream";
   const type = goodType ? f.type : guessByExt(f.name);
-  const buf = await f.arrayBuffer(); // φρέσκο σώμα
-  return new File([buf], cleanName(f.name || fallbackName || 'image.jpg'), { type });
+  const buf = await f.arrayBuffer(); // “φρέσκο” σώμα για να μη θεωρηθεί consumed
+  return new File([buf], cleanName(f.name || filename || "image.jpg"), { type });
 }
+// ---------------------------------------------------------------------------
 
 /* =========================
    Component

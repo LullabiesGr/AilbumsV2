@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Wand2, Sun, Download, Save, RotateCcw, Eye, EyeOff, Lightbulb, Palette, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Photo } from '../types';
-import { falEdit, falRelight } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
+import { useCredits } from '../context/CreditsContext';
+import { falEditWithCredits, falRelightWithCredits } from '../lib/creditsApi';
 import { useToast } from '../context/ToastContext';
 
 interface AIEditModalProps {
@@ -28,6 +30,8 @@ const AIEditModal: React.FC<AIEditModalProps> = ({ photo, onClose, onSave }) => 
   const [sliderPosition, setSliderPosition] = useState(50);
   const [processingProgress, setProcessingProgress] = useState('');
   const { showToast } = useToast();
+  const { user } = useAuth();
+  const { updateCreditsFromResponse, getCost } = useCredits();
 
   // Predefined prompts for quick selection
   const editPrompts = [
@@ -60,22 +64,33 @@ const AIEditModal: React.FC<AIEditModalProps> = ({ photo, onClose, onSave }) => 
       return;
     }
 
+    if (!user?.id) {
+      showToast('User not authenticated', 'error');
+      return;
+    }
+
     setIsProcessing(true);
     setProcessingProgress(`Processing ${editMode === 'edit' ? 'AI edit' : 'AI relight'}...`);
     
     try {
-      let result;
+      let apiResult;
       
       if (editMode === 'edit') {
         setProcessingProgress('Sending to FAL.AI for creative editing...');
-        result = await falEdit(photo.file, prompt.trim());
+        apiResult = await falEditWithCredits(photo.file, prompt.trim(), user.id);
       } else {
         setProcessingProgress('Sending to FAL.AI for relighting...');
-        result = await falRelight(photo.file, prompt.trim());
+        apiResult = await falRelightWithCredits(photo.file, prompt.trim(), user.id);
+      }
+      
+      // Update credits from response
+      if (apiResult.credits) {
+        updateCreditsFromResponse(apiResult.credits);
       }
       
       setEditResult({
-        ...result,
+        result_url: apiResult.result_url,
+        full_response: apiResult.full_response,
         mode: editMode,
         prompt: prompt.trim()
       });

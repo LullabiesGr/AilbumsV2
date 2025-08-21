@@ -3,7 +3,9 @@ import { ArrowLeft, Copy, Download, RotateCcw, Eye, EyeOff, Check, X, Palette, A
 import { Photo, ColorTransferResult } from '../types';
 import { usePhoto } from '../context/PhotoContext';
 import { useToast } from '../context/ToastContext';
-import { colorTransfer } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
+import { useCredits } from '../context/CreditsContext';
+import { lutAndApplyWithCredits } from '../lib/creditsApi';
 import { ImageComparison, ImageComparisonImage, ImageComparisonSlider } from './ui/ImageComparison';
 
 interface CopyLookModeProps {
@@ -13,6 +15,8 @@ interface CopyLookModeProps {
 const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
   const { photos } = usePhoto();
   const { showToast } = useToast();
+  const { user } = useAuth();
+  const { updateCreditsFromResponse, getCost } = useCredits();
   
   const [referencePhoto, setReferencePhoto] = useState<Photo | null>(null);
   const [targetPhotos, setTargetPhotos] = useState<Set<string>>(new Set());
@@ -47,22 +51,69 @@ const CopyLookMode: React.FC<CopyLookModeProps> = ({ onBack }) => {
       return;
     }
 
+    if (!user?.id) {
+      showToast('User not authenticated', 'error');
+      return;
+    }
+
     setIsProcessing(true);
     try {
       const targetPhotoObjects = photos.filter(p => targetPhotos.has(p.id));
+      const results: ColorTransferResult[] = [];
       
       console.log('Starting color transfer:', {
         reference: referencePhoto.filename,
         targets: targetPhotoObjects.map(p => p.filename)
       });
 
-      const response = await colorTransfer(referencePhoto, targetPhotoObjects);
+      // Get actual file data for reference photo
+      let referenceFile: File;
+      if (referencePhoto.file instanceof File && referencePhoto.file.size > 0) {
+        referenceFile = referencePhoto.file;
+      } else {
+        const { fileFromUrl } = await import('../lib/api');
+        referenceFile = await fileFromUrl(referencePhoto.url, referencePhoto.filename || 'reference.jpg');
+      }
+
+      // Process each target photo
+      for (const targetPhoto of targetPhotoObjects) {
+        try {
+          // Get actual file data for target photo
+          let targetFile: File;
+          if (targetPhoto.file instanceof File && targetPhoto.file.size > 0) {
+            targetFile = targetPhoto.file;
+          } else {
+            const { fileFromUrl } = await import('../lib/api');
+            targetFile = await fileFromUrl(targetPhoto.url, targetPhoto.filename || 'target.jpg');
+          }
+
+          // Apply LUT with credits
+          const result = await lutAndApplyWithCredits(
+            referenceFile,
+            targetFile,
+            0.5,
+            user.id
+          );
+
+          // Update credits from response
+          if (result.credits) {
+            updateCreditsFromResponse(result.credits);
+          }
+
+          // Add to results
+          results.push({
+            filename: targetPhoto.filename,
+            image_base64: result.result_image_base64
+          });
+
+        } catch (error) {
+          console.error(`Failed to apply LUT to ${targetPhoto.filename}:`, error);
+          showToast(`Failed to process ${targetPhoto.filename}`, 'error');
+        }
+      }
       
-      // Handle the backend response format: { results: [...] }
-      const transferResults = response.results || response;
-      
-      setResults(transferResults);
-      showToast(`Color transfer completed for ${transferResults.length} photos!`, 'success');
+      setResults(results);
+      showToast(`Color transfer completed for ${results.length} photos!`, 'success');
     } catch (error: any) {
       console.error('Color transfer failed:', error);
       showToast(error.message || 'Color transfer failed', 'error');

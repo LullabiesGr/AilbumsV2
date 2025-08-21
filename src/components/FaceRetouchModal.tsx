@@ -2,9 +2,10 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Sparkles, Eye, EyeOff, Download, Save, RotateCcw, Settings, Users, Check, Minimize2, Maximize2 } from 'lucide-react';
 import { Photo, Face } from '../types';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
+import { useCredits } from '../context/CreditsContext';
+import { enhanceWithCredits } from '../lib/creditsApi';
 import { fileFromUrl, toHex } from '../lib/api';
-
-const ENHANCE_URL = 'https://e2d5f43272e5.ngrok-free.app/enhance';
 
 
 interface FaceRetouchModalProps {
@@ -34,6 +35,8 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
   const [isMinimized, setIsMinimized] = useState(false);
   const [isCompactMode, setIsCompactMode] = useState(true);
   const { showToast } = useToast();
+  const { user } = useAuth();
+  const { updateCreditsFromResponse, refreshCredits } = useCredits();
 
   const handleFaceClick = (face: Face, index: number) => {
     setSelectedFaceIndices(prev => (prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]));
@@ -51,11 +54,16 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
       return;
     }
 
+    if (!user?.id) {
+      showToast('User not authenticated', 'error');
+      return;
+    }
+
     setIsProcessing(true);
     setProcessingProgress('Preparing image...');
 
     try {
-      // 1) Πάρε πραγματικό File (από state ή κατέβασε από το URL του album-photo)
+      // Get actual File (from state or download from album-photo URL)
       let currentImageFile: File;
       if (retouchedImageBlob && retouchedImageBlob.size > 0) {
         currentImageFile = new File([retouchedImageBlob], photo.filename || 'image.png', {
@@ -67,32 +75,27 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
         currentImageFile = await fileFromUrl(photo.url, photo.filename || 'image.jpg');
       }
 
-      // debug: έλεγξε ότι είναι εικόνα με επαρκές μέγεθος
+      // Debug: check that it's an image with adequate size
       const sig = await currentImageFile.slice(0, 8).arrayBuffer().then(b => toHex(b));
       console.log('[enhance] file', { name: currentImageFile.name, size: currentImageFile.size, type: currentImageFile.type, magic: sig });
       if (currentImageFile.size < 1024) throw new Error('image payload too small');
 
-      // 2) Στείλε ΜΟΝΟ ό,τι θέλει ο server: file + fidelity
-      const formData = new FormData();
-      formData.append('file', currentImageFile, currentImageFile.name);
-      formData.append('fidelity', String(Math.min(1, Math.max(0, Number(settings.fidelity) || 0.3))));
-
-      const response = await fetch(ENHANCE_URL, {
-        method: 'POST',
-        body: formData,
-        mode: 'cors',
-        cache: 'no-store'
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => '');
-        throw new Error(errorText || `HTTP ${response.status}`);
-      }
-
-      const finalImageBlob = await response.blob();
+      setProcessingProgress('Enhancing with CodeFormer...');
+      
+      // Use credits API for enhancement
+      const finalImageBlob = await enhanceWithCredits(
+        currentImageFile,
+        Math.min(1, Math.max(0, Number(settings.fidelity) || 0.3)),
+        true, // face_upsample
+        user.id
+      );
+      
       if (!finalImageBlob || finalImageBlob.size === 0) {
-        throw new Error('CodeFormer returned empty image');
+        throw new Error('Enhancement returned empty image');
       }
+
+      // Refresh credits after enhancement (since /enhance returns stream, not JSON with credits)
+      await refreshCredits();
 
       if (retouchedImageUrl) URL.revokeObjectURL(retouchedImageUrl);
       const retouchedUrl = URL.createObjectURL(finalImageBlob);
@@ -101,7 +104,7 @@ const FaceRetouchModal: React.FC<FaceRetouchModalProps> = ({ photo, onClose, onS
       setSettings(prev => ({ ...prev, showPreview: true }));
       showToast(`Enhanced successfully with fidelity ${settings.fidelity.toFixed(1)}`, 'success');
     } catch (error: any) {
-      console.error('CodeFormer enhancement error:', error);
+      console.error('Enhancement error:', error);
       showToast(error?.message || 'Face enhancement failed', 'error');
     } finally {
       setIsProcessing(false);

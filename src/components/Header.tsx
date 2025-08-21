@@ -5,6 +5,8 @@ import Tutorial from './Tutorial';
 import MyAilbumsModal from './MyAilbumsModal';
 import MyCreditsModal from './MyCreditsModal';
 import UserMenu from './UserMenu';
+import CreditsWidget from './CreditsWidget';
+import CreditsSummaryModal from './CreditsSummaryModal';
 import { useAuth } from '../context/AuthContext';
 import { usePhoto } from '../context/PhotoContext';
 import { SavedAlbum } from './MyAilbumsModal';
@@ -13,6 +15,7 @@ const Header: React.FC = () => {
   const [showTutorial, setShowTutorial] = useState(false);
   const [showMyAilbums, setShowMyAilbums] = useState(false);
   const [showMyCredits, setShowMyCredits] = useState(false);
+  const [showCreditsSummary, setShowCreditsSummary] = useState(false);
   const { isAuthenticated } = useAuth();
   const { loadAlbumForReview, setWorkflowStage, resetWorkflow } = usePhoto();
 
@@ -51,6 +54,12 @@ const Header: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-3">
+              {isAuthenticated && (
+                <div onClick={() => setShowCreditsSummary(true)} className="cursor-pointer">
+                  <CreditsWidget />
+                </div>
+              )}
+              
               <button 
                 onClick={handleGoHome}
                 className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md 
@@ -130,6 +139,11 @@ const Header: React.FC = () => {
       <MyCreditsModal 
         isOpen={showMyCredits} 
         onClose={() => setShowMyCredits(false)} 
+      />
+      
+      <CreditsSummaryModal 
+        isOpen={showCreditsSummary} 
+        onClose={() => setShowCreditsSummary(false)} 
       />
     </>
   );

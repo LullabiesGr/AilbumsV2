@@ -1298,7 +1298,8 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
 };
 
 export const colorTransfer = async (referencePhoto: Photo, targetPhotos: Photo[]): Promise<{ results: ColorTransferResult[] }> => {
-  // Use the new /lut_and_apply/ endpoint
+  // Legacy function - use lutAndApplyWithCredits from creditsApi.ts instead
+  console.warn('colorTransfer is deprecated. Use lutAndApplyWithCredits from creditsApi.ts instead.');
   const results: ColorTransferResult[] = [];
   
   for (const targetPhoto of targetPhotos) {

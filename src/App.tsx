@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Home from './pages/Home';
 import { ToastProvider } from './context/ToastContext';
 import { PhotoProvider } from './context/PhotoContext';
+import { CreditsProvider } from './context/CreditsContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginScreen from './components/LoginScreen';
 import PricingPage from './components/PricingPage';
@@ -72,9 +73,11 @@ function App() {
   return (
     <ToastProvider>
       <AuthProvider>
-        <PhotoProvider>
-          <AppContent />
-        </PhotoProvider>
+        <CreditsProvider>
+          <PhotoProvider>
+            <AppContent />
+          </PhotoProvider>
+        </CreditsProvider>
       </AuthProvider>
     </ToastProvider>
   );

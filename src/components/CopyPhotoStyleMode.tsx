@@ -14,7 +14,7 @@ interface CopyPhotoStyleModeProps {
 const API_URL =
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:8000"
-    : "https://b455dac5621c.ngrok-free.app";
+    : "https://e2d5f43272e5.ngrok-free.app";
 
 const CopyPhotoStyleMode: React.FC<CopyPhotoStyleModeProps> = ({ onBack }) => {
   const { photos, currentAlbumName } = usePhoto();

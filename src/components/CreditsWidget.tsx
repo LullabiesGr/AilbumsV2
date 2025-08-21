@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CreditCard, Sync, Wifi, WifiOff, Clock, AlertCircle, Check } from 'lucide-react';
+import { CreditCard, FolderSync as Sync, Wifi, WifiOff, Clock, AlertCircle, Check } from 'lucide-react';
 import { useCredits } from '../context/CreditsContext';
 import { useToast } from '../context/ToastContext';
 

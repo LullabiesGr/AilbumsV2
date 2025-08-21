@@ -4,7 +4,7 @@ import { Photo, Face } from '../types';
 import { useToast } from '../context/ToastContext';
 import { fileFromUrl, toHex } from '../lib/api';
 
-const ENHANCE_URL = 'https://b455dac5621c.ngrok-free.app/enhance';
+const ENHANCE_URL = 'https://e2d5f43272e5.ngrok-free.app/enhance';
 
 
 interface FaceRetouchModalProps {

@@ -108,7 +108,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const API_URL =
     window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
       ? "http://localhost:8000"
-      : "https://b455dac5621c.ngrok-free.app";
+      : "https://71d2da8f7b58.ngrok-free.app";
 
   const loadAlbumForReview = useCallback((album: SavedAlbum) => {
     console.log('🔄 Loading album for review:', album);

@@ -371,7 +371,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         album_id: albumName.trim()
       });
       
-      const response = await fetch('https://b455dac5621c.ngrok-free.app/create-album', {
+      const response = await fetch('https://71d2da8f7b58.ngrok-free.app/create-album', {
         method: 'POST',
         body: formData,
         headers: {

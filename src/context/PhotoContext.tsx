@@ -1160,7 +1160,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       });
       
       // Send FormData to backend
-      const response = await fetch('https://438aeaff2b7a.ngrok-free.app/save-album', {
+      const response = await fetch('https://71d2da8f7b58.ngrok-free.app/save-album', {
         method: 'POST',
         body: formData, // FormData automatically sets correct Content-Type
         headers: {

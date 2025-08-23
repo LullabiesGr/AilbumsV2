@@ -182,3 +182,29 @@ export interface PhotoWithPreviews {
   previews: LUTPreview[];
   selected_lut?: string;
 }
+
+export interface BugReport {
+  id: string;
+  user_id: string;
+  user_email: string;
+  title: string;
+  description: string;
+  category: string;
+  priority: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SupportRequest {
+  id: string;
+  user_id: string;
+  user_email: string;
+  subject: string;
+  message: string;
+  category: string;
+  priority: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}

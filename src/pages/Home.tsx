@@ -21,6 +21,7 @@ import { Play, RotateCcw, Brain, Copy, Users, Grid, List, Sparkles, ArrowLeft, W
 import CopyLookMode from '../components/CopyLookMode';
 import CopyPhotoStyleMode from '../components/CopyPhotoStyleMode';
 import { useAuth } from '../context/AuthContext';
+import SupportButtons from '../components/SupportButtons';
 
 const Home: React.FC = () => {
   const { 
@@ -885,6 +886,9 @@ const Home: React.FC = () => {
           © 2025 Ailbums — AI Photo Culling. All rights reserved.
         </div>
       </footer>
+      
+      {/* Support Buttons */}
+      <SupportButtons />
     </div>
   );
 };

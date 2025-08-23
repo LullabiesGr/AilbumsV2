@@ -147,6 +147,53 @@ export interface AnalysisResult {
 
 export type Filter = 'all' | 'selected' | 'high-score' | 'blurry' | 'eyes-closed' | 'duplicates' | 'warnings' | 'highlights' | 'flagged' | 'green' | 'red' | 'yellow' | 'blue' | 'purple' | 'people' | 'emotions' | 'quality-issues';
 
+// Event-specific highlight tags
+export interface EventHighlightTags {
+  [key: string]: {
+    label: string;
+    tags: string[];
+    icon?: string;
+  };
+}
+
+export const EVENT_HIGHLIGHT_TAGS: EventHighlightTags = {
+  wedding: {
+    label: 'Wedding Highlights',
+    tags: ['bride', 'groom', 'ceremony', 'reception', 'rings', 'kiss', 'dance', 'bouquet', 'wedding_dress'],
+    icon: '💒'
+  },
+  baptism: {
+    label: 'Baptism Highlights', 
+    tags: ['baby', 'priest', 'ceremony', 'godparents', 'baptism_dress', 'holy_water', 'church'],
+    icon: '⛪'
+  },
+  portrait: {
+    label: 'Portrait Highlights',
+    tags: ['headshot', 'professional', 'studio', 'outdoor', 'close_up', 'expression', 'pose'],
+    icon: '👤'
+  },
+  family: {
+    label: 'Family Highlights',
+    tags: ['family_group', 'children', 'parents', 'grandparents', 'siblings', 'family_portrait', 'generations'],
+    icon: '👨‍👩‍👧‍👦'
+  },
+  corporate: {
+    label: 'Corporate Highlights',
+    tags: ['business', 'meeting', 'presentation', 'office', 'team', 'professional', 'conference'],
+    icon: '🏢'
+  },
+  event: {
+    label: 'Event Highlights',
+    tags: ['celebration', 'party', 'gathering', 'special_moment', 'group_photo', 'entertainment'],
+    icon: '🎉'
+  },
+  landscape: {
+    label: 'Landscape Highlights',
+    tags: ['nature', 'sunset', 'sunrise', 'mountains', 'water', 'architecture', 'cityscape'],
+    icon: '🏞️'
+  }
+};
+
 export type ColorLabel = 'green' | 'red' | 'yellow' | 'blue' | 'purple';
 
 export type CullingMode = 'fast' | 'slow' | 'manual';

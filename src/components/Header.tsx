@@ -1,13 +1,16 @@
 import React from 'react';
 import { useState } from 'react';
 import { BookOpen, FolderOpen, CreditCard, Home, Crown } from 'lucide-react';
+import { Bell, BellOff } from 'lucide-react';
 import Tutorial from './Tutorial';
 import MyAilbumsModal from './MyAilbumsModal';
 import MyCreditsModal from './MyCreditsModal';
 import UserMenu from './UserMenu';
 import CreditsWidget from './CreditsWidget';
 import CreditsSummaryModal from './CreditsSummaryModal';
+import NotificationSettings from './NotificationSettings';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import { usePhoto } from '../context/PhotoContext';
 import { SavedAlbum } from './MyAilbumsModal';
 
@@ -16,7 +19,9 @@ const Header: React.FC = () => {
   const [showMyAilbums, setShowMyAilbums] = useState(false);
   const [showMyCredits, setShowMyCredits] = useState(false);
   const [showCreditsSummary, setShowCreditsSummary] = useState(false);
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
   const { isAuthenticated } = useAuth();
+  const { isHidden: notificationsHidden, showNotifications, hideNotifications } = useNotifications();
   const { loadAlbumForReview, setWorkflowStage, resetWorkflow } = usePhoto();
 
   const handleOpenAlbumReview = (album: SavedAlbum) => {
@@ -58,6 +63,20 @@ const Header: React.FC = () => {
                 <div onClick={() => setShowCreditsSummary(true)} className="cursor-pointer">
                   <CreditsWidget />
                 </div>
+              )}
+              
+              {isAuthenticated && (
+                <button
+                  onClick={() => setShowNotificationSettings(true)}
+                  className={`p-2 rounded-lg transition-colors duration-200 ${
+                    notificationsHidden 
+                      ? 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300' 
+                      : 'text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300'
+                  }`}
+                  title={notificationsHidden ? 'Notifications disabled' : 'Notification settings'}
+                >
+                  {notificationsHidden ? <BellOff className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
+                </button>
               )}
               
               <button 
@@ -144,6 +163,11 @@ const Header: React.FC = () => {
       <CreditsSummaryModal 
         isOpen={showCreditsSummary} 
         onClose={() => setShowCreditsSummary(false)} 
+      />
+      
+      <NotificationSettings 
+        isOpen={showNotificationSettings} 
+        onClose={() => setShowNotificationSettings(false)} 
       />
     </>
   );

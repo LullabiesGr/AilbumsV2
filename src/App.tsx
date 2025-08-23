@@ -3,10 +3,12 @@ import Home from './pages/Home';
 import { ToastProvider } from './context/ToastContext';
 import { PhotoProvider } from './context/PhotoContext';
 import { CreditsProvider } from './context/CreditsContext';
+import { NotificationProvider } from './context/NotificationContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginScreen from './components/LoginScreen';
 import PricingPage from './components/PricingPage';
 import SuccessPage from './components/SuccessPage';
+import NotificationSystem from './components/NotificationSystem';
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -72,13 +74,16 @@ const AppContent: React.FC = () => {
 function App() {
   return (
     <ToastProvider>
-      <AuthProvider>
-        <CreditsProvider>
-          <PhotoProvider>
-            <AppContent />
-          </PhotoProvider>
-        </CreditsProvider>
-      </AuthProvider>
+      <NotificationProvider>
+        <AuthProvider>
+          <CreditsProvider>
+            <PhotoProvider>
+              <AppContent />
+              <NotificationSystem />
+            </PhotoProvider>
+          </CreditsProvider>
+        </AuthProvider>
+      </NotificationProvider>
     </ToastProvider>
   );
 }

@@ -79,20 +79,6 @@ const Header: React.FC = () => {
                 </button>
               )}
               
-              {isAuthenticated && (
-                <button
-                  onClick={() => setShowNotificationSettings(true)}
-                  className={`p-2 rounded-lg transition-colors duration-200 ${
-                    notificationsHidden 
-                      ? 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300' 
-                      : 'text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300'
-                  }`}
-                  title={notificationsHidden ? 'Notifications disabled' : 'Notification settings'}
-                >
-                  {notificationsHidden ? <BellOff className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
-                </button>
-              )}
-              
               <button 
                 onClick={handleGoHome}
                 className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md 

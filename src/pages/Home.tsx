@@ -57,7 +57,6 @@ const Home: React.FC = () => {
   const hasAnalyzedPhotos = photos.some(p => p.ai_score > 0);
 
   // Check if user is a guest
-  const isGuest = localStorage.getItem('is_guest') === 'true';
 
   const getEventTypeLabel = (type: EventType | null) => {
     const eventLabels = {
@@ -114,8 +113,8 @@ const Home: React.FC = () => {
       case 'upload':
         return (
           <div className="space-y-6">
-            {/* Beta Lifetime Discount Banner for Logged-in Users */}
-            {user && !isGuest && (
+            {/* Beta Lifetime Discount Banner */}
+            {user && (
               <div className="relative overflow-hidden">
                 {/* Beta Ribbon */}
                 <div className="absolute top-0 right-0 z-10">
@@ -125,7 +124,7 @@ const Home: React.FC = () => {
                   </div>
                 </div>
                 
-                {/* Compact Banner for Logged-in Users */}
+                {/* Compact Banner */}
                 <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 
                               border border-amber-200 dark:border-amber-800 rounded-lg p-4">
                   <div className="flex items-center justify-between">

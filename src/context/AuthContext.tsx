@@ -14,8 +14,10 @@ interface AuthContextType {
   accessToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: () => Promise<void>;
-  loginAsGuest: () => void;
+  loginWithGoogle: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, name?: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -46,23 +48,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           name: session.user.user_metadata?.name || session.user.email || 'User',
           picture: session.user.user_metadata?.picture
         });
-      } else {
-        // Check for guest user in localStorage
-        const isGuest = localStorage.getItem('is_guest');
-        const storedUser = localStorage.getItem('user');
-        const storedToken = localStorage.getItem('access_token');
-        
-        if (isGuest && storedUser && storedToken) {
-          try {
-            setAccessToken(storedToken);
-            setUser(JSON.parse(storedUser));
-          } catch (error) {
-            console.error('Failed to parse stored guest user data:', error);
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('user');
-            localStorage.removeItem('is_guest');
-          }
-        }
       }
       setIsLoading(false);
     });
@@ -77,15 +62,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           name: session.user.user_metadata?.name || session.user.email || 'User',
           picture: session.user.user_metadata?.picture
         });
-        // Clear any guest data
-        localStorage.removeItem('is_guest');
       } else if (event === 'SIGNED_OUT') {
         setAccessToken(null);
         setUser(null);
-        // Clear all auth data
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('is_guest');
       } else if (event === 'TOKEN_REFRESHED' && session) {
         setAccessToken(session.access_token);
       }
@@ -96,7 +75,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, []);
 
-  const login = async (): Promise<void> => {
+  const loginWithGoogle = async (): Promise<void> => {
     return new Promise((resolve, reject) => {
       // Open popup window for Google OAuth
       const popup = window.open(
@@ -166,39 +145,59 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   };
 
-  const loginAsGuest = () => {
-    const guestUser: User = {
-      id: 'guest-user-' + Date.now(),
-      email: 'guest@ailbums.pro',
-      name: 'Guest User',
-      picture: undefined
-    };
-    
-    const guestToken = 'guest-token-' + Date.now();
-    
-    // Store guest credentials (they'll be cleared on logout)
-    localStorage.setItem('access_token', guestToken);
-    localStorage.setItem('user', JSON.stringify(guestUser));
-    localStorage.setItem('is_guest', 'true');
-    
-    setAccessToken(guestToken);
-    setUser(guestUser);
+  const signIn = async (email: string, password: string): Promise<void> => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    if (data.user) {
+      setAccessToken(data.session?.access_token || null);
+      setUser({
+        id: data.user.id,
+        email: data.user.email || '',
+        name: data.user.user_metadata?.name || data.user.email || 'User',
+        picture: data.user.user_metadata?.picture
+      });
+    }
+  };
+
+  const signUp = async (email: string, password: string, name?: string): Promise<void> => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name: name || email.split('@')[0],
+        },
+      },
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    // Note: User will need to verify email before they can sign in
+    // The session will be null until email is verified
+  };
+
+  const resetPassword = async (email: string): Promise<void> => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) {
+      throw error;
+    }
   };
 
   const logout = () => {
-    const isGuest = localStorage.getItem('is_guest');
-    
-    if (isGuest) {
-      // For guest users, just clear localStorage
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('is_guest');
-      setAccessToken(null);
-      setUser(null);
-    } else {
-      // For real users, sign out from Supabase
-      supabase.auth.signOut();
-    }
+    // Sign out from Supabase
+    supabase.auth.signOut();
   };
 
   const value: AuthContextType = {
@@ -206,8 +205,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     accessToken,
     isAuthenticated: !!accessToken && !!user,
     isLoading,
-    login,
-    loginAsGuest,
+    loginWithGoogle,
+    signIn,
+    signUp,
+    resetPassword,
     logout
   };
 

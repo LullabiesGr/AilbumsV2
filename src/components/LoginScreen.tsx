@@ -1,34 +1,80 @@
 import React, { useState } from 'react';
-import { LogIn, Camera, Sparkles, Zap, Brain, Shield, Users, User } from 'lucide-react';
+import { LogIn, Camera, Sparkles, Zap, Brain, Shield, Users, Mail, Lock, Eye, EyeOff, UserPlus, KeyRound } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 const LoginScreen: React.FC = () => {
-  const { login, loginAsGuest } = useAuth();
+  const { signIn, signUp, resetPassword } = useAuth();
   const { showToast } = useToast();
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
+  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    name: ''
+  });
 
-  const handleGoogleLogin = async () => {
-    setIsLoggingIn(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.email || !formData.password) {
+      showToast('Please fill in all required fields', 'error');
+      return;
+    }
+
+    if (mode === 'signup' && formData.password !== formData.confirmPassword) {
+      showToast('Passwords do not match', 'error');
+      return;
+    }
+
+    if (mode === 'signup' && formData.password.length < 6) {
+      showToast('Password must be at least 6 characters', 'error');
+      return;
+    }
+
+    setIsLoading(true);
     try {
-      await login();
-      showToast('Successfully logged in!', 'success');
+      if (mode === 'signin') {
+        await signIn(formData.email, formData.password);
+        showToast('Successfully signed in!', 'success');
+      } else if (mode === 'signup') {
+        await signUp(formData.email, formData.password, formData.name);
+        showToast('Account created successfully! Please check your email to verify your account.', 'success');
+        setMode('signin');
+      }
     } catch (error: any) {
-      console.error('Login failed:', error);
-      showToast(error.message || 'Login failed. Please try again.', 'error');
+      console.error('Auth failed:', error);
+      showToast(error.message || 'Authentication failed. Please try again.', 'error');
     } finally {
-      setIsLoggingIn(false);
+      setIsLoading(false);
     }
   };
 
-  const handleGuestLogin = () => {
-    try {
-      loginAsGuest();
-      showToast('Logged in as guest!', 'success');
-    } catch (error: any) {
-      console.error('Guest login failed:', error);
-      showToast('Guest login failed. Please try again.', 'error');
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.email) {
+      showToast('Please enter your email address', 'error');
+      return;
     }
+
+    setIsLoading(true);
+    try {
+      await resetPassword(formData.email);
+      showToast('Password reset email sent! Check your inbox.', 'success');
+      setMode('signin');
+    } catch (error: any) {
+      console.error('Password reset failed:', error);
+      showToast(error.message || 'Failed to send reset email. Please try again.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const features = [
@@ -129,73 +175,222 @@ const LoginScreen: React.FC = () => {
               </div>
             </div>
 
-            {/* Left side - Login */}
+            {/* Left side - Auth Form */}
             <div className="order-2 lg:order-1 lg:col-span-1">
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-700">
                 <div className="text-center mb-8">
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                    Welcome Back
+                    {mode === 'signin' ? 'Welcome Back' : 
+                     mode === 'signup' ? 'Join Ailbums' : 
+                     'Reset Password'}
                   </h2>
                   <p className="text-gray-600 dark:text-gray-400">
-                    Sign in to access your AI photo culling workspace
+                    {mode === 'signin' ? 'Sign in to access your AI photo culling workspace' :
+                     mode === 'signup' ? 'Create your account and lock in beta discounts' :
+                     'Enter your email to receive a password reset link'}
                   </p>
                 </div>
 
-                <button
-                  onClick={handleGoogleLogin}
-                  disabled={isLoggingIn}
-                  className="w-full flex items-center justify-center space-x-3 px-6 py-4 
-                           bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 
-                           rounded-xl hover:border-blue-500 dark:hover:border-blue-400 
-                           hover:shadow-lg transition-all duration-200 
-                           disabled:opacity-50 disabled:cursor-not-allowed
-                           focus:outline-none focus:ring-4 focus:ring-blue-500/20"
-                >
-                  {isLoggingIn ? (
-                    <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <svg className="w-6 h-6" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                    </svg>
-                  )}
-                  <span className="text-lg font-medium text-gray-700 dark:text-gray-200">
-                    {isLoggingIn ? 'Signing in...' : 'Continue with Google'}
-                  </span>
-                </button>
-
-                <div className="mt-4 text-center">
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+                {/* Auth Form */}
+                <form onSubmit={mode === 'forgot' ? handleForgotPassword : handleSubmit} className="space-y-4">
+                  {/* Name field for signup */}
+                  {mode === 'signup' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Full Name
+                      </label>
+                      <div className="relative">
+                        <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <input
+                          type="text"
+                          value={formData.name}
+                          onChange={(e) => handleInputChange('name', e.target.value)}
+                          placeholder="Enter your full name"
+                          className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 
+                                   rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                   text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                          required
+                        />
+                      </div>
                     </div>
-                    <div className="relative flex justify-center text-sm">
-                      <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                        or
-                      </span>
+                  )}
+
+                  {/* Email field */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Email Address
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        placeholder="Enter your email"
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 
+                                 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                        required
+                      />
                     </div>
                   </div>
+
+                  {/* Password field */}
+                  {mode !== 'forgot' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Password
+                      </label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={formData.password}
+                          onChange={(e) => handleInputChange('password', e.target.value)}
+                          placeholder="Enter your password"
+                          className="w-full pl-10 pr-12 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 
+                                   rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                   text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                          required
+                          minLength={6}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        >
+                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Confirm Password field for signup */}
+                  {mode === 'signup' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Confirm Password
+                      </label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={formData.confirmPassword}
+                          onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                          placeholder="Confirm your password"
+                          className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 
+                                   rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                   text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                          required
+                          minLength={6}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full flex items-center justify-center space-x-3 px-6 py-4 
+                             bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 
+                             disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed
+                             text-white rounded-xl transition-all duration-200 font-medium text-lg
+                             focus:outline-none focus:ring-4 focus:ring-blue-500/20 shadow-lg hover:shadow-xl"
+                  >
+                    {isLoading ? (
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : mode === 'signin' ? (
+                      <>
+                        <LogIn className="w-6 h-6" />
+                        <span>Sign In</span>
+                      </>
+                    ) : mode === 'signup' ? (
+                      <>
+                        <UserPlus className="w-6 h-6" />
+                        <span>Create Account & Lock Discount</span>
+                      </>
+                    ) : (
+                      <>
+                        <KeyRound className="w-6 h-6" />
+                        <span>Send Reset Email</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                {/* Mode Switching */}
+                <div className="mt-6 text-center space-y-3">
+                  {mode === 'signin' && (
+                    <>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Don't have an account?{' '}
+                        <button
+                          onClick={() => setMode('signup')}
+                          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                        >
+                          Sign up now
+                        </button>
+                      </div>
+                      <div className="text-sm">
+                        <button
+                          onClick={() => setMode('forgot')}
+                          className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                        >
+                          Forgot your password?
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {mode === 'signup' && (
+                    <>
+                      {/* Beta Signup CTA */}
+                      <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 
+                                    border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-4">
+                        <div className="flex items-center justify-center space-x-2 mb-2">
+                          <Sparkles className="h-5 w-5 text-amber-600" />
+                          <h4 className="font-bold text-amber-800 dark:text-amber-200">
+                            🚀 Beta Early Access Benefits
+                          </h4>
+                        </div>
+                        <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-1">
+                          <li>• Lock in permanent discounts (10-30% off)</li>
+                          <li>• Priority access to new AI features</li>
+                          <li>• Direct feedback channel to development team</li>
+                          <li>• Grandfathered pricing for life</li>
+                        </ul>
+                      </div>
+                      
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        Already have an account?{' '}
+                        <button
+                          onClick={() => setMode('signin')}
+                          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                        >
+                          Sign in
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {mode === 'forgot' && (
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      Remember your password?{' '}
+                      <button
+                        onClick={() => setMode('signin')}
+                        className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                      >
+                        Back to sign in
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                <button
-                  onClick={handleGuestLogin}
-                  className="w-full mt-4 flex items-center justify-center space-x-3 px-6 py-3 
-                           bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 
-                           rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 
-                           transition-all duration-200 
-                           focus:outline-none focus:ring-4 focus:ring-gray-500/20"
-                >
-                  <User className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-                  <span className="text-base font-medium text-gray-700 dark:text-gray-200">
-                    Continue as Guest
-                  </span>
-                </button>
-
+                {/* Terms and Privacy */}
                 <div className="mt-6 text-center">
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    By signing in, you agree to our{' '}
+                    By {mode === 'signup' ? 'creating an account' : 'signing in'}, you agree to our{' '}
                     <a href="#" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
                       Terms of Service
                     </a>{' '}
@@ -204,11 +399,15 @@ const LoginScreen: React.FC = () => {
                       Privacy Policy
                     </a>
                   </p>
-                  <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                    <p className="text-xs text-amber-700 dark:text-amber-300">
-                      <strong>Guest Mode:</strong> Try the app without signing up! Guest sessions are temporary and data won't be saved permanently.
-                    </p>
-                  </div>
+                  
+                  {mode === 'signup' && (
+                    <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                      <p className="text-xs text-green-700 dark:text-green-300">
+                        <strong>🎯 Beta Special:</strong> Sign up now to secure lifetime discounts on all subscription plans. 
+                        This offer is only available during our beta period!
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

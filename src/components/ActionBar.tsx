@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import FilterDropdown from './FilterDropdown';
 import ColorLabelFilter from './ColorLabelFilter';
 import CaptionSearch from './CaptionSearch';
+import EventHighlightFilter from './EventHighlightFilter';
 import ViewToggle from './ViewToggle';
 import { Download, Sparkles, Zap, Save, Brain, Upload, Users, Copy } from 'lucide-react';
 import { usePhoto } from '../context/PhotoContext';
@@ -102,6 +103,7 @@ const ActionBar: React.FC = () => {
       <div className="flex flex-wrap gap-3 items-center">
         <FilterDropdown />
         <ColorLabelFilter />
+        <EventHighlightFilter />
         <CaptionSearch />
         <div className="h-8 w-px bg-gray-300 dark:bg-gray-700 mx-1"></div>
         <button

@@ -3,11 +3,22 @@ import { usePhoto } from '../context/PhotoContext';
 import { Filter, ChevronRight, Star, AlertCircle, Eye, Copy, AlertTriangle, Circle, ChevronDown, Sparkles, Flag, Check, X } from 'lucide-react';
 import StarRating from './StarRating';
 import { colorLabelConfigs } from './ColorLabelIndicator';
-import { ColorLabel } from '../types';
+import { ColorLabel, EVENT_HIGHLIGHT_TAGS } from '../types';
 
 const Sidebar = () => {
-  const { photos, filterOption, setFilterOption, selectedPhotos, starRatingFilter, setStarRatingFilter } = usePhoto();
+  const { 
+    photos, 
+    filterOption, 
+    setFilterOption, 
+    selectedPhotos, 
+    starRatingFilter, 
+    setStarRatingFilter,
+    eventType,
+    eventHighlightFilter,
+    setEventHighlightFilter
+  } = usePhoto();
   const [isStarFilterOpen, setIsStarFilterOpen] = React.useState(false);
+  const [isEventHighlightOpen, setIsEventHighlightOpen] = React.useState(false);
 
   const filterStats = {
     all: photos.length,
@@ -252,6 +263,136 @@ const Sidebar = () => {
         </div>
       </div>
 
+      {/* Event-Specific Highlight Filters */}
+      {eventType && EVENT_HIGHLIGHT_TAGS[eventType] && (
+        <div className="p-4 border-b border-gray-700">
+          <h2 className="text-lg font-semibold text-white mb-3 flex items-center space-x-2">
+            <span>{EVENT_HIGHLIGHT_TAGS[eventType].icon}</span>
+            <span>{EVENT_HIGHLIGHT_TAGS[eventType].label}</span>
+          </h2>
+          
+          <div className="relative mb-3">
+            <button 
+              className="w-full px-3 py-2.5 bg-gray-700 hover:bg-gray-600 border border-gray-600 
+                       rounded-lg flex items-center justify-between transition-colors duration-200"
+              onClick={() => setIsEventHighlightOpen(!isEventHighlightOpen)}
+            >
+              <div className="flex items-center space-x-2">
+                <Sparkles className="h-4 w-4 text-yellow-500" />
+                <span className="text-sm text-gray-200">
+                  {eventHighlightFilter ? 
+                    EVENT_HIGHLIGHT_TAGS[eventType].tags.find(tag => 
+                      tag.toLowerCase() === eventHighlightFilter?.toLowerCase()
+                    )?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || eventHighlightFilter
+                    : 'All Highlights'
+                  }
+                </span>
+              </div>
+              <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isEventHighlightOpen ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {isEventHighlightOpen && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-gray-700 border border-gray-600
+                            rounded-lg shadow-xl max-h-64 overflow-y-auto z-30">
+                <div className="py-1">
+                  {/* All Highlights option */}
+                  <button
+                    className={`w-full text-left px-3 py-2.5 text-sm hover:bg-gray-600
+                              transition-colors duration-200 ${
+                      !eventHighlightFilter ? 'bg-blue-600 text-white' : 'text-gray-200'
+                    }`}
+                    onClick={() => {
+                      setEventHighlightFilter(null);
+                      setIsEventHighlightOpen(false);
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <Sparkles className="h-3 w-3 text-yellow-400" />
+                        <span className="font-medium">All Highlights</span>
+                      </div>
+                      <span className="text-xs text-gray-400 bg-gray-600 px-2 py-1 rounded-full">
+                        {photos.filter(p => p.blip_highlights && p.blip_highlights.length > 0).length}
+                      </span>
+                    </div>
+                  </button>
+                  
+                  {/* Individual highlight tags */}
+                  {EVENT_HIGHLIGHT_TAGS[eventType].tags.map((tag) => {
+                    const isActive = eventHighlightFilter?.toLowerCase() === tag.toLowerCase();
+                    const count = photos.filter(p => 
+                      p.blip_highlights?.some(highlight => 
+                        highlight.toLowerCase().includes(tag.toLowerCase())
+                      )
+                    ).length;
+                    
+                    const displayName = tag.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    
+                    return (
+                      <button
+                        key={tag}
+                        className={`w-full text-left px-3 py-2.5 text-sm hover:bg-gray-600
+                                  transition-colors duration-200 ${
+                          isActive ? 'bg-blue-600 text-white' : 'text-gray-200'
+                        }`}
+                        onClick={() => {
+                          setEventHighlightFilter(tag);
+                          setIsEventHighlightOpen(false);
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-2 h-2 bg-yellow-400 rounded-full" />
+                            <span className="font-medium">{displayName}</span>
+                          </div>
+                          <span className="text-xs text-gray-400 bg-gray-600 px-2 py-1 rounded-full">
+                            {count}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Quick highlight buttons for most common tags */}
+          <div className="space-y-2">
+            {EVENT_HIGHLIGHT_TAGS[eventType].tags.slice(0, 4).map((tag) => {
+              const count = photos.filter(p => 
+                p.blip_highlights?.some(highlight => 
+                  highlight.toLowerCase().includes(tag.toLowerCase())
+                )
+              ).length;
+              
+              if (count === 0) return null;
+              
+              const displayName = tag.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+              const isActive = eventHighlightFilter?.toLowerCase() === tag.toLowerCase();
+              
+              return (
+                <button
+                  key={tag}
+                  onClick={() => setEventHighlightFilter(isActive ? null : tag)}
+                  className={`w-full flex items-center justify-between p-2.5 rounded-lg text-sm
+                            transition-colors duration-200 ${
+                    isActive
+                      ? 'bg-yellow-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-yellow-400 rounded-full" />
+                    <span>{displayName}</span>
+                  </div>
+                  <span className="font-medium">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         <div className="p-4 border-b border-gray-700">
           <h2 className="text-lg font-semibold text-white mb-3">Quick Filters</h2>

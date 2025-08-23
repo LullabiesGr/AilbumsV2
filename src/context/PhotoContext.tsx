@@ -99,6 +99,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [filterOption, setFilterOption] = useState<Filter>('all');
   const [captionFilter, setCaptionFilter] = useState('');
   const [starRatingFilter, setStarRatingFilterState] = useState<{ min: number | null; max: number | null }>({ min: null, max: null });
+  const [eventHighlightFilter, setEventHighlightFilter] = useState<string | null>(null);
   const [selectedPersonGroup, setSelectedPersonGroup] = useState<string | null>(null);
 
   const { showToast } = useToast();
@@ -1239,16 +1240,20 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         if (photo.ai_score === 0) return false;
         const stars = photo.ai_score / 2;
         
-        if (starRatingFilter.min !== null && stars < starRatingFilter.min) {
-          return false;
-        }
-        
-        if (starRatingFilter.max !== null && stars > starRatingFilter.max) {
-          return false;
-        }
+        if (starRatingFilter.min !== null && stars < starRatingFilter.min) return false;
+        if (starRatingFilter.max !== null && stars > starRatingFilter.max) return false;
         
         return true;
       });
+    }
+
+    // Apply event highlight filter
+    if (eventHighlightFilter) {
+      filtered = filtered.filter(photo => 
+        photo.blip_highlights?.some(highlight => 
+          highlight.toLowerCase().includes(eventHighlightFilter.toLowerCase())
+        )
+      );
     }
     
     switch (filterOption) {
@@ -1304,7 +1309,7 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       default:
         return filtered;
     }
-  }, [currentAlbum, photos, captionFilter, selectedPersonGroup, starRatingFilter, filterOption]);
+  }, [currentAlbum, photos, captionFilter, selectedPersonGroup, starRatingFilter, eventHighlightFilter, filterOption]);
 
   const value: PhotoContextType = useMemo(() => ({
     photos,
@@ -1335,6 +1340,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setCaptionFilter,
     setStarRatingFilter,
     setSelectedPersonGroup,
+    eventHighlightFilter,
+    setEventHighlightFilter,
     uploadPhotos,
     setEventType: handleEventTypeChange,
     setCullingMode,
@@ -1396,6 +1403,8 @@ export const PhotoProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setCaptionFilter,
     setStarRatingFilter,
     setSelectedPersonGroup,
+    eventHighlightFilter,
+    setEventHighlightFilter,
     uploadPhotos,
     handleEventTypeChange,
     setCullingMode,

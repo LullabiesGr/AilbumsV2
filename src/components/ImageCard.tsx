@@ -69,16 +69,40 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, viewMode }) => {
   // Get icon for event highlight tags
   const getHighlightIcon = (highlight: string) => {
     const lowerHighlight = highlight.toLowerCase();
-    if (lowerHighlight.includes('bride')) {
+    if (lowerHighlight.includes('bride') || lowerHighlight.includes('wedding_dress')) {
       return <Crown className="h-3 w-3" />;
     }
     if (lowerHighlight.includes('groom')) {
       return <UserCheck className="h-3 w-3" />;
     }
+    if (lowerHighlight.includes('ceremony') || lowerHighlight.includes('church')) {
+      return <Camera className="h-3 w-3" />;
+    }
+    if (lowerHighlight.includes('rings') || lowerHighlight.includes('kiss')) {
+      return <Crown className="h-3 w-3" />;
+    }
+    if (lowerHighlight.includes('dance') || lowerHighlight.includes('reception')) {
+      return <Users className="h-3 w-3" />;
+    }
+    if (lowerHighlight.includes('bouquet')) {
+      return <Sparkles className="h-3 w-3" />;
+    }
     if (lowerHighlight.includes('baby') || lowerHighlight.includes('child')) {
       return <Baby className="h-3 w-3" />;
     }
+    if (lowerHighlight.includes('priest') || lowerHighlight.includes('godparents')) {
+      return <UserCheck className="h-3 w-3" />;
+    }
+    if (lowerHighlight.includes('family') || lowerHighlight.includes('group')) {
+      return <Users className="h-3 w-3" />;
+    }
+    if (lowerHighlight.includes('business') || lowerHighlight.includes('professional')) {
+      return <Camera className="h-3 w-3" />;
+    }
     if (lowerHighlight.includes('portrait') || lowerHighlight.includes('pose')) {
+      return <Camera className="h-3 w-3" />;
+    }
+    if (lowerHighlight.includes('nature') || lowerHighlight.includes('sunset') || lowerHighlight.includes('landscape')) {
       return <Camera className="h-3 w-3" />;
     }
     return <Sparkles className="h-3 w-3" />;

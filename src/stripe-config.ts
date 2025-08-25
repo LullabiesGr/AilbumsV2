@@ -32,7 +32,7 @@ export const products: Product[] = [
     name: 'Pro',
     description: 'Professional plan for serious photographers',
     price: 23.99,
-    currency: 'EUR',
+    currency: 'USD',
     mode: 'subscription',
     features: [
       'Deep AI analysis',
@@ -48,7 +48,7 @@ export const products: Product[] = [
     name: 'Starter',
     description: 'Perfect for getting started with AI photo culling',
     price: 11.49,
-    currency: 'EUR',
+    currency: 'USD',
     mode: 'subscription',
     features: [
       'Basic AI analysis',
@@ -62,8 +62,8 @@ export const products: Product[] = [
     priceId: 'price_1RzvYOCtJc6njTYQhEjD0wVH',
     name: 'Ailbums Credits',
     description: 'Extra Credits',
-    price: 4.00,
-    currency: 'EUR',
+    price: 4.49,
+    currency: 'USD',
     mode: 'payment',
     features: [
       'Additional credits',

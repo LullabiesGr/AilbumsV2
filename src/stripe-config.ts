@@ -58,8 +58,8 @@ export const products: Product[] = [
     ]
   },
   {
-    id: 'prod_S8XTzYuxaHId3q',
-    priceId: 'price_1REGOlCtJc6njTYQF3WdxPX6',
+    id: 'prod_Svn8TJ71J5WFhl',
+    priceId: 'price_1RzvYOCtJc6njTYQhEjD0wVH',
     name: 'Ailbums Credits',
     description: 'Extra Credits',
     price: 4.00,

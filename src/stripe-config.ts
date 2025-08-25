@@ -55,6 +55,7 @@ export const products: Product[] = [
       'Basic AI analysis',
       'Face detection',
       'Quality scoring',
+      '100 Credits',
       'Standard support'
     ]
   },
@@ -68,8 +69,7 @@ export const products: Product[] = [
     mode: 'payment',
     features: [
       'Additional credits',
-      'No expiration',
-      '100 Credits',
+      'No Expiration'
       'Add to existing plan'
     ]
   }

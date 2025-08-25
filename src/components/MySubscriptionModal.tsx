@@ -42,7 +42,7 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
           plan_name: 'Free',
           price_id: '',
           status: 'inactive',
-          monthly_credits: 50,
+          monthly_credits: 100,
           current_period_end: '',
           is_active: false
         });
@@ -312,7 +312,7 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
                       </h3>
                       {userPlan.price_id && getProductDetails(userPlan.price_id) && (
                         <p className={`text-sm ${getPlanColors(userPlan.plan_name).accent}`}>
-                          ${getProductDetails(userPlan.price_id)!.price.toFixed(2)}/month
+                          €{getProductDetails(userPlan.price_id)!.price.toFixed(2)}/month
                         </p>
                       )}
                     </div>
@@ -484,8 +484,8 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
                       </p>
                       {subscription.cancel_at_period_end && (
                         <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded">
-                            {getProductDetails(userPlan.price_id)!.currency === 'EUR' ? '€' : '$'}{getProductDetails(userPlan.price_id)!.price.toFixed(2)}/month
-                            ${getProductDetails(userPlan.price_id)!.price.toFixed(2)}/month
+                          <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">
+                            ⚠️ Your subscription will cancel at the end of the current period ({formatTimestamp(subscription.current_period_end)})
                           </p>
                         </div>
                       )}

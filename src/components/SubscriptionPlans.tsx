@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Check, Crown, Star, Zap, Loader2 } from 'lucide-react';
-import { products, Product, getSubscriptionProducts, getPaymentProducts } from '../stripe-config';
+import { products, Product } from '../stripe-config';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -13,8 +13,8 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSuccess }) => {
   const { user, accessToken } = useAuth();
   const { showToast } = useToast();
 
-  const subscriptionProducts = getSubscriptionProducts();
-  const creditProducts = getPaymentProducts();
+  const subscriptionProducts = products.filter(p => p.mode === 'subscription');
+  const creditProducts = products.filter(p => p.mode === 'payment');
 
   // Beta discount percentages
   const betaDiscounts = {
@@ -34,6 +34,12 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSuccess }) => {
       return;
     }
 
+    // Check if user is a guest - guests cannot make purchases
+    const isGuest = localStorage.getItem('is_guest');
+    if (isGuest) {
+      showToast('Please log in with a full account to make purchases', 'error');
+      return;
+    }
 
     setIsLoading(product.priceId);
 
@@ -273,7 +279,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSuccess }) => {
                     ) : (
                       <div className="flex items-baseline justify-center">
                         <span className="text-4xl font-bold text-gray-900 dark:text-gray-100">
-                          ${product.price.toFixed(2)}
+                          €{product.price.toFixed(2)}
                         </span>
                         <span className="text-gray-600 dark:text-gray-400 ml-2">/month</span>
                       </div>
@@ -345,7 +351,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSuccess }) => {
                   </p>
                   <div className="flex items-baseline justify-center">
                     <span className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                      ${product.price.toFixed(2)}
+                      €{product.price.toFixed(2)}
                     </span>
                     <span className="text-gray-600 dark:text-gray-400 ml-2">one-time</span>
                   </div>

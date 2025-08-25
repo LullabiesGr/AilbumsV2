@@ -44,10 +44,10 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
         <div className="mt-16 max-w-6xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-              Feature Comparison
+              Σύγκριση Λειτουργιών
             </h2>
             <p className="text-gray-600 dark:text-gray-400">
-              See what's included in each plan and how many credits each feature requires
+              Δείτε τι περιλαμβάνει κάθε πλάνο και πόσα credits χρειάζεται κάθε λειτουργία
             </p>
           </div>
 
@@ -57,31 +57,31 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
-                      Feature
+                      Λειτουργία
                     </th>
                     <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 dark:text-gray-100">
                       <div className="flex flex-col items-center">
                         <span>Beta Free</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">50 credits/month</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">100 credits/μήνα</span>
                       </div>
                     </th>
                     <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 dark:text-gray-100">
                       <div className="flex flex-col items-center">
                         <span>Starter</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">75 credits/month</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">75 credits/μήνα</span>
                       </div>
                     </th>
                     <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 dark:text-gray-100">
                       <div className="flex flex-col items-center">
                         <span>Pro</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">200 credits/month</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">200 credits/μήνα</span>
                         <span className="px-2 py-1 bg-blue-500 text-white text-xs rounded-full mt-1">Popular</span>
                       </div>
                     </th>
                     <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 dark:text-gray-100">
                       <div className="flex flex-col items-center">
                         <span>Studio</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">500 credits/month</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">500 credits/μήνα</span>
                         <span className="px-2 py-1 bg-purple-500 text-white text-xs rounded-full mt-1">Best Value</span>
                       </div>
                     </th>
@@ -91,7 +91,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                   <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
                       Face Retouch
-                      <div className="text-xs text-gray-500 dark:text-gray-400">AI-powered face enhancement</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Πρώην CodeFormer</div>
                     </td>
                     <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
                       <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">
@@ -117,7 +117,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                   <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
                       Copy AI Look
-                      <div className="text-xs text-gray-500 dark:text-gray-400">Color grading transfer</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Πρώην Copy Look</div>
                     </td>
                     <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
                       <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">
@@ -143,7 +143,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                   <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
                       AI Edit
-                      <div className="text-xs text-gray-500 dark:text-gray-400">Credits per image</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Credits ανά εικόνα</div>
                     </td>
                     <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
                       <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">
@@ -169,7 +169,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                   <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
                       AI Mask Edit
-                      <div className="text-xs text-gray-500 dark:text-gray-400">Credits per image</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Credits ανά εικόνα</div>
                     </td>
                     <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
                       <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">
@@ -195,7 +195,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                   <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
                       AI Relight
-                      <div className="text-xs text-gray-500 dark:text-gray-400">Credits per MegaPixel</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Credits ανά MegaPixel</div>
                     </td>
                     <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
                       <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">
@@ -221,7 +221,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                   <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
                       Analyze / Deep Analyze
-                      <div className="text-xs text-gray-500 dark:text-gray-400">Basic photo analysis</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Βασική ανάλυση φωτογραφιών</div>
                     </td>
                     <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
                       <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
@@ -247,7 +247,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                   <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
                       Duplicates
-                      <div className="text-xs text-gray-500 dark:text-gray-400">Duplicate detection</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Εύρεση διπλότυπων</div>
                     </td>
                     <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
                       <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
@@ -273,7 +273,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                   <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
                       AI Labels
-                      <div className="text-xs text-gray-500 dark:text-gray-400">Smart categorization</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Έξυπνη κατηγοριοποίηση</div>
                     </td>
                     <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
                       <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
@@ -299,7 +299,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                   <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
                       Unlimited AI Culling
-                      <div className="text-xs text-gray-500 dark:text-gray-400">Unlimited photo selection</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Απεριόριστη επιλογή φωτογραφιών</div>
                     </td>
                     <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
                       <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">
@@ -359,7 +359,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                 Secure & Private
               </h3>
               <p className="text-gray-600 dark:text-gray-400">
-                Your photos are processed locally & securely, Zero Cloud Storage!
+                Your photos are processed local & securely , Zero Cloud Storage!
               </p>
             </div>
 
@@ -391,7 +391,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                 What's included in each plan?
               </h3>
               <p className="text-gray-600 dark:text-gray-400">
-                All plans include AI photo analysis, face detection, and quality AI scoring based on event. Higher tiers add advanced features like deep AI analysis, edits, retouch, relighting and priority support.
+                All plans include AI photo analysis, face detection, and quality Ai scoring Based On Event. Higher tiers add advanced features like deep Ai analysis,Edits,Retouch,Relighting and priority support.
               </p>
             </div>
 
@@ -409,7 +409,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                 What happens to my photos?
               </h3>
               <p className="text-gray-600 dark:text-gray-400">
-                Your photos are processed securely on your machine and are never stored on our servers. All processing happens locally in real-time and data is deleted after analysis.
+                Your photos are processed securely on your Machine and are never stored on our servers. All processing happens local in real-time and data is deleted after analysis.
               </p>
             </div>
           </div>

@@ -11,82 +11,67 @@ export interface Product {
 
 export const products: Product[] = [
   {
-    id: 'prod_Sv5gCm1B1lo20T',
-    priceId: 'price_1RzFV8CtJc6njTYQjpSGsjex',
+    id: 'prod_S9fh5n5VWeslLF',
+    priceId: 'price_1RFMLjCtJc6njTYQdhReQy8b',
     name: 'Studio',
-    description: 'Professional studio plan with unlimited features and priority support',
-    price: 34.99,
-    currency: 'USD',
+    description: 'Professional studio plan with unlimited features',
+    price: 49.00,
+    currency: 'EUR',
     mode: 'subscription',
     features: [
-      '500 monthly credits',
-      'Unlimited AI photo analysis',
-      'Advanced face retouching',
-      'AI edit & relighting',
-      'Copy look & style transfer',
+      'Unlimited photo analysis',
+      'Advanced AI features',
       'Priority support',
       'API access',
       'White-label options'
     ]
   },
   {
-    id: 'prod_Sv5ftx1zUX7g1R',
-    priceId: 'price_1RzFTkCtJc6njTYQ4RuFQ7xz',
+    id: 'prod_S9fftm7cNl7rh6',
+    priceId: 'price_1RFMKaCtJc6njTYQvFfgEt3N',
     name: 'Pro',
-    description: 'Professional plan for serious photographers with advanced AI features',
-    price: 19.99,
-    currency: 'USD',
+    description: 'Professional plan for serious photographers',
+    price: 24.00,
+    currency: 'EUR',
     mode: 'subscription',
     features: [
-      '200 monthly credits',
       'Deep AI analysis',
       'Event-specific prompts',
-      'Face retouching',
-      'AI edit & relighting',
-      'Copy look & style transfer',
+      'Advanced features',
       'Priority support',
-      'Advanced categorization'
+      'Face retouching'
     ]
   },
   {
-    id: 'prod_Sv5acvIEHQe77L',
-    priceId: 'price_1RzFPGCtJc6njTYQg5yLagWT',
+    id: 'prod_S9fefG7DklP0i7',
+    priceId: 'price_1RFMJNCtJc6njTYQJUh6T8bQ',
     name: 'Starter',
-    description: 'Perfect for getting started with AI photo culling and basic features',
-    price: 9.99,
-    currency: 'USD',
+    description: 'Perfect for getting started with AI photo culling',
+    price: 9.00,
+    currency: 'EUR',
     mode: 'subscription',
     features: [
-      '75 monthly credits',
       'Basic AI analysis',
       'Face detection',
       'Quality scoring',
-      'Color labeling',
-      'Standard support',
-      'Duplicate detection'
+      'Standard support'
     ]
   },
   {
-    id: 'prod_Svn8TJ71J5WFhl',
-    priceId: 'price_1RzvYOCtJc6njTYQhEjD0wVH',
-    name: 'Extra Credits',
-    description: 'Additional credits for your account - never expire',
-    price: 4.49,
-    currency: 'USD',
+    id: 'prod_S8XTzYuxaHId3q',
+    priceId: 'price_1REGOlCtJc6njTYQF3WdxPX6',
+    name: 'Ailbums Credits',
+    description: 'Extra Credits',
+    price: 4.00,
+    currency: 'EUR',
     mode: 'payment',
     features: [
-      '50 additional credits',
-      'No expiration date',
-      'Add to existing plan',
-      'Use for any feature'
+      'Additional credits',
+      'No expiration',
+      'Add to existing plan'
     ]
   }
 ];
-
-export const STRIPE_PRODUCTS = products.reduce((acc, product) => {
-  acc[product.name.toLowerCase().replace(/\s+/g, '_')] = product;
-  return acc;
-}, {} as Record<string, Product>);
 
 export const getProductByPriceId = (priceId: string): Product | undefined => {
   return products.find(product => product.priceId === priceId);
@@ -94,12 +79,4 @@ export const getProductByPriceId = (priceId: string): Product | undefined => {
 
 export const getProductById = (id: string): Product | undefined => {
   return products.find(product => product.id === id);
-};
-
-export const getSubscriptionProducts = (): Product[] => {
-  return products.filter(product => product.mode === 'subscription');
-};
-
-export const getPaymentProducts = (): Product[] => {
-  return products.filter(product => product.mode === 'payment');
 };

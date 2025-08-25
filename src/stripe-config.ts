@@ -22,7 +22,7 @@ export const products: Product[] = [
       'Unlimited photo analysis',
       'Advanced AI features',
       'Priority support',
-      'API access',
+      '500 Credits',
       'White-label options'
     ]
   },

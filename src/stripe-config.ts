@@ -11,8 +11,8 @@ export interface Product {
 
 export const products: Product[] = [
   {
-    id: 'prod_S9fh5n5VWeslLF',
-    priceId: 'price_1RFMLjCtJc6njTYQdhReQy8b',
+    id: 'prod_Sv5gCm1B1lo20T',
+    priceId: 'price_1RzFV8CtJc6njTYQjpSGsjex',
     name: 'Studio',
     description: 'Professional studio plan with unlimited features',
     price: 49.00,
@@ -27,8 +27,8 @@ export const products: Product[] = [
     ]
   },
   {
-    id: 'prod_S9fftm7cNl7rh6',
-    priceId: 'price_1RFMKaCtJc6njTYQvFfgEt3N',
+    id: 'prod_Sv5ftx1zUX7g1R',
+    priceId: 'price_1RzFTkCtJc6njTYQ4RuFQ7xz',
     name: 'Pro',
     description: 'Professional plan for serious photographers',
     price: 24.00,
@@ -43,8 +43,8 @@ export const products: Product[] = [
     ]
   },
   {
-    id: 'prod_S9fefG7DklP0i7',
-    priceId: 'price_1RFMJNCtJc6njTYQJUh6T8bQ',
+    id: 'prod_Sv5acvIEHQe77L',
+    priceId: 'price_1RzFPGCtJc6njTYQg5yLagWT',
     name: 'Starter',
     description: 'Perfect for getting started with AI photo culling',
     price: 9.00,

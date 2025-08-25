@@ -55,22 +55,22 @@ export interface UserPlan {
 
 // Plan configurations
 const PLAN_CONFIGS = {
-  'price_1RFMJNCtJc6njTYQJUh6T8bQ': {
+  'price_1RzFPGCtJc6njTYQg5yLagWT': {
     name: 'Starter',
     monthly_credits: 100,
     features: ['Basic AI Analysis', 'Face Detection', 'Quality Scoring', 'Standard Support']
   },
-  'price_1RFMKaCtJc6njTYQvFfgEt3N': {
+  'price_1RzFTkCtJc6njTYQ4RuFQ7xz': {
     name: 'Pro', 
     monthly_credits: 200,
     features: ['Deep AI Analysis', 'Event-Specific Prompts', 'Advanced Features', 'Priority Support']
   },
-  'price_1RFMLjCtJc6njTYQdhReQy8b': {
+  'price_1RzFV8CtJc6njTYQjpSGsjex': {
     name: 'Studio',
     monthly_credits: 500,
     features: ['Unlimited Analysis', 'All Pro Features', 'API Access', 'White-label Options']
   },
-  'price_1REGOlCtJc6njTYQF3WdxPX6': {
+  'price_1RzvYOCtJc6njTYQhEjD0wVH': {
     name: 'Extra Credits',
     monthly_credits: 50, // One-time purchase
     features: ['Additional Credits', 'No Expiration', 'Add to existing plan']

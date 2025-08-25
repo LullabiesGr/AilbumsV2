@@ -62,7 +62,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                     <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 dark:text-gray-100">
                       <div className="flex flex-col items-center">
                         <span>Beta Free</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">100 credits/μήνα</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">50 credits/μήνα</span>
                       </div>
                     </th>
                     <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 dark:text-gray-100">

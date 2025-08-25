@@ -31,7 +31,7 @@ export const products: Product[] = [
     priceId: 'price_1RzFTkCtJc6njTYQ4RuFQ7xz',
     name: 'Pro',
     description: 'Professional plan for serious photographers',
-    price: 23.99,
+    price: 24.99,
     currency: 'USD',
     mode: 'subscription',
     features: [

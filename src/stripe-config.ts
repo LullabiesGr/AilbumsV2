@@ -15,8 +15,8 @@ export const products: Product[] = [
     priceId: 'price_1RzFV8CtJc6njTYQjpSGsjex',
     name: 'Studio',
     description: 'Professional studio plan with unlimited features',
-    price: 49.00,
-    currency: 'EUR',
+    price: 34.99,
+    currency: 'USD',
     mode: 'subscription',
     features: [
       'Unlimited photo analysis',
@@ -31,8 +31,8 @@ export const products: Product[] = [
     priceId: 'price_1RzFTkCtJc6njTYQ4RuFQ7xz',
     name: 'Pro',
     description: 'Professional plan for serious photographers',
-    price: 24.00,
-    currency: 'EUR',
+    price: 19.99,
+    currency: 'USD',
     mode: 'subscription',
     features: [
       'Deep AI analysis',

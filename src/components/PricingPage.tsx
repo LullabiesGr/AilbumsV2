@@ -91,7 +91,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                   <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
                       Face Retouch
-                      <div className="text-xs text-gray-500 dark:text-gray-400">Πρώην CodeFormer</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Ai Ailbums Retouch</div>
                     </td>
                     <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
                       <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full font-medium">

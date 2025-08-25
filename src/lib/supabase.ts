@@ -55,17 +55,17 @@ export interface UserPlan {
 
 // Plan configurations
 const PLAN_CONFIGS = {
-  'price_1RFMJNCtJc6njTYQJUh6T8bQ': {
+  'price_1RzFPGCtJc6njTYQg5yLagWT': {
     name: 'Starter',
     monthly_credits: 100,
     features: ['Basic AI Analysis', 'Face Detection', 'Quality Scoring', 'Standard Support']
   },
-  'price_1RFMKaCtJc6njTYQvFfgEt3N': {
+  'price_1RzFTkCtJc6njTYQ4RuFQ7xz': {
     name: 'Pro', 
     monthly_credits: 200,
     features: ['Deep AI Analysis', 'Event-Specific Prompts', 'Advanced Features', 'Priority Support']
   },
-  'price_1RFMLjCtJc6njTYQdhReQy8b': {
+  'price_1RzFV8CtJc6njTYQjpSGsjex': {
     name: 'Studio',
     monthly_credits: 500,
     features: ['Unlimited Analysis', 'All Pro Features', 'API Access', 'White-label Options']
@@ -119,7 +119,7 @@ export const getUserPlan = async (userEmail: string): Promise<UserPlan | null> =
           plan_name: 'Free',
           price_id: '',
           status: 'inactive',
-          monthly_credits: 100, // Default free credits
+          monthly_credits: 50, // Default free credits
           current_period_end: '',
           is_active: false
         };
@@ -134,7 +134,7 @@ export const getUserPlan = async (userEmail: string): Promise<UserPlan | null> =
         plan_name: 'Free',
         price_id: '',
         status: 'inactive',
-        monthly_credits: 100,
+        monthly_credits: 50,
         current_period_end: '',
         is_active: false
       };
@@ -163,7 +163,7 @@ export const getUserPlan = async (userEmail: string): Promise<UserPlan | null> =
         plan_name: 'Free',
         price_id: '',
         status: 'inactive',
-        monthly_credits: 100,
+        monthly_credits: 50,
         current_period_end: '',
         is_active: false
       };

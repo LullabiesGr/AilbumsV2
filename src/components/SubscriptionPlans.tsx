@@ -255,7 +255,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSuccess }) => {
                       <div className="space-y-2">
                         <div className="flex items-baseline justify-center space-x-2">
                           <span className="text-2xl font-bold text-gray-400 dark:text-gray-500 line-through">
-                            €{product.price.toFixed(2)}
+                            ${product.price.toFixed(2)}
                           </span>
                           <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full font-bold">
                             -{discount}%
@@ -263,7 +263,7 @@ const SubscriptionPlans: React.FC<SubscriptionPlansProps> = ({ onSuccess }) => {
                         </div>
                         <div className="flex items-baseline justify-center">
                           <span className="text-4xl font-bold text-gray-900 dark:text-gray-100">
-                            €{discountedPrice.toFixed(2)}
+                            ${discountedPrice.toFixed(2)}
                           </span>
                           <span className="text-gray-600 dark:text-gray-400 ml-2">/month</span>
                         </div>

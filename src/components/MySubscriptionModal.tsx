@@ -42,7 +42,7 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
           plan_name: 'Free',
           price_id: '',
           status: 'inactive',
-          monthly_credits: 100,
+          monthly_credits: 50,
           current_period_end: '',
           is_active: false
         });

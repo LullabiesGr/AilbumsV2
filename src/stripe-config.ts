@@ -69,7 +69,7 @@ export const products: Product[] = [
     mode: 'payment',
     features: [
       'Additional credits',
-      'No Expiration'
+      'No Expiration',
       'Add to existing plan'
     ]
   }

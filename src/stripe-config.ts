@@ -48,7 +48,7 @@ export const products: Product[] = [
     priceId: 'price_1RzFPGCtJc6njTYQg5yLagWT',
     name: 'Starter',
     description: 'Perfect for getting started with AI photo culling',
-    price: 11.49,
+    price: 11.10,
     currency: 'USD',
     mode: 'subscription',
     features: [

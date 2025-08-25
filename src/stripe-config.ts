@@ -12,7 +12,7 @@ export interface Product {
 export const products: Product[] = [
   {
     id: 'prod_S9fh5n5VWeslLF',
-    priceId: 'price_1RFMLjCtJc6njTYQdhReQy8b',
+    priceId: 'price_1RzFV8CtJc6njTYQjpSGsjex',
     name: 'Studio',
     description: 'Professional studio plan with unlimited features',
     price: 49.00,
@@ -28,7 +28,7 @@ export const products: Product[] = [
   },
   {
     id: 'prod_S9fftm7cNl7rh6',
-    priceId: 'price_1RFMKaCtJc6njTYQvFfgEt3N',
+    priceId: 'price_1RzFTkCtJc6njTYQ4RuFQ7xz',
     name: 'Pro',
     description: 'Professional plan for serious photographers',
     price: 24.00,

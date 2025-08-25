@@ -119,7 +119,7 @@ export const getUserPlan = async (userEmail: string): Promise<UserPlan | null> =
           plan_name: 'Free',
           price_id: '',
           status: 'inactive',
-          monthly_credits: 100, // Default free credits
+          monthly_credits: 50, // Default free credits
           current_period_end: '',
           is_active: false
         };

@@ -44,10 +44,10 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
         <div className="mt-16 max-w-6xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-              Σύγκριση Λειτουργιών
+              Feature Comparison
             </h2>
             <p className="text-gray-600 dark:text-gray-400">
-              Δείτε τι περιλαμβάνει κάθε πλάνο και πόσα credits χρειάζεται κάθε λειτουργία
+              See what's included in each plan and how many credits each feature requires
             </p>
           </div>
 
@@ -57,31 +57,31 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
-                      Λειτουργία
+                      Feature
                     </th>
                     <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 dark:text-gray-100">
                       <div className="flex flex-col items-center">
                         <span>Beta Free</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">50 credits/μήνα</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">50 credits/month</span>
                       </div>
                     </th>
                     <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 dark:text-gray-100">
                       <div className="flex flex-col items-center">
                         <span>Starter</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">75 credits/μήνα</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">75 credits/month</span>
                       </div>
                     </th>
                     <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 dark:text-gray-100">
                       <div className="flex flex-col items-center">
                         <span>Pro</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">200 credits/μήνα</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">200 credits/month</span>
                         <span className="px-2 py-1 bg-blue-500 text-white text-xs rounded-full mt-1">Popular</span>
                       </div>
                     </th>
                     <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900 dark:text-gray-100">
                       <div className="flex flex-col items-center">
                         <span>Studio</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">500 credits/μήνα</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">500 credits/month</span>
                         <span className="px-2 py-1 bg-purple-500 text-white text-xs rounded-full mt-1">Best Value</span>
                       </div>
                     </th>
@@ -247,7 +247,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                   <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
                       Duplicates
-                      <div className="text-xs text-gray-500 dark:text-gray-400">Find duplicate photos</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Duplicate detection</div>
                     </td>
                     <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
                       <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-bold">

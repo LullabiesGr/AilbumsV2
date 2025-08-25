@@ -39,6 +39,7 @@ export const products: Product[] = [
       'Event-specific prompts',
       'Advanced features',
       'Priority support',
+      '200 Credits',
       'Face retouching'
     ]
   },
@@ -68,6 +69,7 @@ export const products: Product[] = [
     features: [
       'Additional credits',
       'No expiration',
+      '100 Credits',
       'Add to existing plan'
     ]
   }

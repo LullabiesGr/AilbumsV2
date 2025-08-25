@@ -57,7 +57,7 @@ export interface UserPlan {
 const PLAN_CONFIGS = {
   'price_1RFMJNCtJc6njTYQJUh6T8bQ': {
     name: 'Starter',
-    monthly_credits: 100,
+    monthly_credits: 50,
     features: ['Basic AI Analysis', 'Face Detection', 'Quality Scoring', 'Standard Support']
   },
   'price_1RFMKaCtJc6njTYQvFfgEt3N': {

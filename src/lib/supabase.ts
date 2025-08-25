@@ -70,7 +70,7 @@ const PLAN_CONFIGS = {
     monthly_credits: 500,
     features: ['Unlimited Analysis', 'All Pro Features', 'API Access', 'White-label Options']
   },
-  'price_1REGOlCtJc6njTYQF3WdxPX6': {
+  'price_1RzvYOCtJc6njTYQhEjD0wVH': {
     name: 'Extra Credits',
     monthly_credits: 50, // One-time purchase
     features: ['Additional Credits', 'No Expiration', 'Add to existing plan']

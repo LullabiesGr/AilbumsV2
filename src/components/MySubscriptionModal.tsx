@@ -484,11 +484,11 @@ const MySubscriptionModal: React.FC<MySubscriptionModalProps> = ({ isOpen, onClo
                       </p>
                       {subscription.cancel_at_period_end && (
                         <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded">
-                         <p className="text-sm text-amber-700 dark:text-amber-300">
-                           Your subscription will end on {formatTimestamp(subscription.current_period_end)} and will not renew.
-                         </p>
-                       </div>
-                     )}
+                            {getProductDetails(userPlan.price_id)!.currency === 'EUR' ? '€' : '$'}{getProductDetails(userPlan.price_id)!.price.toFixed(2)}/month
+                            ${getProductDetails(userPlan.price_id)!.price.toFixed(2)}/month
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
 

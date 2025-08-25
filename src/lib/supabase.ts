@@ -134,7 +134,7 @@ export const getUserPlan = async (userEmail: string): Promise<UserPlan | null> =
         plan_name: 'Free',
         price_id: '',
         status: 'inactive',
-        monthly_credits: 100,
+        monthly_credits: 50,
         current_period_end: '',
         is_active: false
       };

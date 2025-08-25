@@ -180,7 +180,7 @@ export const getUserPlan = async (userEmail: string): Promise<UserPlan | null> =
         plan_name: 'Unknown Plan',
         price_id: subscription.price_id,
         status: subscription.status,
-        monthly_credits: 100,
+        monthly_credits: 50,
         current_period_end: subscription.current_period_end,
         is_active: subscription.status === 'active'
       };
